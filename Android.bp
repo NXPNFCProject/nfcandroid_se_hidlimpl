@@ -1,0 +1,47 @@
+cc_binary {
+    relative_install_path: "hw",
+    name: "android.hardware.secure_element@1.0-service",
+    init_rc: ["1.0/android.hardware.secure_element@1.0-service.rc"],
+    proprietary: true,
+    defaults: ["hidl_defaults"],
+    srcs: [
+        "1.0/NxpEseService.cpp",
+        "1.0/SecureElement.cpp",
+        "extns/impl/NxpEse.cpp",
+        "1.0/VirtualISO.cpp",
+    ],
+
+    shared_libs: [
+        "android.hardware.secure_element@1.0",
+        "ese_spi_nxp",
+        "libbase",
+        "libcutils",
+        "libdl",
+        "libhardware",
+        "libhidlbase",
+        "libhidltransport",
+        "libhwbinder",
+        "liblog",
+        "libutils",
+        "libchrome",
+        "vendor.nxp.nxpese@1.0",
+        "vendor.nxp.nxpnfc@1.0",
+    ],
+
+    local_include_dirs: [
+        "libese-spi/common/include",
+        "libese-spi/p73/common",
+        "libese-spi/p73/inc",
+        "libese-spi/p73/lib",
+        "libese-spi/p73/pal",
+        "libese-spi/p73/pal/spi",
+        "libese-spi/p73/utils",
+        "libese-spi/src/include",
+    ],
+
+    include_dirs: [
+        "hardware/nxp/nfc/extns/impl",
+        "hardware/nxp/secure_element/extns/impl",
+    ],
+
+}

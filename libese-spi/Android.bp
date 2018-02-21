@@ -1,0 +1,68 @@
+cc_library_shared {
+
+    name: "ese_spi_nxp",
+    defaults: ["hidl_defaults"],
+    proprietary: true,
+
+    srcs: [
+        "p73/lib/phNxpEseDataMgr.cpp",
+        "p73/lib/phNxpEseProto7816_3.cpp",
+        "p73/lib/phNxpEse_Apdu_Api.cpp",
+        "p73/lib/phNxpEse_Api.cpp",
+        "p73/pal/phNxpEsePal.cpp",
+        "p73/pal/spi/phNxpEsePal_spi.cpp",
+        "p73/spm/phNxpEse_Spm.cpp",
+        "p73/utils/ese_config.cpp",
+        "p73/utils/config.cpp",
+        "p73/utils/ringbuffer.cpp",
+        "src/adaptation/NfcAdaptation.cpp",
+    ],
+
+    local_include_dirs: [
+        "common/include",
+        "p73/common",
+        "p73/inc",
+        "p73/lib",
+        "p73/pal",
+        "p73/pal/spi",
+        "p73/utils",
+        "src/include",
+    ],
+    include_dirs: [
+        "hardware/nxp/nfc/extns/impl",
+        "hardware/nxp/secure_element/extns/impl",
+    ],
+
+    cflags: [
+        "-DANDROID",
+        "-DBUILDCFG=1",
+        "-DNXP_EXTNS=TRUE",
+        "-Wall",
+        "-Werror",
+    ],
+
+    shared_libs: [
+        "android.hardware.nfc@1.0",
+        "android.hardware.nfc@1.1",
+        "android.hardware.secure_element@1.0",
+        "libcutils",
+        "libhardware",
+        "libhidlbase",
+        "libhidltransport",
+        "libutils",
+        "liblog",
+        "libbase",
+        "libchrome",
+        "vendor.nxp.nxpese@1.0",
+        "vendor.nxp.nxpnfc@1.0",
+    ],
+
+    product_variables: {
+        debuggable: {
+            cflags: [
+                "-DDCHECK_ALWAYS_ON"
+            ],
+        },
+    },
+
+}
