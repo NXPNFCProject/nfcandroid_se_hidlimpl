@@ -258,7 +258,7 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
       sestatus = SecureElementStatus::SUCCESS;
     }
     /*AID provided doesn't match any applet on the secure element*/
-    else if (rpdu.sw1 == 0x67 && rpdu.sw2 == 0x00) {
+    else if (rpdu.sw1 == 0x6A && rpdu.sw2 == 0x82) {
       sestatus = SecureElementStatus::NO_SUCH_ELEMENT_ERROR;
     }
     /*Operation provided by the P2 parameter is not permitted by the applet.*/
@@ -267,12 +267,21 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
     } else {
       sestatus = SecureElementStatus::FAILED;
     }
-    _hidl_cb(resApduBuff, sestatus);
+  }
+  if (sestatus != SecureElementStatus::SUCCESS) {
+        SecureElementStatus  closeChannelStatus =
+        internalCloseChannel(resApduBuff.channelNumber);
+    if (closeChannelStatus != SecureElementStatus::SUCCESS) {
+      LOG(ERROR)<<"%s: closeChannel Failed"<< __func__;
+    } else {
+      resApduBuff.channelNumber = 0xff;
+    }
   }
   status = phNxpEse_ResetEndPoint_Cntxt(1);
   if (status != ESESTATUS_SUCCESS) {
     //return Void(); TODO
   }
+  _hidl_cb(resApduBuff, sestatus);
   phNxpEse_free(cpdu.pdata);
   phNxpEse_free(rpdu.pdata);
 
@@ -348,7 +357,7 @@ Return<void> VirtualISO::openBasicChannel(const hidl_vec<uint8_t>& aid,
       sestatus = SecureElementStatus::SUCCESS;
     }
     /*AID provided doesn't match any applet on the secure element*/
-    else if (rpdu.sw1 == 0x67 && rpdu.sw2 == 0x00) {
+    else if (rpdu.sw1 == 0x6A && rpdu.sw2 == 0x82) {
       sestatus = SecureElementStatus::NO_SUCH_ELEMENT_ERROR;
     }
     /*Operation provided by the P2 parameter is not permitted by the applet.*/
@@ -357,15 +366,96 @@ Return<void> VirtualISO::openBasicChannel(const hidl_vec<uint8_t>& aid,
     } else {
       sestatus = SecureElementStatus::FAILED;
     }
-    _hidl_cb(result, sestatus);
   }
   status = phNxpEse_ResetEndPoint_Cntxt(1);
   if (status != ESESTATUS_SUCCESS) {
     //return Void(); TODO
   }
+  if ((sestatus != SecureElementStatus::SUCCESS) && mOpenedChannels[0]) {
+    SecureElementStatus closeChannelStatus =
+        internalCloseChannel(DEFAULT_BASIC_CHANNEL);
+    if (closeChannelStatus != SecureElementStatus::SUCCESS) {
+      LOG(ERROR)<<"%s: closeChannel Failed"<< __func__;
+    }
+  }
+  _hidl_cb(result, sestatus);
   phNxpEse_free(cpdu.pdata);
   phNxpEse_free(rpdu.pdata);
   return Void();
+}
+
+Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
+VirtualISO::internalCloseChannel(uint8_t channelNumber)
+{
+  ESESTATUS status = ESESTATUS_SUCCESS;
+  SecureElementStatus sestatus = SecureElementStatus::FAILED;
+  phNxpEse_7816_cpdu_t cpdu;
+  phNxpEse_7816_rpdu_t rpdu;
+
+  LOG(ERROR)<<"closeChannel Enter";
+  if (channelNumber < DEFAULT_BASIC_CHANNEL ||
+      channelNumber >= MAX_LOGICAL_CHANNELS) {
+    LOG(ERROR) << StringPrintf("invalid channel!!! %d",channelNumber);
+    sestatus = SecureElementStatus::FAILED;
+  } else if (channelNumber > DEFAULT_BASIC_CHANNEL){
+    phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
+    phNxpEse_memset(&rpdu, 0x00, sizeof(phNxpEse_7816_rpdu_t));
+    cpdu.cla = channelNumber; /* Class of instruction */
+    cpdu.ins = 0x70;          /* Instruction code */
+    cpdu.p1 = 0x80;           /* Instruction parameter 1 */
+    cpdu.p2 = channelNumber;  /* Instruction parameter 2 */
+    cpdu.lc = 0x00;
+    cpdu.le = 0x9000;
+  LOG(ERROR) << "Robot about to acquire lock in VISO ";
+  LOG(ERROR) << "Robot acquired the lock in VISO ";
+    status = phNxpEse_SetEndPoint_Cntxt(1);
+    if (status != ESESTATUS_SUCCESS) {
+      //return Void(); TODO
+    }
+    status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
+
+    if (status != ESESTATUS_SUCCESS) {
+      if (rpdu.len > 0 && (rpdu.sw1 == 0x64 && rpdu.sw2 == 0xFF)) {
+        sestatus = SecureElementStatus::FAILED;
+      } else {
+        sestatus = SecureElementStatus::FAILED;
+      }
+    } else {
+      if ((rpdu.sw1 == 0x90) && (rpdu.sw2 == 0x00)) {
+        sestatus = SecureElementStatus::SUCCESS;
+      } else {
+        sestatus = SecureElementStatus::FAILED;
+      }
+    }
+    status = phNxpEse_ResetEndPoint_Cntxt(1);
+    if (status != ESESTATUS_SUCCESS) {
+      //return Void(); TODO
+    }
+  }
+  if ((channelNumber == DEFAULT_BASIC_CHANNEL) ||
+      (sestatus == SecureElementStatus::SUCCESS)) {
+    mOpenedChannels[channelNumber] = false;
+    mOpenedchannelCount--;
+    /*If there are no channels remaining close secureElement*/
+    if (mOpenedchannelCount == 0) {
+      sestatus = seHalDeInit();
+    } else {
+      sestatus = SecureElementStatus::SUCCESS;
+    }
+  }
+  if(isFirstInit)
+  {
+      isFirstInit = false;
+      LOG(ERROR) << "Completion of VISO Init enter into JCOP D/L";
+      SESTATUS lsStatus = JCOS_doDownload();
+      /*LSC_doDownload returns LSCSTATUS_FAILED in case thread creation fails.
+      So return callback as false.
+      Otherwise callback will be called in LSDownload module.*/
+      if(lsStatus != SESTATUS_SUCCESS) {
+          LOG(ERROR) <<"LSDownload thread creation failed!!!";
+      }
+  }
+  return sestatus;
 }
 
 Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
@@ -375,6 +465,7 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
   phNxpEse_7816_cpdu_t cpdu;
   phNxpEse_7816_rpdu_t rpdu;
 
+  LOG(ERROR)<<"closeChannel Enter";
   if (channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d for %d",channelNumber,mOpenedChannels[channelNumber]);

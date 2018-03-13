@@ -78,7 +78,6 @@ struct VirtualISO : public ISecureElement, public hidl_death_recipient {
     // T=1 stack
     // close(0);
   }
-
  private:
   uint8_t mOpenedchannelCount = 0;
   bool mIsEseInitialized = false;
@@ -86,6 +85,8 @@ struct VirtualISO : public ISecureElement, public hidl_death_recipient {
   Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
   seHalDeInit();
   ESESTATUS seHalInit();
+  Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
+  internalCloseChannel(uint8_t channelNumber);
 };
 
 }  // namespace implementation
