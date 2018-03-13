@@ -875,25 +875,38 @@ ESESTATUS phNxpEse_chipReset(void) {
 ESESTATUS phNxpEse_deInit(void) {
   ESESTATUS status = ESESTATUS_SUCCESS;
   unsigned long maxTimer = 0;
-  status = phNxpEseProto7816_Close(
-      (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
-  if (status == ESESTATUS_FAILED) {
-    status = ESESTATUS_FAILED;
-  } else {
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s secureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
-                    __FUNCTION__, nxpese_ctxt.secureTimerParams.secureTimer1,
-                    nxpese_ctxt.secureTimerParams.secureTimer2,
-                    nxpese_ctxt.secureTimerParams.secureTimer3);
-    phNxpEse_GetMaxTimer(&maxTimer);
+  unsigned long num = 0;
+  /*TODO : to be removed after JCOP fix*/
+  if (EseConfig::hasKey(NAME_NXP_VISO_DPD_ENABLED))
+  {
+      num = EseConfig::getUnsigned(NAME_NXP_VISO_DPD_ENABLED);
+  }
+  if(num == 0 && nxpese_ctxt.nadInfo.nadRx == EUICC_NAD_RX)
+  {
+      //do nothing
+  }
+  else
+  {
+      status = phNxpEseProto7816_Close(
+          (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
+      if (status == ESESTATUS_FAILED) {
+          status = ESESTATUS_FAILED;
+      } else {
+          DLOG_IF(INFO, ese_debug_enabled)
+          << StringPrintf("%s secureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
+               __FUNCTION__, nxpese_ctxt.secureTimerParams.secureTimer1,
+                      nxpese_ctxt.secureTimerParams.secureTimer2,
+                      nxpese_ctxt.secureTimerParams.secureTimer3);
+      phNxpEse_GetMaxTimer(&maxTimer);
 #ifdef SPM_INTEGRATED
 #if (NXP_SECURE_TIMER_SESSION == true)
-    status = phNxpEse_SPM_DisablePwrControl(maxTimer);
-    if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << StringPrintf("%s phNxpEseP61_DisablePwrCntrl: failed", __FUNCTION__);
-    }
+        status = phNxpEse_SPM_DisablePwrControl(maxTimer);
+        if (status != ESESTATUS_SUCCESS) {
+            LOG(ERROR) << StringPrintf("%s phNxpEseP61_DisablePwrCntrl: failed", __FUNCTION__);
+      }
 #endif
 #endif
+      }
   }
   return status;
 }

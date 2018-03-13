@@ -22,6 +22,8 @@
 #include <hardware/hardware.h>
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>
+#include "phNxpEse_Api.h"
+#include <android-base/stringprintf.h>
 
 namespace vendor {
 namespace nxp {
@@ -42,8 +44,20 @@ using ::android::hardware::hidl_vec;
 using ::android::hardware::Return;
 using ::android::hardware::Void;
 using ::android::sp;
+using android::base::StringPrintf;
+
+#ifndef MAX_LOGICAL_CHANNELS
+#define MAX_LOGICAL_CHANNELS 0x04
+#endif
+#ifndef MIN_APDU_LENGTH
+#define MIN_APDU_LENGTH 0x04
+#endif
+#ifndef DEFAULT_BASIC_CHANNEL
+#define DEFAULT_BASIC_CHANNEL 0x00
+#endif
 
 struct VirtualISO : public ISecureElement, public hidl_death_recipient {
+  VirtualISO();
   Return<void> init(
       const sp<
           ::android::hardware::secure_element::V1_0::ISecureElementHalCallback>&
@@ -64,6 +78,14 @@ struct VirtualISO : public ISecureElement, public hidl_death_recipient {
     // T=1 stack
     // close(0);
   }
+
+ private:
+  uint8_t mOpenedchannelCount = 0;
+  bool mIsEseInitialized = false;
+  bool mOpenedChannels[MAX_LOGICAL_CHANNELS];
+  Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
+  seHalDeInit();
+  ESESTATUS seHalInit();
 };
 
 }  // namespace implementation

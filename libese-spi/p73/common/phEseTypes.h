@@ -26,6 +26,4 @@
 #include <string.h>
 #include <unistd.h>
 
-#define UNUSED(X) (void)X;
-
 #endif /* PHESETYPES_H */

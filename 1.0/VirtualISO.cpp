@@ -43,12 +43,11 @@ typedef struct gsTransceiveBuffer {
 static sTransceiveBuffer_t gsTxRxBuffer;
 static uint8_t isFirstInit = true;
 static hidl_vec<uint8_t> gsRspDataBuff(256);
-typedef struct gslogicalChannelInfo {
-  bool openedChannelIds[MAX_LOGICAL_CHANNELS] = {false, false, false, false};
-  uint8_t openedchannelCount = 0;
-} slogicalChannelInfo_t;
 
-slogicalChannelInfo_t gssChannelInfo;
+VirtualISO::VirtualISO()
+    : mOpenedchannelCount(0),
+      mIsEseInitialized(false),
+      mOpenedChannels{false, false, false, false} {}
 
 Return<void> VirtualISO::init(
     const sp<
@@ -66,7 +65,11 @@ Return<void> VirtualISO::init(
   } else {
     clientCallback->linkToDeath(this, 0 /*cookie*/);
   }
-    LOG(ERROR) << "Mr Robot in VISO !!!";
+  LOG(ERROR) << "Mr Robot in VISO !!!";
+  if (mIsEseInitialized) {
+    clientCallback->onStateChange(true);
+    return Void();
+  }
   status = phNxpEse_open(initParams);
   if (status != ESESTATUS_SUCCESS) {
     //return Void();
@@ -78,9 +81,8 @@ Return<void> VirtualISO::init(
     //return Void();
   }
   status = phNxpEse_ResetEndPoint_Cntxt(1);
+  mIsEseInitialized = true;
     LOG(ERROR) << "Mr Robot VVV !!!";
-  gssChannelInfo.openedChannelIds[0] = true;
-  gssChannelInfo.openedchannelCount++;
   if (status == ESESTATUS_SUCCESS) clientCallback->onStateChange(true);
   return Void();
 }
@@ -135,14 +137,25 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
                                                uint8_t p2,
                                                openLogicalChannel_cb _hidl_cb) {
   hidl_vec<uint8_t> manageChannelCommand = {0x00, 0x70, 0x00, 0x00, 0x01};
-  ESESTATUS status = ESESTATUS_FAILED;
 
   LogicalChannelResponse resApduBuff;
+  resApduBuff.channelNumber = 0xff;
   memset(&resApduBuff, 0x00, sizeof(resApduBuff));
+  if (!mIsEseInitialized) {
+    ESESTATUS status = seHalInit();
+    if (status != ESESTATUS_SUCCESS) {
+      LOG(ERROR) << "%s: seHalInit Failed!!!"<< __func__;
+      _hidl_cb(resApduBuff, SecureElementStatus::IOERROR);
+      return Void();
+    }
+  }
 
+  SecureElementStatus sestatus = SecureElementStatus::IOERROR;
+  ESESTATUS status = ESESTATUS_FAILED;
   phNxpEse_data cmdApdu;
-  phNxpEse_memset(&cmdApdu, 0x00, sizeof(phNxpEse_data));
   phNxpEse_data rspApdu;
+
+  phNxpEse_memset(&cmdApdu, 0x00, sizeof(phNxpEse_data));
   phNxpEse_memset(&rspApdu, 0x00, sizeof(phNxpEse_data));
 
   cmdApdu.len = manageChannelCommand.size();
@@ -150,7 +163,6 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
                                                sizeof(uint8_t));
   memcpy(cmdApdu.p_data, manageChannelCommand.data(), cmdApdu.len);
 
-  SecureElementStatus sestatus;
   memset(&sestatus, 0x00, sizeof(sestatus));
 
     LOG(ERROR) << "Mr Robot VVV !!!";
@@ -158,9 +170,10 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   AutoThreadMutex a(sLock);
   LOG(ERROR) << "Robot acquired the lock in VISO ";
   status = phNxpEse_SetEndPoint_Cntxt(1);
+  if (status != ESESTATUS_SUCCESS) {
+    //return Void(); TODO
+  }
   status = phNxpEse_Transceive(&cmdApdu, &rspApdu);
-  status = phNxpEse_ResetEndPoint_Cntxt(1);
-
   if (status != ESESTATUS_SUCCESS) {
     resApduBuff.channelNumber = 0xff;
     if (rspApdu.len > 0 &&
@@ -182,10 +195,28 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   } else if (rspApdu.p_data[rspApdu.len - 2] == 0x90 &&
              rspApdu.p_data[rspApdu.len - 1] == 0x00) {
     resApduBuff.channelNumber = rspApdu.p_data[0];
-    gssChannelInfo.openedchannelCount++;
-    gssChannelInfo.openedChannelIds[resApduBuff.channelNumber] = true;
+    mOpenedchannelCount++;
+    mOpenedChannels[resApduBuff.channelNumber] = true;
+    sestatus = SecureElementStatus::SUCCESS;
+  }else if (((rspApdu.p_data[rspApdu.len - 2] == 0x6E) ||
+            (rspApdu.p_data[rspApdu.len - 2] == 0x6D)) &&
+             rspApdu.p_data[rspApdu.len - 1] == 0x00) {
+    sestatus = SecureElementStatus::UNSUPPORTED_OPERATION;
+  }
+
+  /*Free the allocations*/
+  phNxpEse_free(cmdApdu.p_data);
+  phNxpEse_free(rspApdu.p_data);
+
+  if (sestatus != SecureElementStatus::SUCCESS) {
+    /*If manageChanle is failed in any of above cases
+    send the callback and return*/
+    _hidl_cb(resApduBuff, sestatus);
+    return Void();
   }
   LOG(INFO) << "openLogicalChannel Sending selectApdu";
+  sestatus = SecureElementStatus::IOERROR;
+  status = ESESTATUS_FAILED;
 
   phNxpEse_7816_cpdu_t cpdu;
   phNxpEse_7816_rpdu_t rpdu;
@@ -205,10 +236,7 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   rpdu.len = 0x02;
   rpdu.pdata = (uint8_t*)phNxpEse_memalloc(cpdu.le * sizeof(uint8_t));
 
-  status = phNxpEse_SetEndPoint_Cntxt(1);
   status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
-  status = phNxpEse_ResetEndPoint_Cntxt(1);
-
   if (status != ESESTATUS_SUCCESS) {
     /*Transceive failed*/
     if (rpdu.len > 0 && (rpdu.sw1 == 0x64 && rpdu.sw2 == 0xFF)) {
@@ -241,7 +269,10 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
     }
     _hidl_cb(resApduBuff, sestatus);
   }
-  phNxpEse_free(cmdApdu.p_data);
+  status = phNxpEse_ResetEndPoint_Cntxt(1);
+  if (status != ESESTATUS_SUCCESS) {
+    //return Void(); TODO
+  }
   phNxpEse_free(cpdu.pdata);
   phNxpEse_free(rpdu.pdata);
 
@@ -255,6 +286,15 @@ Return<void> VirtualISO::openBasicChannel(const hidl_vec<uint8_t>& aid,
   phNxpEse_7816_cpdu_t cpdu;
   phNxpEse_7816_rpdu_t rpdu;
   hidl_vec<uint8_t> result;
+
+  if (!mIsEseInitialized) {
+    ESESTATUS status = seHalInit();
+    if (status != ESESTATUS_SUCCESS) {
+      LOG(ERROR) << "%s: seHalInit Failed!!!"<< __func__;
+      _hidl_cb(result, SecureElementStatus::IOERROR);
+      return Void();
+    }
+  }
 
   phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
   phNxpEse_memset(&rpdu, 0x00, sizeof(phNxpEse_7816_rpdu_t));
@@ -277,7 +317,6 @@ Return<void> VirtualISO::openBasicChannel(const hidl_vec<uint8_t>& aid,
   LOG(ERROR) << "Robot acquired the lock in VISO ";
   status = phNxpEse_SetEndPoint_Cntxt(1);
   status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
-  status = phNxpEse_ResetEndPoint_Cntxt(1);
 
   SecureElementStatus sestatus;
   memset(&sestatus, 0x00, sizeof(sestatus));
@@ -300,6 +339,12 @@ Return<void> VirtualISO::openBasicChannel(const hidl_vec<uint8_t>& aid,
 
     /*Status is success*/
     if ((rpdu.sw1 == 0x90) && (rpdu.sw2 == 0x00)) {
+      /*Set basic channel reference if it is not set */
+      if (!mOpenedChannels[0]) {
+        mOpenedChannels[0] = true;
+        mOpenedchannelCount++;
+      }
+
       sestatus = SecureElementStatus::SUCCESS;
     }
     /*AID provided doesn't match any applet on the secure element*/
@@ -314,6 +359,10 @@ Return<void> VirtualISO::openBasicChannel(const hidl_vec<uint8_t>& aid,
     }
     _hidl_cb(result, sestatus);
   }
+  status = phNxpEse_ResetEndPoint_Cntxt(1);
+  if (status != ESESTATUS_SUCCESS) {
+    //return Void(); TODO
+  }
   phNxpEse_free(cpdu.pdata);
   phNxpEse_free(rpdu.pdata);
   return Void();
@@ -326,11 +375,11 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
   phNxpEse_7816_cpdu_t cpdu;
   phNxpEse_7816_rpdu_t rpdu;
 
-  if (channelNumber <= DEFAULT_BASIC_CHANNEL ||
-      channelNumber > MAX_LOGICAL_CHANNELS) {
-    LOG(ERROR) << "invalid channel!!!";
+  if (channelNumber < DEFAULT_BASIC_CHANNEL ||
+      channelNumber >= MAX_LOGICAL_CHANNELS) {
+    LOG(ERROR) << StringPrintf("invalid channel!!! %d for %d",channelNumber,mOpenedChannels[channelNumber]);
     sestatus = SecureElementStatus::FAILED;
-  } else {
+  } else if (channelNumber > DEFAULT_BASIC_CHANNEL){
     phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
     phNxpEse_memset(&rpdu, 0x00, sizeof(phNxpEse_7816_rpdu_t));
     cpdu.cla = channelNumber; /* Class of instruction */
@@ -343,8 +392,11 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
   AutoThreadMutex a(sLock);
   LOG(ERROR) << "Robot acquired the lock in VISO ";
     status = phNxpEse_SetEndPoint_Cntxt(1);
+    if (status != ESESTATUS_SUCCESS) {
+      //return Void(); TODO
+    }
     status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
-    status = phNxpEse_ResetEndPoint_Cntxt(1);
+
     if (status != ESESTATUS_SUCCESS) {
       if (rpdu.len > 0 && (rpdu.sw1 == 0x64 && rpdu.sw2 == 0xFF)) {
         sestatus = SecureElementStatus::FAILED;
@@ -353,12 +405,25 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
       }
     } else {
       if ((rpdu.sw1 == 0x90) && (rpdu.sw2 == 0x00)) {
-        gssChannelInfo.openedChannelIds[channelNumber] = false;
-        gssChannelInfo.openedchannelCount--;
         sestatus = SecureElementStatus::SUCCESS;
       } else {
         sestatus = SecureElementStatus::FAILED;
       }
+    }
+    status = phNxpEse_ResetEndPoint_Cntxt(1);
+    if (status != ESESTATUS_SUCCESS) {
+      //return Void(); TODO
+    }
+  }
+  if ((channelNumber == DEFAULT_BASIC_CHANNEL) ||
+      (sestatus == SecureElementStatus::SUCCESS)) {
+    mOpenedChannels[channelNumber] = false;
+    mOpenedchannelCount--;
+    /*If there are no channels remaining close secureElement*/
+    if (mOpenedchannelCount == 0) {
+      sestatus = seHalDeInit();
+    } else {
+      sestatus = SecureElementStatus::SUCCESS;
     }
   }
   if(isFirstInit)
@@ -372,6 +437,65 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
       if(lsStatus != SESTATUS_SUCCESS) {
           LOG(ERROR) <<"LSDownload thread creation failed!!!";
       }
+  }
+  return sestatus;
+}
+ESESTATUS VirtualISO::seHalInit() {
+  ESESTATUS status = ESESTATUS_SUCCESS;
+  phNxpEse_initParams initParams;
+  memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
+  initParams.initMode = ESE_MODE_NORMAL;
+
+  //status = phNxpEse_open(initParams);
+  if (status != ESESTATUS_SUCCESS) {
+    LOG(ERROR) << "%s: SecureElement open failed!!!"<<__func__;
+  } else {
+    status = phNxpEse_SetEndPoint_Cntxt(1);
+     if (status != ESESTATUS_SUCCESS) {
+       //return Void(); TODO
+     }
+    status = phNxpEse_init(initParams);
+    if (status != ESESTATUS_SUCCESS) {
+      LOG(ERROR) << "%s: SecureElement init failed!!!"<< __func__;
+    } else {
+        status = phNxpEse_ResetEndPoint_Cntxt(1);
+       if (status != ESESTATUS_SUCCESS) {
+       //return Void(); TODO
+      }
+      mIsEseInitialized = true;
+    }
+  }
+  return status;
+}
+
+Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
+VirtualISO::seHalDeInit() {
+  ESESTATUS status = ESESTATUS_SUCCESS;
+  SecureElementStatus sestatus = SecureElementStatus::FAILED;
+  status = phNxpEse_SetEndPoint_Cntxt(1);
+  if (status != ESESTATUS_SUCCESS) {
+    //return Void(); TODO
+  }
+  status = phNxpEse_deInit();
+  status = phNxpEse_ResetEndPoint_Cntxt(1);
+  if (status != ESESTATUS_SUCCESS) {
+    //return Void(); TODO
+  }
+  if (status != ESESTATUS_SUCCESS) {
+    sestatus = SecureElementStatus::FAILED;
+  } else {
+    //status = phNxpEse_close();
+    if (status != ESESTATUS_SUCCESS) {
+      sestatus = SecureElementStatus::FAILED;
+    } else {
+      mIsEseInitialized = false;
+      sestatus = SecureElementStatus::SUCCESS;
+
+      for (uint8_t xx = 0; xx < MAX_LOGICAL_CHANNELS; xx++) {
+        mOpenedChannels[xx] = false;
+      }
+      mOpenedchannelCount = 0;
+    }
   }
   return sestatus;
 }
