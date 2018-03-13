@@ -19,6 +19,7 @@
 #include <android-base/logging.h>
 #include "phNxpEse_Apdu_Api.h"
 #include "phNxpEse_Api.h"
+#include "LsClient.h"
 
 /* Mutex to synchronize multiple transceive */
 ThreadMutex sLock;
@@ -42,7 +43,7 @@ typedef struct gsTransceiveBuffer {
 
 static sTransceiveBuffer_t gsTxRxBuffer;
 static hidl_vec<uint8_t> gsRspDataBuff(256);
-
+static android::sp<ISecureElementHalCallback> cCallback;
 typedef struct gslogicalChannelInfo {
   bool openedChannelIds[MAX_LOGICAL_CHANNELS] = {false, false, false, false};
   uint8_t openedchannelCount = 0;
@@ -87,6 +88,7 @@ Return<void> SecureElement::init(
   gssChannelInfo.openedChannelIds[0] = true;
   gssChannelInfo.openedchannelCount++;
   if (status == ESESTATUS_SUCCESS) clientCallback->onStateChange(true);
+  cCallback = clientCallback;
   return Void();
 }
 
@@ -268,6 +270,8 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
   phNxpEse_7816_cpdu_t cpdu;
   phNxpEse_7816_rpdu_t rpdu;
   hidl_vec<uint8_t> result;
+  hidl_vec<uint8_t> ls_aid = {0xA0, 0x00, 0x00, 0x03, 0x96, 0x41, 0x4C,
+              0x41, 0x01, 0x43, 0x4F, 0x52, 0x01};
 
   phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
   phNxpEse_memset(&rpdu, 0x00, sizeof(phNxpEse_7816_rpdu_t));
@@ -292,8 +296,30 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
   if (status != ESESTATUS_SUCCESS) {
     //return Void(); TODO
   }
-  status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
- 
+  if(!memcmp(ls_aid.data(), aid.data(), cpdu.lc))
+  {
+      LOG(ERROR) << "LSDownload aid matches";
+      tLSC_STATUS lsStatus = performLSDownload(cCallback);
+      /*performLSDownload returns STATUS_FAILED in case thread creation fails.
+      So return callback as false.
+      Otherwise callback will be called in LSDownload module.*/
+      if(lsStatus != STATUS_SUCCESS) {
+          LOG(ERROR) << "LSDownload thread creation failed!!!";
+          status = ESESTATUS_FAILED;
+          rpdu.len = 2;
+          rpdu.sw1 = 0x6A;
+          rpdu.sw2 = 0x86;
+          cCallback->onStateChange(false);
+      }else {
+          status = ESESTATUS_SUCCESS;
+          rpdu.len = 2;
+          rpdu.sw1 = 0x90;
+          rpdu.sw2 = 0x00;
+      }
+  }else {
+        status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
+  }
+
   SecureElementStatus sestatus;
   memset(&sestatus, 0x00, sizeof(sestatus));
 
