@@ -150,6 +150,11 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   LogicalChannelResponse resApduBuff;
   resApduBuff.channelNumber = 0xff;
   memset(&resApduBuff, 0x00, sizeof(resApduBuff));
+
+  LOG(ERROR) << "Robot about to acquire lock from SPI openLogicalChannel";
+  AutoThreadMutex a(sLock);
+  LOG(ERROR) << "Robot acquired the lock from SPI openLogicalChannel";
+
   if (!mIsEseInitialized) {
     ESESTATUS status = seHalInit();
     if (status != ESESTATUS_SUCCESS) {
@@ -172,10 +177,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
                                                sizeof(uint8_t));
   memcpy(cmdApdu.p_data, manageChannelCommand.data(), cmdApdu.len);
 
-  LOG(ERROR) << "Mr Robot Open Logical Channel from SPI!!!";
-  LOG(ERROR) << "Robot about to acquire lock from SPI";
-  AutoThreadMutex a(sLock);
-  LOG(ERROR) << "Robot acquired the lock from SPI";
+
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
     //return Void(); TODO
@@ -187,16 +189,10 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
         (rspApdu.p_data[0] == 0x64 && rspApdu.p_data[1] == 0xFF)) {
       sestatus = SecureElementStatus::IOERROR;
     }
-    _hidl_cb(resApduBuff, sestatus);
-    phNxpEse_free(cmdApdu.p_data);
-    return Void();
   } else if (rspApdu.p_data[rspApdu.len - 2] == 0x6A &&
              rspApdu.p_data[rspApdu.len - 1] == 0x81) {
     resApduBuff.channelNumber = 0xff;
     sestatus = SecureElementStatus::CHANNEL_NOT_AVAILABLE;
-    _hidl_cb(resApduBuff, sestatus);
-    phNxpEse_free(cmdApdu.p_data);
-    return Void();
   } else if (rspApdu.p_data[rspApdu.len - 2] == 0x90 &&
              rspApdu.p_data[rspApdu.len - 1] == 0x00) {
     resApduBuff.channelNumber = rspApdu.p_data[0];
@@ -213,6 +209,12 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   phNxpEse_free(rspApdu.p_data);
 
   if (sestatus != SecureElementStatus::SUCCESS) {
+      if (mOpenedchannelCount == 0) {
+          SecureElementStatus deInitStatus = seHalDeInit();
+          if (deInitStatus != SecureElementStatus::SUCCESS) {
+              LOG(INFO) << "seDeInit Failed";
+          }
+      }
     /*If manageChanle is failed in any of above cases
     send the callback and return*/
     _hidl_cb(resApduBuff, sestatus);
@@ -304,6 +306,11 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
   hidl_vec<uint8_t> result;
   hidl_vec<uint8_t> ls_aid = {0xA0, 0x00, 0x00, 0x03, 0x96, 0x41, 0x4C,
               0x41, 0x01, 0x43, 0x4F, 0x52, 0x01};
+
+  LOG(ERROR) << "Robot about to acquire lock in SPI openBasicChannel";
+  AutoThreadMutex a(sLock);
+  LOG(ERROR) << "Robot acquired the lock in SPI openBasicChannel";
+
   if (!mIsEseInitialized) {
     ESESTATUS status = seHalInit();
     if (status != ESESTATUS_SUCCESS) {
@@ -328,9 +335,6 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
   rpdu.len = 0x02;
   rpdu.pdata = (uint8_t*)phNxpEse_memalloc(cpdu.le * sizeof(uint8_t));
 
-  LOG(ERROR) << "Robot about to acquire lock in VISO ";
-  AutoThreadMutex a(sLock);
-  LOG(ERROR) << "Robot acquired the lock in VISO ";
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
     //return Void(); TODO
@@ -403,7 +407,7 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
   if (status != ESESTATUS_SUCCESS) {
     //return Void(); TODO
   }
-  if ((sestatus != SecureElementStatus::SUCCESS) && mOpenedChannels[0]) {
+  if (sestatus != SecureElementStatus::SUCCESS) {
     SecureElementStatus closeChannelStatus =
         internalCloseChannel(DEFAULT_BASIC_CHANNEL);
     if (closeChannelStatus != SecureElementStatus::SUCCESS) {
@@ -423,6 +427,7 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
   phNxpEse_7816_cpdu_t cpdu;
   phNxpEse_7816_rpdu_t rpdu;
 
+  LOG(ERROR) << "Robot acquired the lock in SPI internalCloseChannel";
   if (channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d for %d",channelNumber,mOpenedChannels[channelNumber]);
@@ -436,9 +441,6 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
     cpdu.p2 = channelNumber;  /* Instruction parameter 2 */
     cpdu.lc = 0x00;
     cpdu.le = 0x9000;
-  LOG(ERROR) << "Robot about to acquire lock in SPI ";
-
-  LOG(ERROR) << "Robot acquired the lock in SPI ";
     status = phNxpEse_SetEndPoint_Cntxt(0);
     if (status != ESESTATUS_SUCCESS) {
       //return Void(); TODO
@@ -464,14 +466,16 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
   }
   if ((channelNumber == DEFAULT_BASIC_CHANNEL) ||
       (sestatus == SecureElementStatus::SUCCESS)) {
-    mOpenedChannels[channelNumber] = false;
-    mOpenedchannelCount--;
-    /*If there are no channels remaining close secureElement*/
-    if (mOpenedchannelCount == 0) {
-      sestatus = seHalDeInit();
-    } else {
-      sestatus = SecureElementStatus::SUCCESS;
-    }
+      if(mOpenedChannels[channelNumber]) {
+          mOpenedChannels[channelNumber] = false;
+          mOpenedchannelCount--;
+      }
+  }
+  /*If there are no channels remaining close secureElement*/
+  if (mOpenedchannelCount == 0) {
+    sestatus = seHalDeInit();
+  } else {
+    sestatus = SecureElementStatus::SUCCESS;
   }
   return sestatus;
 }
@@ -484,6 +488,9 @@ SecureElement::closeChannel(uint8_t channelNumber) {
   phNxpEse_7816_cpdu_t cpdu;
   phNxpEse_7816_rpdu_t rpdu;
 
+  LOG(ERROR) << "Robot about to acquire lock in SPI closeChannel";
+  AutoThreadMutex a(sLock);
+  LOG(ERROR) << "Robot acquired the lock in SPI closeChannel";
   if (channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d for %d",channelNumber,mOpenedChannels[channelNumber]);
@@ -497,9 +504,6 @@ SecureElement::closeChannel(uint8_t channelNumber) {
     cpdu.p2 = channelNumber;  /* Instruction parameter 2 */
     cpdu.lc = 0x00;
     cpdu.le = 0x9000;
-  LOG(ERROR) << "Robot about to acquire lock in SPI ";
-  AutoThreadMutex a(sLock);
-  LOG(ERROR) << "Robot acquired the lock in SPI ";
     status = phNxpEse_SetEndPoint_Cntxt(0);
     if (status != ESESTATUS_SUCCESS) {
       //return Void(); TODO
@@ -525,19 +529,22 @@ SecureElement::closeChannel(uint8_t channelNumber) {
   }
   if ((channelNumber == DEFAULT_BASIC_CHANNEL) ||
       (sestatus == SecureElementStatus::SUCCESS)) {
-    mOpenedChannels[channelNumber] = false;
-    mOpenedchannelCount--;
-    /*If there are no channels remaining close secureElement*/
-    if (mOpenedchannelCount == 0) {
-      sestatus = seHalDeInit();
-    } else {
-      sestatus = SecureElementStatus::SUCCESS;
-    }
+      if(mOpenedChannels[channelNumber]) {
+          mOpenedChannels[channelNumber] = false;
+          mOpenedchannelCount--;
+      }
+  }
+  /*If there are no channels remaining close secureElement*/
+  if (mOpenedchannelCount == 0) {
+    sestatus = seHalDeInit();
+  } else {
+    sestatus = SecureElementStatus::SUCCESS;
   }
   return sestatus;
 }
 void SecureElement::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
     LOG(ERROR) << " SecureElement serviceDied!!!";
+    AutoThreadMutex a(sLock);
     phNxpEse_deInit();
     phNxpEse_close();
   }

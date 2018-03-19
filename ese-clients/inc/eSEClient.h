@@ -17,8 +17,8 @@
  ******************************************************************************/
 
 #include <android/hardware/secure_element/1.0/ISecureElementHalCallback.h>
-#ifndef LSCLIENT_H_
-#define LSCLIENT_H_
+#ifndef JCOPCLIENT_H_
+#define JCOPCLIENT_H_
 
 typedef enum {
   SESTATUS_SUCCESS = (0x0000),

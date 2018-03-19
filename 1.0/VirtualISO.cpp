@@ -139,6 +139,11 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   hidl_vec<uint8_t> manageChannelCommand = {0x00, 0x70, 0x00, 0x00, 0x01};
 
   LogicalChannelResponse resApduBuff;
+
+  LOG(ERROR) << "Robot about to acquire lock in VISO openLogicalChannel";
+  AutoThreadMutex a(sLock);
+  LOG(ERROR) << "Robot acquired the lock in VISO openLogicalChannel";
+
   resApduBuff.channelNumber = 0xff;
   memset(&resApduBuff, 0x00, sizeof(resApduBuff));
   if (!mIsEseInitialized) {
@@ -165,10 +170,6 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
 
   memset(&sestatus, 0x00, sizeof(sestatus));
 
-    LOG(ERROR) << "Mr Robot VVV !!!";
-  LOG(ERROR) << "Robot about to acquire lock in VISO ";
-  AutoThreadMutex a(sLock);
-  LOG(ERROR) << "Robot acquired the lock in VISO ";
   status = phNxpEse_SetEndPoint_Cntxt(1);
   if (status != ESESTATUS_SUCCESS) {
     //return Void(); TODO
@@ -182,16 +183,10 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
     } else {
       sestatus = SecureElementStatus::FAILED;
     }
-    _hidl_cb(resApduBuff, sestatus);
-    phNxpEse_free(cmdApdu.p_data);
-    return Void();
   } else if (rspApdu.p_data[rspApdu.len - 2] == 0x6A &&
              rspApdu.p_data[rspApdu.len - 1] == 0x81) {
     resApduBuff.channelNumber = 0xff;
     sestatus = SecureElementStatus::CHANNEL_NOT_AVAILABLE;
-    _hidl_cb(resApduBuff, sestatus);
-    phNxpEse_free(cmdApdu.p_data);
-    return Void();
   } else if (rspApdu.p_data[rspApdu.len - 2] == 0x90 &&
              rspApdu.p_data[rspApdu.len - 1] == 0x00) {
     resApduBuff.channelNumber = rspApdu.p_data[0];
@@ -209,10 +204,13 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   phNxpEse_free(rspApdu.p_data);
 
   if (sestatus != SecureElementStatus::SUCCESS) {
-    /*If manageChanle is failed in any of above cases
-    send the callback and return*/
-    _hidl_cb(resApduBuff, sestatus);
-    return Void();
+      if (mOpenedchannelCount == 0) {
+          sestatus = seHalDeInit();
+      }
+      /*If manageChanle is failed in any of above cases
+      send the callback and return*/
+      _hidl_cb(resApduBuff, sestatus);
+      return Void();
   }
   LOG(INFO) << "openLogicalChannel Sending selectApdu";
   sestatus = SecureElementStatus::IOERROR;
@@ -296,6 +294,10 @@ Return<void> VirtualISO::openBasicChannel(const hidl_vec<uint8_t>& aid,
   phNxpEse_7816_rpdu_t rpdu;
   hidl_vec<uint8_t> result;
 
+  LOG(ERROR) << "Robot about to acquire lock in VISO openBasicChannel";
+  AutoThreadMutex a(sLock);
+  LOG(ERROR) << "Robot acquired the lock in VISO openBasicChannel";
+
   if (!mIsEseInitialized) {
     ESESTATUS status = seHalInit();
     if (status != ESESTATUS_SUCCESS) {
@@ -321,9 +323,6 @@ Return<void> VirtualISO::openBasicChannel(const hidl_vec<uint8_t>& aid,
   rpdu.len = 0x02;
   rpdu.pdata = (uint8_t*)phNxpEse_memalloc(cpdu.le * sizeof(uint8_t));
 
-  LOG(ERROR) << "Robot about to acquire lock in VISO ";
-  AutoThreadMutex a(sLock);
-  LOG(ERROR) << "Robot acquired the lock in VISO ";
   status = phNxpEse_SetEndPoint_Cntxt(1);
   status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
 
@@ -371,7 +370,7 @@ Return<void> VirtualISO::openBasicChannel(const hidl_vec<uint8_t>& aid,
   if (status != ESESTATUS_SUCCESS) {
     //return Void(); TODO
   }
-  if ((sestatus != SecureElementStatus::SUCCESS) && mOpenedChannels[0]) {
+  if (sestatus != SecureElementStatus::SUCCESS) {
     SecureElementStatus closeChannelStatus =
         internalCloseChannel(DEFAULT_BASIC_CHANNEL);
     if (closeChannelStatus != SecureElementStatus::SUCCESS) {
@@ -392,7 +391,7 @@ VirtualISO::internalCloseChannel(uint8_t channelNumber)
   phNxpEse_7816_cpdu_t cpdu;
   phNxpEse_7816_rpdu_t rpdu;
 
-  LOG(ERROR)<<"closeChannel Enter";
+  LOG(ERROR)<<"internalCloseChannel Enter";
   if (channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d",channelNumber);
@@ -406,8 +405,6 @@ VirtualISO::internalCloseChannel(uint8_t channelNumber)
     cpdu.p2 = channelNumber;  /* Instruction parameter 2 */
     cpdu.lc = 0x00;
     cpdu.le = 0x9000;
-  LOG(ERROR) << "Robot about to acquire lock in VISO ";
-  LOG(ERROR) << "Robot acquired the lock in VISO ";
     status = phNxpEse_SetEndPoint_Cntxt(1);
     if (status != ESESTATUS_SUCCESS) {
       //return Void(); TODO
@@ -434,26 +431,16 @@ VirtualISO::internalCloseChannel(uint8_t channelNumber)
   }
   if ((channelNumber == DEFAULT_BASIC_CHANNEL) ||
       (sestatus == SecureElementStatus::SUCCESS)) {
-    mOpenedChannels[channelNumber] = false;
-    mOpenedchannelCount--;
-    /*If there are no channels remaining close secureElement*/
-    if (mOpenedchannelCount == 0) {
-      sestatus = seHalDeInit();
-    } else {
-      sestatus = SecureElementStatus::SUCCESS;
-    }
+       if(mOpenedChannels[channelNumber]) {
+           mOpenedChannels[channelNumber] = false;
+           mOpenedchannelCount--;
+       }
   }
-  if(isFirstInit)
-  {
-      isFirstInit = false;
-      LOG(ERROR) << "Completion of VISO Init enter into JCOP D/L";
-      SESTATUS lsStatus = JCOS_doDownload();
-      /*LSC_doDownload returns LSCSTATUS_FAILED in case thread creation fails.
-      So return callback as false.
-      Otherwise callback will be called in LSDownload module.*/
-      if(lsStatus != SESTATUS_SUCCESS) {
-          LOG(ERROR) <<"LSDownload thread creation failed!!!";
-      }
+  /*If there are no channels remaining close secureElement*/
+  if (mOpenedchannelCount == 0) {
+    sestatus = seHalDeInit();
+  } else {
+    sestatus = SecureElementStatus::SUCCESS;
   }
   return sestatus;
 }
@@ -465,7 +452,9 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
   phNxpEse_7816_cpdu_t cpdu;
   phNxpEse_7816_rpdu_t rpdu;
 
-  LOG(ERROR)<<"closeChannel Enter";
+  LOG(ERROR) << "Robot about to acquire lock in VISO closeChannel";
+  AutoThreadMutex a(sLock);
+  LOG(ERROR) << "Robot acquired the lock in VISO closeChannel";
   if (channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d for %d",channelNumber,mOpenedChannels[channelNumber]);
@@ -479,9 +468,6 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
     cpdu.p2 = channelNumber;  /* Instruction parameter 2 */
     cpdu.lc = 0x00;
     cpdu.le = 0x9000;
-  LOG(ERROR) << "Robot about to acquire lock in VISO ";
-  AutoThreadMutex a(sLock);
-  LOG(ERROR) << "Robot acquired the lock in VISO ";
     status = phNxpEse_SetEndPoint_Cntxt(1);
     if (status != ESESTATUS_SUCCESS) {
       //return Void(); TODO
@@ -508,14 +494,16 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
   }
   if ((channelNumber == DEFAULT_BASIC_CHANNEL) ||
       (sestatus == SecureElementStatus::SUCCESS)) {
-    mOpenedChannels[channelNumber] = false;
-    mOpenedchannelCount--;
-    /*If there are no channels remaining close secureElement*/
-    if (mOpenedchannelCount == 0) {
-      sestatus = seHalDeInit();
-    } else {
-      sestatus = SecureElementStatus::SUCCESS;
-    }
+      if(mOpenedChannels[channelNumber]) {
+          mOpenedChannels[channelNumber] = false;
+          mOpenedchannelCount--;
+      }
+  }
+  /*If there are no channels remaining close secureElement*/
+  if (mOpenedchannelCount == 0) {
+    sestatus = seHalDeInit();
+  } else {
+    sestatus = SecureElementStatus::SUCCESS;
   }
   if(isFirstInit)
   {
