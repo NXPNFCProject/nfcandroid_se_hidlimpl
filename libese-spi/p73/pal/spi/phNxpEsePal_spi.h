@@ -38,7 +38,7 @@
 /*!
  * \brief ESE Poll timeout (max 2 seconds)
  */
-#define ESE_NAD_POLLING_MAX (2 * 1000)
+#define ESE_NAD_POLLING_MAX (2 * 100)
 
 /*!
  * \brief ESE wakeup delay in case of write error retry
