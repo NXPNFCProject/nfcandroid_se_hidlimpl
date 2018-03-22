@@ -1035,11 +1035,11 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       numBytesToRead = 1;
       headerIndex = 1;
       break;
-    } else if ((pBuffer[1] == nxpese_ctxt.nadInfo.nadRx) || (pBuffer[0] == RECIEVE_PACKET_SOF)) {
+    } else if ((pBuffer[1] == nxpese_ctxt.nadInfo.nadRx) || (pBuffer[1] == RECIEVE_PACKET_SOF)) {
       /* Read the HEADR of Two bytes*/
       DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s Read HDR", __FUNCTION__);
-      pBuffer[0] = nxpese_ctxt.nadInfo.nadRx;
+      pBuffer[0] = pBuffer[1];
       numBytesToRead = 2;
       headerIndex = 0;
       break;
