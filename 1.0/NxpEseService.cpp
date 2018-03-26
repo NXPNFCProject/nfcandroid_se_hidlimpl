@@ -25,6 +25,7 @@
 #include <hidl/LegacySupport.h>
 #include "NxpEse.h"
 #include "SecureElement.h"
+#include "eSEClient.h"
 
 // Generated HIDL files
 using android::hardware::secure_element::V1_0::ISecureElement;
@@ -50,21 +51,23 @@ int main() {
   android::sp<INxpEse> nxp_se_service = nullptr;
   android::sp<ISecureElement> virtual_iso_service = nullptr;
 
-  DLOG_IF(INFO, se_debug_enabled) << StringPrintf("Secure Element HAL Service 1.0 is starting.");
+  ALOGI("Secure Element HAL Service 1.0 is starting.");
   se_service = new SecureElement();
   if (se_service == nullptr) {
     LOG(ERROR) << StringPrintf("Can not create an instance of Secure Element HAL Iface, exiting.");
     goto shutdown;
   }
   configureRpcThreadpool(2, true /*callerWillJoin*/);
+  ALOGI("Check & perform for OS update");
+  JCOS_doDownload();
   status = se_service->registerAsService("eSE1");
   if (status != OK) {
     LOG(ERROR) << StringPrintf("Could not register service for Secure Element HAL Iface (%d).",status);
     goto shutdown;
   }
-  DLOG_IF(INFO, se_debug_enabled) << StringPrintf("Secure Element Service is ready");
+  ALOGI("Secure Element Service is ready");
 
-  DLOG_IF(INFO, se_debug_enabled) << StringPrintf("NXP Secure Element Extn Service 1.0 is starting.");
+  ALOGI("NXP Secure Element Extn Service 1.0 is starting.");
   nxp_se_service = new NxpEse();
   if (nxp_se_service == nullptr) {
     LOG(ERROR) << StringPrintf("Can not create an instance of NXP Secure Element Extn Iface,exiting.");
@@ -75,8 +78,8 @@ int main() {
     LOG(ERROR) << StringPrintf("Could not register service for Power Secure Element Extn Iface (%d).",status);
     goto shutdown;
   }
-  DLOG_IF(INFO, se_debug_enabled) << StringPrintf("Secure Element Service is ready");
-  DLOG_IF(INFO, se_debug_enabled) << StringPrintf("Virtual ISO HAL Service 1.0 is starting.");
+  ALOGI("Secure Element Service is ready");
+  ALOGI("Virtual ISO HAL Service 1.0 is starting.");
   virtual_iso_service = new VirtualISO();
   if (virtual_iso_service == nullptr) {
     LOG(ERROR) << StringPrintf("Can not create an instance of Virtual ISO HAL Iface, exiting.");
@@ -89,8 +92,7 @@ int main() {
           status);
     goto shutdown;
   }
-  DLOG_IF(INFO, se_debug_enabled) << StringPrintf("Virtual ISO: Secure Element Service is ready");
-
+  ALOGI("Virtual ISO: Secure Element Service is ready");
   joinRpcThreadpool();
 // Should not pass this line
 shutdown:

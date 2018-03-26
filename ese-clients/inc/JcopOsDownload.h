@@ -73,6 +73,8 @@ static uint8_t Uai_GetInfo_APDU[] = {0x80,0xCA,0x00,0xFE,0x02,0xDF,0x43,0x00};
 #define JCOP_UPDATE_STATE1 1
 #define JCOP_UPDATE_STATE2 2
 #define JCOP_UPDATE_STATE3 3
+#define JCOP_UPDATE_STATE_TRIGGER_APDU 4
+
 #define JCOP_MAX_RETRY_CNT 3
 #define JCOP_INFO_PATH  "/data/vendor/nfc/jcop_info.txt"
 

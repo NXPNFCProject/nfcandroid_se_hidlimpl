@@ -30,11 +30,6 @@
 #include <sys/stat.h>
 
 
-/*static char gethex(const char *s, char **endptr);
-char *convert(const char *s, int *length);*/
-uint8_t datahex(char c);
-//static android::sp<ISecureElementHalCallback> cCallback;
-void* performJCOS_Download_thread(void* data);
 IChannel_t Ch;
 static const char *path[3] = {"/data/vendor/nfc/JcopOs_Update1.apdu",
                              "/data/vendor/nfc/JcopOs_Update2.apdu",
@@ -109,36 +104,11 @@ SESTATUS ESE_ChannelInit(IChannel *ch)
 SESTATUS JCOS_doDownload(
     /*const android::sp<ISecureElementHalCallback>& clientCallback*/) {
   SESTATUS status = SESTATUS_FAILED;
-  pthread_t thread;
-  pthread_attr_t attr;
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  //cCallback = clientCallback;
-  if (pthread_create(&thread, &attr, &performJCOS_Download_thread, NULL) < 0) {
-    ALOGD("Thread creation failed");
-    status = SESTATUS_SUCCESS;
-  } else {
-    status = SESTATUS_FAILED;
-    ALOGD("Thread creation success");
-  }
-  pthread_attr_destroy(&attr);
-  return status;
-}
 
-/*******************************************************************************
-**
-** Function:        LSC_doDownload
-**
-** Description:     Perform LS during hal init
-**
-** Returns:         None
-**
-*******************************************************************************/
-void* performJCOS_Download_thread(void* data) {
-  ALOGD("%s enter:  ", __func__);
-  (void)data;
-  uint8_t status;
+  uint8_t retstat;
   phNxpEse_initParams initParams;
+
+  ALOGD("%s enter:  ", __func__);
 
   bool stats = true;
   struct stat st;
@@ -162,53 +132,47 @@ void* performJCOS_Download_thread(void* data) {
   }
   if(stats)
   {
+      ALOGD("%s Update required: Files present\n", __func__);
       memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
-      usleep(500*1000);
       initParams.initMode = ESE_MODE_OSU;
+      retstat = phNxpEse_open(initParams);
+      if (retstat != ESESTATUS_SUCCESS) {
+          return status;
+      }
       phNxpEse_SetEndPoint_Cntxt(0);
-      phNxpEse_deInit();
-      usleep(500*1000);
-      phNxpEse_init(initParams);
+      retstat = phNxpEse_init(initParams);
+      if(retstat != ESESTATUS_SUCCESS)
+      {
+          phNxpEse_ResetEndPoint_Cntxt(0);
+          phNxpEse_close();
+          return status;
+      }
 
       ESE_ChannelInit(&Ch);
-      status = JCDNLD_Init(&Ch);
-      if(status != STATUS_SUCCESS)
+      retstat = JCDNLD_Init(&Ch);
+      if(retstat != STATUS_SUCCESS)
       {
           ALOGE("%s: JCDND initialization failed", __FUNCTION__);
+          phNxpEse_ResetEndPoint_Cntxt(0);
+          phNxpEse_close();
+          return status;
       }else
       {
-          status = JCDNLD_StartDownload();
-          if(status != SESTATUS_SUCCESS)
+          retstat = JCDNLD_StartDownload();
+          if(retstat != SESTATUS_SUCCESS)
           {
               ALOGE("%s: JCDNLD_StartDownload failed", __FUNCTION__);
           }
       }
       JCDNLD_DeInit();
       phNxpEse_ResetEndPoint_Cntxt(0);
-      initParams.initMode = ESE_MODE_NORMAL;
-      phNxpEse_init(initParams);
+      phNxpEse_close();
+      status = SESTATUS_SUCCESS;
   }
-  ALOGD("%s pthread_exit\n", __func__);
-  pthread_exit(NULL);
-  return NULL;
-}
-
-/*******************************************************************************
-**
-** Function:        datahex
-**
-** Description:     Converts char to uint8_t
-**
-** Returns:         uint8_t variable
-**
-*******************************************************************************/
-uint8_t datahex(char c) {
-  uint8_t value = 0;
-  if (c >= '0' && c <= '9')
-    value = (c - '0');
-  else if (c >= 'A' && c <= 'F')
-    value = (10 + (c - 'A'));
-  else if (c >= 'a' && c <= 'f')
-    value = (10 + (c - 'a'));
-  return value;
+  else
+  {
+      ALOGD("%s Update not required: Files not present\n", __func__);
+  }
+  ALOGD("%s Exit JCOS_doDownload\n", __func__);
+  return status;
 }

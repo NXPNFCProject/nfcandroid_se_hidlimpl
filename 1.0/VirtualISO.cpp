@@ -41,7 +41,6 @@ typedef struct gsTransceiveBuffer {
 } sTransceiveBuffer_t;
 
 static sTransceiveBuffer_t gsTxRxBuffer;
-static uint8_t isFirstInit = true;
 static hidl_vec<uint8_t> gsRspDataBuff(256);
 
 VirtualISO::VirtualISO()
@@ -504,18 +503,6 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
     sestatus = seHalDeInit();
   } else {
     sestatus = SecureElementStatus::SUCCESS;
-  }
-  if(isFirstInit)
-  {
-      isFirstInit = false;
-      LOG(ERROR) << "Completion of VISO Init enter into JCOP D/L";
-      SESTATUS lsStatus = JCOS_doDownload();
-      /*LSC_doDownload returns LSCSTATUS_FAILED in case thread creation fails.
-      So return callback as false.
-      Otherwise callback will be called in LSDownload module.*/
-      if(lsStatus != SESTATUS_SUCCESS) {
-          LOG(ERROR) <<"LSDownload thread creation failed!!!";
-      }
   }
   return sestatus;
 }

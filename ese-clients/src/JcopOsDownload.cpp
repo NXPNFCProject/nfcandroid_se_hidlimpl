@@ -32,6 +32,8 @@ uint8_t isUaiEnabled = false;
 
 tJBL_STATUS (JcopOsDwnld::*JcopOs_dwnld_seqhandler[])(
             JcopOs_ImageInfo_t* pContext, tJBL_STATUS status, JcopOs_TranscieveInfo_t* pInfo)={
+       &JcopOsDwnld::UaiTriggerApdu,
+       &JcopOsDwnld::SendUAICmds,
        &JcopOsDwnld::TriggerApdu,
        &JcopOsDwnld::GetInfo,
        &JcopOsDwnld::load_JcopOS_image,
@@ -316,23 +318,6 @@ tJBL_STATUS JcopOsDwnld::TriggerApdu(JcopOs_ImageInfo_t* pVersionInfo, tJBL_STAT
 
     DLOG_IF(INFO, nfc_debug_enabled)
       << StringPrintf("%s: enter;", fn);
-
-    if(isUaiEnabled)
-    {
-        mchannel->doeSE_JcopDownLoadReset();
-        stat = UaiTriggerApdu(pVersionInfo, status, pTranscv_Info);
-        if(stat == STATUS_OK)
-        {
-            stat = SendUAICmds(pVersionInfo, status, pTranscv_Info);
-        }
-        if(stat != STATUS_OK)
-        {
-            DLOG_IF(INFO, nfc_debug_enabled)
-      << StringPrintf("%s: exit; status = 0x%X", fn, status);
-            status = STATUS_FAILED;
-            return status;
-        }
-    }
     if(pTranscv_Info == NULL ||
        pVersionInfo == NULL)
     {
@@ -406,6 +391,10 @@ tJBL_STATUS JcopOsDwnld::SendUAICmds(JcopOs_ImageInfo_t* Os_info, tJBL_STATUS st
     DLOG_IF(INFO, nfc_debug_enabled)
       << StringPrintf("%s: enter;", fn);
 
+    if(!isUaiEnabled)
+    {
+        goto exit;
+    }
     if(pTranscv_Info == NULL ||
                Os_info == NULL)
     {
@@ -522,8 +511,11 @@ tJBL_STATUS JcopOsDwnld::SendUAICmds(JcopOs_ImageInfo_t* Os_info, tJBL_STATUS st
 exit:
     LOG(ERROR) << StringPrintf("%s close fp and exit; status= 0x%X", fn,status);
     mchannel->doeSE_JcopDownLoadReset();
-    if(status == STATUS_FAILED)
+    if(status == STATUS_SUCCESS)
+        SetJcopOsState(Os_info, JCOP_UPDATE_STATE_TRIGGER_APDU);
+    else
         wResult = fclose(Os_info->fp);
+
     return status;
 }
 /*******************************************************************************
@@ -545,6 +537,10 @@ tJBL_STATUS JcopOsDwnld::UaiTriggerApdu(JcopOs_ImageInfo_t* pVersionInfo, tJBL_S
     DLOG_IF(INFO, nfc_debug_enabled)
       << StringPrintf("%s: enter;", fn);
 
+    if(!isUaiEnabled)
+    {
+        return true;
+    }
     if(pTranscv_Info == NULL ||
        pVersionInfo == NULL)
     {
@@ -900,7 +896,7 @@ tJBL_STATUS JcopOsDwnld::GetJcopOsState(JcopOs_ImageInfo_t *Os_info, uint8_t *co
     {
     case JCOP_UPDATE_STATE0:
     case JCOP_UPDATE_STATE3:
-        LOG(ERROR) << StringPrintf("Starting update from step1");
+        LOG(ERROR) << StringPrintf("Starting update from UAI Authentication");
         Os_info->index = JCOP_UPDATE_STATE0;
         Os_info->cur_state = JCOP_UPDATE_STATE0;
         *counter = 0;
@@ -909,13 +905,19 @@ tJBL_STATUS JcopOsDwnld::GetJcopOsState(JcopOs_ImageInfo_t *Os_info, uint8_t *co
         LOG(ERROR) << StringPrintf("Starting update from step2");
         Os_info->index = JCOP_UPDATE_STATE1;
         Os_info->cur_state = JCOP_UPDATE_STATE1;
-        *counter = 3;
+        *counter = 5;
         break;
     case JCOP_UPDATE_STATE2:
         LOG(ERROR) << StringPrintf("Starting update from step3");
         Os_info->index = JCOP_UPDATE_STATE2;
         Os_info->cur_state = JCOP_UPDATE_STATE2;
-        *counter = 5;
+        *counter = 7;
+        break;
+    case JCOP_UPDATE_STATE_TRIGGER_APDU:
+        LOG(ERROR) << StringPrintf("Starting update from step1");
+        Os_info->index = JCOP_UPDATE_STATE0;
+        Os_info->cur_state = JCOP_UPDATE_STATE0;
+        *counter = 2;
         break;
     default:
         LOG(ERROR) << StringPrintf("invalid state");
