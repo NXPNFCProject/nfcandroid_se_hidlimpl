@@ -43,7 +43,7 @@
 /*!
  * \brief ESE wakeup delay in case of write error retry
  */
-#define WAKE_UP_DELAY 1000
+#define WAKE_UP_DELAY 100
 /*!
  * \brief ESE wakeup delay in case of write error retry
  */

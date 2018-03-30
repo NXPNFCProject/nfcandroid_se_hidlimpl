@@ -109,6 +109,7 @@ typedef struct phNxpEse_Context {
   phNxpEse_initParams initParams;
   phNxpEse_SecureTimer_t secureTimerParams;
   phNxpEseNadInfo_t nadInfo;
+  long nadPollingRetryTime;
 } phNxpEse_Context_t;
 
 /* Timeout value to wait for response from

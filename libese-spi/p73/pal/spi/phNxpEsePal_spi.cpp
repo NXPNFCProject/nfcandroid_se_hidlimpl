@@ -203,11 +203,11 @@ retry:
 *******************************************************************************/
 int phPalEse_spi_read(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToRead) {
   int ret = -1;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s Read Requested %d bytes", __FUNCTION__, nNbBytesToRead);
+  /*DLOG_IF(INFO, ese_debug_enabled)
+      << StringPrintf("%s Read Requested %d bytes", __FUNCTION__, nNbBytesToRead);*/
   ret = read((intptr_t)pDevHandle, (void*)pBuffer, (nNbBytesToRead));
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Read Returned = %d", ret);
+  /*DLOG_IF(INFO, ese_debug_enabled)
+      << StringPrintf("Read Returned = %d", ret);*/
   return ret;
 }
 
