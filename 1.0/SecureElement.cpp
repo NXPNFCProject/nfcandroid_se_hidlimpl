@@ -73,25 +73,36 @@ Return<void> SecureElement::init(
 
   status = phNxpEse_open(initParams);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void();
+    goto exit;
   }
 
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void(); TODO
+    goto exit;
   }
   status = phNxpEse_init(initParams);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void(); TODO
+    goto exit;
   }
   status = phNxpEse_ResetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void(); TODO
+    phNxpEse_deInit();
+    goto exit;
   }
   mIsEseInitialized = true;
   LOG(ERROR) << "Mr Robot says ESE SPI init complete !!!";
-  if (status == ESESTATUS_SUCCESS) clientCallback->onStateChange(true);
-  cCallback = clientCallback;
+
+  exit:
+  if (status == ESESTATUS_SUCCESS)
+  {
+    clientCallback->onStateChange(true);
+    cCallback = clientCallback;
+  }
+  else
+  {
+    LOG(ERROR) << "eSE-Hal Init failed";
+    clientCallback->onStateChange(false);
+  }
   return Void();
 }
 

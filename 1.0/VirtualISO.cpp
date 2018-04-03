@@ -77,12 +77,21 @@ Return<void> VirtualISO::init(
   status = phNxpEse_SetEndPoint_Cntxt(1);
   status = phNxpEse_init(initParams);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void();
+    goto exit;
   }
   status = phNxpEse_ResetEndPoint_Cntxt(1);
   mIsEseInitialized = true;
-    LOG(ERROR) << "Mr Robot VVV !!!";
-  if (status == ESESTATUS_SUCCESS) clientCallback->onStateChange(true);
+  LOG(ERROR) << "Mr Robot VVV !!!";
+exit:
+  if (status == ESESTATUS_SUCCESS)
+  {
+    clientCallback->onStateChange(true);
+  }
+  else
+  {
+    LOG(ERROR) << "VISO-Hal Init failed";
+    clientCallback->onStateChange(false);
+  }
   return Void();
 }
 
