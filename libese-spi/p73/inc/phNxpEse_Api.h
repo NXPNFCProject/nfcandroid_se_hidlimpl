@@ -59,17 +59,17 @@ typedef struct phNxpEse_initParams {
 /*!
  * \brief SEAccess kit MW Android version
  */
-#define NXP_ANDROID_VER (8U)
+#define NXP_ANDROID_VER (9U)
 
 /*!
  * \brief SEAccess kit MW Major version
  */
-#define ESELIB_MW_VERSION_MAJ (0x3)
+#define ESELIB_MW_VERSION_MAJ (0x0U)
 
 /*!
  * \brief SEAccess kit MW Minor version
  */
-#define ESELIB_MW_VERSION_MIN (0x00)
+#define ESELIB_MW_VERSION_MIN (0x04)
 
 /*!
 * \brief eSE debugging log Level
