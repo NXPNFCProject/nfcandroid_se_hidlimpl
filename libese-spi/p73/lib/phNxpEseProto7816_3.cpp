@@ -848,6 +848,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s Wtx_counter wtx_counter_limit - %lu", __FUNCTION__,
                         phNxpEseProto7816_3_Var.wtx_counter_limit);
+#ifdef SFRAME_WTX_SUPPORT
         /* Previous sent frame is some S-frame but not WTX response S-frame */
         if (phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.sFrameType !=
                 WTX_RSP &&
@@ -864,7 +865,9 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
             phNxpEseProto7816_RecoverySteps();
             phNxpEseProto7816_3_Var.recoveryCounter++;
           }
-        } else { /* Checking for WTX counter with max. allowed WTX count */
+        } else
+#endif
+        { /* Checking for WTX counter with max. allowed WTX count */
           if (phNxpEseProto7816_3_Var.wtx_counter ==
               phNxpEseProto7816_3_Var.wtx_counter_limit) {
             phNxpEseProto7816_3_Var.wtx_counter = 0;

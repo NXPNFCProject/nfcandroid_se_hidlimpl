@@ -20,6 +20,8 @@
 #include <android-base/logging.h>
 #include "phNxpEse_Apdu_Api.h"
 #include "phNxpEse_Api.h"
+#include "eSEClient.h"
+
 extern ThreadMutex sLock;
 
 namespace vendor {
@@ -39,6 +41,7 @@ typedef struct gsTransceiveBuffer {
 } sTransceiveBuffer_t;
 
 static sTransceiveBuffer_t gsTxRxBuffer;
+static uint8_t isFirstInit = true;
 static hidl_vec<uint8_t> gsRspDataBuff(256);
 typedef struct gslogicalChannelInfo {
   bool openedChannelIds[MAX_LOGICAL_CHANNELS] = {false, false, false, false};
@@ -121,7 +124,6 @@ Return<void> VirtualISO::transmit(const hidl_vec<uint8_t>& data,
   if (status != ESESTATUS_SUCCESS) {
     //return Void();
   }
-
 
   _hidl_cb(result);
   phNxpEse_free(gsTxRxBuffer.cmdData.p_data);
@@ -358,6 +360,18 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
         sestatus = SecureElementStatus::FAILED;
       }
     }
+  }
+  if(isFirstInit)
+  {
+      isFirstInit = false;
+      LOG(ERROR) << "Completion of VISO Init enter into JCOP D/L";
+      SESTATUS lsStatus = JCOS_doDownload();
+      /*LSC_doDownload returns LSCSTATUS_FAILED in case thread creation fails.
+      So return callback as false.
+      Otherwise callback will be called in LSDownload module.*/
+      if(lsStatus != SESTATUS_SUCCESS) {
+          LOG(ERROR) <<"LSDownload thread creation failed!!!";
+      }
   }
   return sestatus;
 }
