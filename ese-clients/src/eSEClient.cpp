@@ -28,7 +28,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/stat.h>
-
+#include <ese_config.h>
 
 IChannel_t Ch;
 static const char *path[3] = {"/data/vendor/nfc/JcopOs_Update1.apdu",
@@ -109,7 +109,7 @@ SESTATUS JCOS_doDownload(
   phNxpEse_initParams initParams;
 
   ALOGD("%s enter:  ", __func__);
-
+  uint8_t intf = 0x00;
   bool stats = true;
   struct stat st;
   for (int num = 0; num < 2; num++)
@@ -132,7 +132,16 @@ SESTATUS JCOS_doDownload(
   }
   if(stats)
   {
+
+      if (EseConfig::hasKey(NAME_NXP_P61_JCOP_DEFAULT_INTERFACE)) {
+        intf = EseConfig::getUnsigned(NAME_NXP_P61_JCOP_DEFAULT_INTERFACE);
+      }
+      ALOGD("%s NAME_NXP_P61_JCOP_DEFAULT_INTERFACE intf %x \n", __func__,intf);
+
+      if(intf != 2)
+        return status;
       ALOGD("%s Update required: Files present\n", __func__);
+
       memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
       initParams.initMode = ESE_MODE_OSU;
       retstat = phNxpEse_open(initParams);

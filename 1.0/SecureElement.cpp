@@ -21,7 +21,8 @@
 #include "phNxpEse_Api.h"
 #include "LsClient.h"
 #include <android-base/stringprintf.h>
-
+#include "hal_nxpese.h"
+#include "NxpEse.h"
 /* Mutex to synchronize multiple transceive */
 ThreadMutex sLock;
 
@@ -45,6 +46,7 @@ typedef struct gsTransceiveBuffer {
 static sTransceiveBuffer_t gsTxRxBuffer;
 static hidl_vec<uint8_t> gsRspDataBuff(256);
 static android::sp<ISecureElementHalCallback> cCallback;
+using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 SecureElement::SecureElement()
     : mOpenedchannelCount(0),
       mIsEseInitialized(false),
@@ -65,6 +67,16 @@ Return<void> SecureElement::init(
     return Void();
   } else {
     clientCallback->linkToDeath(this, 0 /*cookie*/);
+  }
+      LOG(ERROR) << "SecureElement::init called here";
+  if(eseioctldata.nfc_jcop_download_state == 1) {
+    mIsEseInitialized = true;
+    cCallback = clientCallback;
+    clientCallback->onStateChange(false);
+    LOG(ERROR) << "ESE JCOP Download in progress";
+    NxpEse::setSeCallBack(clientCallback);
+    return Void();
+    //Register
   }
   if (mIsEseInitialized) {
     clientCallback->onStateChange(true);
@@ -181,6 +193,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   phNxpEse_data rspApdu;
 
   phNxpEse_memset(&cmdApdu, 0x00, sizeof(phNxpEse_data));
+
   phNxpEse_memset(&rspApdu, 0x00, sizeof(phNxpEse_data));
 
   cmdApdu.len = manageChannelCommand.size();

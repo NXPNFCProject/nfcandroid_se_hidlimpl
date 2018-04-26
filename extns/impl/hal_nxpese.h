@@ -44,7 +44,8 @@ enum {
   HAL_ESE_IOCTL_SET_ESE_SERVICE_PID,
   HAL_ESE_IOCTL_REL_DWP_WAIT,
   HAL_ESE_IOCTL_GET_FEATURE_LIST,
-  HAL_ESE_IOCTL_RF_STATUS_UPDATE
+  HAL_ESE_IOCTL_RF_STATUS_UPDATE,
+  HAL_ESE_IOCTL_NFC_JCOP_DWNLD
 };
 /*
  * Data structures provided below are used of Hal Ioctl calls
@@ -109,6 +110,10 @@ typedef union {
   uint8_t chipType;
 } eseOutputData_t;
 
+typedef union {
+  uint8_t nfc_jcop_download_state;
+} eseIoctlData_t;
+extern eseIoctlData_t  eseioctldata;
 /*
  * ese_nxp_ExtnOutputData_t :Apart from outputData_t, there are other
  * information which is required during callback from stub to proxy. For ex

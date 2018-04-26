@@ -23,8 +23,7 @@
 #include <hidl/Status.h>
 #include <vendor/nxp/nxpese/1.0/INxpEse.h>
 #include "hal_nxpese.h"
-#include "utils/Log.h"
-
+#include <android/hardware/secure_element/1.0/ISecureElementHalCallback.h>
 namespace vendor {
 namespace nxp {
 namespace nxpese {
@@ -41,10 +40,15 @@ using ::android::hardware::hidl_vec;
 using ::android::hardware::Return;
 using ::android::hardware::Void;
 using ::android::sp;
-
+using ::android::hardware::secure_element::V1_0::ISecureElementHalCallback;
 struct NxpEse : public INxpEse {
   Return<void> ioctl(uint64_t ioctlType, const hidl_vec<uint8_t>& inOutData,
                      ioctl_cb _hidl_cb) override;
+  static Return<void> setSeCallBack(const android::sp<ISecureElementHalCallback>& clientCallback);
+  static Return<void> setVirtualISOCallBack(const android::sp<ISecureElementHalCallback>& clientCallback);
+  private:
+  Return<void> ioctlHandler(uint64_t ioctlType, ese_nxp_IoctlInOutData_t inpOutData);
+
 };
 
 }  // namespace implementation

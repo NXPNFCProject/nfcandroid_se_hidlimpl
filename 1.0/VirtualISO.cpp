@@ -21,9 +21,10 @@
 #include "phNxpEse_Apdu_Api.h"
 #include "phNxpEse_Api.h"
 #include "eSEClient.h"
-
+#include "NxpEse.h"
+#include "hal_nxpese.h"
 extern ThreadMutex sLock;
-
+using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 namespace vendor {
 namespace nxp {
 namespace virtual_iso {
@@ -34,6 +35,7 @@ namespace implementation {
 
 #define DEFAULT_BASIC_CHANNEL 0x00
 #define MAX_LOGICAL_CHANNELS 0x04
+
 typedef struct gsTransceiveBuffer {
   phNxpEse_data cmdData;
   phNxpEse_data rspData;
@@ -42,6 +44,7 @@ typedef struct gsTransceiveBuffer {
 
 static sTransceiveBuffer_t gsTxRxBuffer;
 static hidl_vec<uint8_t> gsRspDataBuff(256);
+static android::sp<ISecureElementHalCallback> cCallback;
 
 VirtualISO::VirtualISO()
     : mOpenedchannelCount(0),
@@ -65,6 +68,15 @@ Return<void> VirtualISO::init(
     clientCallback->linkToDeath(this, 0 /*cookie*/);
   }
   LOG(ERROR) << "Mr Robot in VISO !!!";
+  if(eseioctldata.nfc_jcop_download_state == 1) {
+    mIsEseInitialized = true;
+    cCallback = clientCallback;
+    clientCallback->onStateChange(false);
+    LOG(ERROR) << "ESE JCOP Download in progress";
+    NxpEse::setVirtualISOCallBack(clientCallback);
+    return Void();
+    //Register
+  }
   if (mIsEseInitialized) {
     clientCallback->onStateChange(true);
     return Void();

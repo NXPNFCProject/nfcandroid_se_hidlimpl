@@ -41,8 +41,7 @@
 #include "hal_nxpese.h"
 #include "hal_nxpnfc.h"
 #include "phNxpEse_Api.h"
-#include "NfcAdaptation.h"
-
+#include "eSEClient.h"
 using android::base::StringPrintf;
 
 #define MAX_RETRY_CNT 10
@@ -52,6 +51,7 @@ static int rf_status;
 unsigned long int configNum1, configNum2;
 // Default max retry count for SPI CLT write blocked in secs
 unsigned long int MAX_SPI_WRITE_RETRY_COUNT = 10;
+eseIoctlData_t  eseioctldata;
 /*******************************************************************************
 **
 ** Function         phPalEse_spi_close
@@ -87,18 +87,35 @@ void phPalEse_spi_close(void* pDevHandle) {
 }
 ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
   nfc_nci_IoctlInOutData_t* inpOutData = (nfc_nci_IoctlInOutData_t*)p_data;
-  rf_status = inpOutData->inp.data.nciCmd.p_cmd[0];
-  if (rf_status == 1){
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("******************RF IS ON*************************************");
-  }
-  else{
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("******************RF IS OFF*************************************");
-  }
-  if (p_data != NULL){
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("halimpl phNxpEse_spiIoctl p_data is not null ioctltyp: %ld",(long)ioctlType);
+  switch(ioctlType) {
+    case HAL_ESE_IOCTL_RF_STATUS_UPDATE:
+
+    rf_status = inpOutData->inp.data.nciCmd.p_cmd[0];
+    if (rf_status == 1){
+      DLOG_IF(INFO, ese_debug_enabled)
+        << StringPrintf("******************RF IS ON*************************************");
+    }
+    else{
+      DLOG_IF(INFO, ese_debug_enabled)
+        << StringPrintf("******************RF IS OFF*************************************");
+    }
+    if (p_data != NULL){
+      DLOG_IF(INFO, ese_debug_enabled)
+        << StringPrintf("halimpl phNxpEse_spiIoctl p_data is not null ioctltyp: %ld",(long)ioctlType);
+    }
+    break;
+    case HAL_ESE_IOCTL_NFC_JCOP_DWNLD:
+
+    eseioctldata.nfc_jcop_download_state = inpOutData->inp.data.nciCmd.p_cmd[0];
+    if (eseioctldata.nfc_jcop_download_state == 1){
+      LOG(INFO)
+        << StringPrintf("******************JCOP Download started*************************************");
+    }
+    else{
+      LOG(INFO)
+        << StringPrintf("******************JCOP Download stopped*************************************");
+    }
+    break;
   }
   return ESESTATUS_SUCCESS;
 }
