@@ -23,7 +23,6 @@
 #include "eSEClient.h"
 #include "NxpEse.h"
 #include "hal_nxpese.h"
-extern ThreadMutex sLock;
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 namespace vendor {
 namespace nxp {
@@ -125,8 +124,6 @@ Return<void> VirtualISO::transmit(const hidl_vec<uint8_t>& data,
       (uint8_t*)phNxpEse_memalloc(data.size() * sizeof(uint8_t));
 
   memcpy(gsTxRxBuffer.cmdData.p_data, data.data(), gsTxRxBuffer.cmdData.len);
-  LOG(ERROR) << "Robot about to acquire lock in VISO ";
-  AutoThreadMutex a(sLock);
   LOG(ERROR) << "Robot acquired the lock in VISO ";
   status = phNxpEse_SetEndPoint_Cntxt(1);
   if (status != ESESTATUS_SUCCESS) {
@@ -160,8 +157,6 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
 
   LogicalChannelResponse resApduBuff;
 
-  LOG(ERROR) << "Robot about to acquire lock in VISO openLogicalChannel";
-  AutoThreadMutex a(sLock);
   LOG(ERROR) << "Robot acquired the lock in VISO openLogicalChannel";
 
   resApduBuff.channelNumber = 0xff;
@@ -314,8 +309,6 @@ Return<void> VirtualISO::openBasicChannel(const hidl_vec<uint8_t>& aid,
   phNxpEse_7816_rpdu_t rpdu;
   hidl_vec<uint8_t> result;
 
-  LOG(ERROR) << "Robot about to acquire lock in VISO openBasicChannel";
-  AutoThreadMutex a(sLock);
   LOG(ERROR) << "Robot acquired the lock in VISO openBasicChannel";
 
   if (!mIsEseInitialized) {
@@ -472,8 +465,6 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
   phNxpEse_7816_cpdu_t cpdu;
   phNxpEse_7816_rpdu_t rpdu;
 
-  LOG(ERROR) << "Robot about to acquire lock in VISO closeChannel";
-  AutoThreadMutex a(sLock);
   LOG(ERROR) << "Robot acquired the lock in VISO closeChannel";
   if (channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {

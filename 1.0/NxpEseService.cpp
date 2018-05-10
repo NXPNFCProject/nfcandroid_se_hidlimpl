@@ -57,7 +57,7 @@ int main() {
     LOG(ERROR) << StringPrintf("Can not create an instance of Secure Element HAL Iface, exiting.");
     goto shutdown;
   }
-  configureRpcThreadpool(2, true /*callerWillJoin*/);
+  configureRpcThreadpool(1, true /*callerWillJoin*/);
   ALOGI("Check & perform for OS update");
   JCOS_doDownload();
   status = se_service->registerAsService("eSE1");
@@ -85,7 +85,6 @@ int main() {
     LOG(ERROR) << StringPrintf("Can not create an instance of Virtual ISO HAL Iface, exiting.");
     goto shutdown;
   }
-  configureRpcThreadpool(2, true /*callerWillJoin*/);
   status = virtual_iso_service->registerAsService("VirtualISO1");
   if (status != OK) {
     LOG(ERROR) << StringPrintf("Could not register service for Virtual ISO HAL Iface (%d).",

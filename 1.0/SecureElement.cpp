@@ -24,7 +24,6 @@
 #include "hal_nxpese.h"
 #include "NxpEse.h"
 /* Mutex to synchronize multiple transceive */
-ThreadMutex sLock;
 
 namespace android {
 namespace hardware {
@@ -136,9 +135,7 @@ Return<void> SecureElement::transmit(const hidl_vec<uint8_t>& data,
       (uint8_t*)phNxpEse_memalloc(data.size() * sizeof(uint8_t));
 
   memcpy(gsTxRxBuffer.cmdData.p_data, data.data(), gsTxRxBuffer.cmdData.len);
-    LOG(ERROR) << "Mr Robot acquiring lock SPI";
-  AutoThreadMutex a(sLock);
-    LOG(ERROR) << "Mr Robot acquired lock for SPI";
+  LOG(ERROR) << "Mr Robot acquired lock for SPI";
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
     //return Void(); TODO
@@ -174,8 +171,6 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   resApduBuff.channelNumber = 0xff;
   memset(&resApduBuff, 0x00, sizeof(resApduBuff));
 
-  LOG(ERROR) << "Robot about to acquire lock from SPI openLogicalChannel";
-  AutoThreadMutex a(sLock);
   LOG(ERROR) << "Robot acquired the lock from SPI openLogicalChannel";
 
   if (!mIsEseInitialized) {
@@ -331,8 +326,6 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
   hidl_vec<uint8_t> ls_aid = {0xA0, 0x00, 0x00, 0x03, 0x96, 0x41, 0x4C,
               0x41, 0x01, 0x43, 0x4F, 0x52, 0x01};
 
-  LOG(ERROR) << "Robot about to acquire lock in SPI openBasicChannel";
-  AutoThreadMutex a(sLock);
   LOG(ERROR) << "Robot acquired the lock in SPI openBasicChannel";
 
   if (!mIsEseInitialized) {
@@ -512,8 +505,6 @@ SecureElement::closeChannel(uint8_t channelNumber) {
   phNxpEse_7816_cpdu_t cpdu;
   phNxpEse_7816_rpdu_t rpdu;
 
-  LOG(ERROR) << "Robot about to acquire lock in SPI closeChannel";
-  AutoThreadMutex a(sLock);
   LOG(ERROR) << "Robot acquired the lock in SPI closeChannel";
   if (channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
@@ -568,7 +559,6 @@ SecureElement::closeChannel(uint8_t channelNumber) {
 }
 void SecureElement::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
     LOG(ERROR) << " SecureElement serviceDied!!!";
-    AutoThreadMutex a(sLock);
     phNxpEse_deInit();
     phNxpEse_close();
   }
