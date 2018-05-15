@@ -272,6 +272,9 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   phNxpLog_InitializeLogLevel();
   if (EseConfig::hasKey(NAME_NXP_NAD_POLL_RETRY_TIME)) {
     num = EseConfig::getUnsigned(NAME_NXP_NAD_POLL_RETRY_TIME);
+    /*To avoid se service restart in case of no response from eSE*/
+    if(num > 3)
+        num = 3;
     nxpese_ctxt.nadPollingRetryTime = num;
   }
   else
