@@ -47,6 +47,7 @@ typedef enum sFrameTypes {
   PROP_END_APDU_RSP = 0x25, /*!< Proprietary Enf of APDU response */
   HARD_RESET_REQ = 0x06,/*!< Chip reset request */
   HARD_RESET_RSP = 0x26,/*!< Chip reset request */
+  ATR_RSP = 0x27,    /*!< ATR response */
   INVALID_REQ_RES           /*!< Invalid request */
 } sFrameTypes_t;
 
@@ -124,7 +125,7 @@ typedef struct iFrameInfo {
                        data packet or not */
   uint8_t* p_data;  /*!< I-frame: Actual data (Information field (INF)) */
   uint8_t seqNo;    /*!< I-frame: Sequence number of the I-frame */
-  uint32_t maxDataLen;   /*!< I-frame: Maximum data length to be allowed in a
+  uint32_t maxDataLenIFSC;   /*!< I-frame: Maximum data length to be allowed in a
                             single I-frame */
   uint32_t dataOffset;   /*!< I-frame: Offset to the actual data(INF) for the
                             current frame of the packet */
@@ -213,6 +214,10 @@ typedef struct phNxpEseProto7816SecureTimer {
   unsigned int secureTimer3;
 } phNxpEseProto7816SecureTimer_t;
 
+typedef struct phNxpEseProto7816_IntfResetParams {
+  phNxpEseProto7816SecureTimer_t* pSecureTimerParam;
+  phNxpEse_data* pAtrData;
+} phNxpEseProto7816_IntfResetParams_t;
 /*!
  * \brief 7816-3 protocol stack context structure
  *
@@ -244,6 +249,7 @@ typedef struct phNxpEseProto7816 {
   unsigned long int rnack_retry_limit;
   unsigned long int rnack_retry_counter;
   phNxpEseProto7816SecureTimer_t secureTimerParams;
+  uint32_t currentIFSCSize;
 } phNxpEseProto7816_t;
 
 /*!

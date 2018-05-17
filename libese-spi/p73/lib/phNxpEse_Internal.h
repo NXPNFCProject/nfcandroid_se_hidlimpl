@@ -50,7 +50,7 @@ typedef enum {
 } phNxpEse_EndPoint;
 
 /* Macros definition */
-#define MAX_DATA_LEN 260
+#define MAX_DATA_LEN 780
 #define SECOND_TO_MILLISECOND(X) X * 1000
 #define CONVERT_TO_PERCENTAGE(X, Y) X* Y / 100
 #define ADDITIONAL_SECURE_TIME_PERCENTAGE 5
@@ -68,6 +68,7 @@ typedef struct phNxpEse_SecureTimer {
   unsigned int secureTimer2;
   unsigned int secureTimer3;
 } phNxpEse_SecureTimer_t;
+
 typedef enum nadInfoTx {
   ESE_NAD_TX = 0x5A, /*!< R-frame Acknowledgement frame indicator */
   EUICC_NAD_TX = 0x4B /*!< R-frame Negative-Acknowledgement frame indicator */

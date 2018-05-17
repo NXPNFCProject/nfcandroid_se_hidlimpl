@@ -311,7 +311,7 @@ static ESESTATUS phNxpEseProto7816_SendIframe(iFrameInfo_t iFrameData) {
   /* This update is helpful in-case a R-NACK is transmitted from the MW */
   phNxpEseProto7816_3_Var.lastSentNonErrorframeType = IFRAME;
   frame_len = (iFrameData.sendDataLen + PH_PROTO_7816_HEADER_LEN +
-               PH_PROTO_7816_CRC_LEN);
+               PH_PROTO_7816_CRC_LEN + 2);
 
   p_framebuff = (uint8_t*)phNxpEse_memalloc(frame_len * sizeof(uint8_t));
   if (NULL == p_framebuff) {
@@ -333,11 +333,23 @@ static ESESTATUS phNxpEseProto7816_SendIframe(iFrameInfo_t iFrameData) {
 
   /* store the pcb byte */
   p_framebuff[1] = pcb_byte;
-  /* store I frame length */
-  p_framebuff[2] = iFrameData.sendDataLen;
-  /* store I frame */
-  phNxpEse_memcpy(&(p_framebuff[3]), iFrameData.p_data + iFrameData.dataOffset,
+  if( iFrameData.sendDataLen > IFSC_SIZE_SEND) { /* Case for frame size > 254 bytes */
+    p_framebuff[2] = 0;
+    uint8_t mask = (iFrameData.sendDataLen) & 0xFF;
+    p_framebuff[4] = mask;
+    mask = ((iFrameData.sendDataLen) >> 8) & 0xFF;
+    p_framebuff[3] = mask;
+    /* store I frame */
+    phNxpEse_memcpy(&(p_framebuff[5]), iFrameData.p_data + iFrameData.dataOffset,
                   iFrameData.sendDataLen);
+  } else { /* Case for frame size < 254 bytes */
+    /* store I frame length */
+    p_framebuff[2] = iFrameData.sendDataLen;
+    frame_len = frame_len - 2;
+    /* store I frame */
+    phNxpEse_memcpy(&(p_framebuff[3]), iFrameData.p_data + iFrameData.dataOffset,
+                  iFrameData.sendDataLen);
+  }
 
   p_framebuff[frame_len - 1] =
       phNxpEseProto7816_ComputeLRC(p_framebuff, 0, (frame_len - 1));
@@ -369,13 +381,13 @@ static ESESTATUS phNxpEseProto7816_SetFirstIframeContxt(void) {
       phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.seqNo ^ 1;
   phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState = SEND_IFRAME;
   if (phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.totalDataLen >
-      phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLen) {
+      phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC) {
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.isChained = true;
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.sendDataLen =
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLen;
+        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC;
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.totalDataLen =
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.totalDataLen -
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLen;
+        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC;
   } else {
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.sendDataLen =
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.totalDataLen;
@@ -413,23 +425,23 @@ static ESESTATUS phNxpEseProto7816_SetNextIframeContxt(void) {
       phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.seqNo ^ 1;
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.dataOffset =
       phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.dataOffset +
-      phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLen;
+      phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLenIFSC;
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.p_data =
       phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.p_data;
-  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLen =
-      phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLen;
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC =
+      phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLenIFSC;
 
   // if  chained
   if (phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.totalDataLen >
-      phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLen) {
+      phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLenIFSC) {
     DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("Process Chained Frame");
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.isChained = true;
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.sendDataLen =
-        phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLen;
+        phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLenIFSC;
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.totalDataLen =
         phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.totalDataLen -
-        phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLen;
+        phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLenIFSC;
   } else {
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.isChained = false;
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.sendDataLen =
@@ -540,18 +552,39 @@ static void phNxpEseProto7816_DecodeSecureTimer(uint8_t* frameOffset,
 }
 
 /******************************************************************************
+ * Function         phNxpEseProto7816_DecodeSFrameATRData
+ *
+ * Description      This internal function is to decode S-frame payload.
+ * Returns          void
+ *
+ ******************************************************************************/
+static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
+  /* IFSC size */
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = 0;
+  //phNxpEse_memcpy(phNxpEseProto7816_3_Var.pAtrData, &p_data[3], p_data[2]);
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = (p_data[11] << 8) | (p_data[12]);
+  if(!((p_data[11] << 8) | (p_data[12])))
+    phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = IFSC_SIZE_SEND;
+  DLOG_IF(INFO, ese_debug_enabled)
+      << StringPrintf("%s Max DataLen=%d \n", __FUNCTION__,
+        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC);
+}
+
+/******************************************************************************
  * Function         phNxpEseProto7816_DecodeSFrameData
  *
  * Description      This internal function is to decode S-frame payload.
  * Returns          void
  *
  ******************************************************************************/
-static void phNxpEseProto7816_DecodeSFrameData(uint8_t* p_data) {
+static void phNxpEseProto7816_DecodeSFrameSecureTimerData(uint8_t* p_data) {
   uint8_t maxSframeLen = 0, dataType = 0, frameOffset = 0;
   frameOffset = PH_PROPTO_7816_FRAME_LENGTH_OFFSET;
   maxSframeLen =
       p_data[frameOffset] +
       frameOffset; /* to be in sync with offset which starts from index 0 */
+
+  /* Secure Timer specific parser */
   while (maxSframeLen > frameOffset) {
     frameOffset += 1; /* To get the Type (TLV) */
     dataType = p_data[frameOffset];
@@ -645,7 +678,13 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = RFRAME;
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.RframeInfo.errCode =
             NO_ERROR;
-        status = phNxpEseProro7816_SaveIframeData(&p_data[3], data_len - 4);
+        if(phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC >
+          IFSC_SIZE_SEND)
+        {
+          status = phNxpEseProro7816_SaveIframeData(&p_data[5], data_len - 6);
+        } else {
+          status = phNxpEseProro7816_SaveIframeData(&p_data[3], data_len - 4);
+        }
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             SEND_R_ACK;
       } else {
@@ -653,7 +692,13 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
             false;
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
-        status = phNxpEseProro7816_SaveIframeData(&p_data[3], data_len - 4);
+        if(phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC >
+          IFSC_SIZE_SEND)
+        {
+          status = phNxpEseProro7816_SaveIframeData(&p_data[5], data_len - 6);
+        } else {
+          status = phNxpEseProro7816_SaveIframeData(&p_data[3], data_len - 4);
+        }
       }
     } else {
       phNxpEse_Sleep(DELAY_ERROR_RECOVERY);
@@ -905,7 +950,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
             INTF_RESET_RSP;
         if (p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] > 0)
-          phNxpEseProto7816_DecodeSFrameData(p_data);
+          phNxpEseProto7816_DecodeSFrameATRData(p_data);
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = UNKNOWN;
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
@@ -918,7 +963,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
             PROP_END_APDU_RSP;
         if (p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] > 0)
-          phNxpEseProto7816_DecodeSFrameData(p_data);
+          phNxpEseProto7816_DecodeSFrameSecureTimerData(p_data);
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = UNKNOWN;
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
@@ -938,6 +983,15 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         }
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType= UNKNOWN;
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState = IDLE_STATE;
+        break;
+    case ATR_RSP:
+        phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
+            PROP_END_APDU_RSP;
+        //if (p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] > 0)
+          //phNxpEseProto7816_DecodeSFrameATRData(p_data);
+        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = UNKNOWN;
+        phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+            IDLE_STATE;
         break;
       default:
         LOG(ERROR) << StringPrintf("%s Wrong S-Frame Received", __FUNCTION__);
@@ -1266,11 +1320,11 @@ static ESESTATUS phNxpEseProto7816_ResetProtoParams(void) {
   phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState = IDLE_STATE;
   phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdFrameType = INVALID;
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = INVALID;
-  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLen =
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC =
       IFSC_SIZE_SEND;
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.p_data = NULL;
   phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.FrameType = INVALID;
-  phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLen =
+  phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLenIFSC =
       IFSC_SIZE_SEND;
   phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.p_data = NULL;
   /* Initialized with sequence number of the last I-frame sent */
@@ -1429,7 +1483,7 @@ ESESTATUS phNxpEseProto7816_IntfReset(
  *
  ******************************************************************************/
 ESESTATUS phNxpEseProto7816_SetIfscSize(uint16_t IFSC_Size) {
-  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLen = IFSC_Size;
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = IFSC_Size;
   return ESESTATUS_SUCCESS;
 }
 /******************************************************************************

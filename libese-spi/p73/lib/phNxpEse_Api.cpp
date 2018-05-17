@@ -1091,7 +1091,25 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
                       poll_sof_chained_delay);
     }
     total_count = 3;
-    nNbBytesToRead = pBuffer[2];
+    uint8_t pcb;
+    phNxpEseProto7816_PCB_bits_t pcb_bits;
+    pcb = pBuffer[PH_PROPTO_7816_PCB_OFFSET];
+
+    phNxpEse_memset(&pcb_bits, 0x00, sizeof(phNxpEseProto7816_PCB_bits_t));
+    phNxpEse_memcpy(&pcb_bits, &pcb, sizeof(uint8_t));
+
+    if(pBuffer[2])
+      nNbBytesToRead = pBuffer[2];
+    else {
+      if(0x00 == pcb_bits.msb) {
+        nNbBytesToRead = (pBuffer[3] << 8);
+        nNbBytesToRead = nNbBytesToRead | pBuffer[4];
+      }
+      else
+      {
+        nNbBytesToRead = pBuffer[2];
+      }
+    }
     /* Read the Complete data + one byte CRC*/
     ret = phPalEse_read(pDevHandle, &pBuffer[3], (nNbBytesToRead + 1));
     if (ret < 0) {
@@ -1112,6 +1130,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       << StringPrintf("%s Exit ret = %d", __FUNCTION__, ret);
   return ret;
 }
+
 /******************************************************************************
  * Function         phNxpEse_WriteFrame
  *
