@@ -304,6 +304,10 @@ static phNxpEseProto7816_t phNxpEseProto7816_3_Var;
  */
 #define PH_PROTO_7816_HEADER_LEN 0x03
 /*!
+ * \brief 7816-3 protocol ext.frame header length
+ */
+#define PH_PROTO_7816_EXT_HEADER_LEN 0x05
+/*!
  * \brief 7816-3 protocol frame CRC length
  */
 #define PH_PROTO_7816_CRC_LEN 0x01

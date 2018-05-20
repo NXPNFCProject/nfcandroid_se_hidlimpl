@@ -1044,7 +1044,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       /* Read the HEADR of one byte*/
       DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s Read HDR", __FUNCTION__);
-      numBytesToRead = 1;
+      numBytesToRead = 1 + 2; /* PCB + INF_len+ 2 for extended frame*/
       headerIndex = 1;
       break;
     } else if ((pBuffer[1] == nxpese_ctxt.nadInfo.nadRx) || (pBuffer[1] == RECIEVE_PACKET_SOF)) {
@@ -1052,7 +1052,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s Read HDR", __FUNCTION__);
       pBuffer[0] = pBuffer[1];
-      numBytesToRead = 2;
+      numBytesToRead = 2 + 2;/* PCB + INF_len+ 2 for extended frame*/
       headerIndex = 0;
       break;
     }
@@ -1104,14 +1104,15 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       if(0x00 == pcb_bits.msb) {
         nNbBytesToRead = (pBuffer[3] << 8);
         nNbBytesToRead = nNbBytesToRead | pBuffer[4];
+        total_count += 2;
       }
       else
       {
-        nNbBytesToRead = pBuffer[2];
+        nNbBytesToRead = pBuffer[2] - 2;
       }
     }
     /* Read the Complete data + one byte CRC*/
-    ret = phPalEse_read(pDevHandle, &pBuffer[3], (nNbBytesToRead + 1));
+    ret = phPalEse_read(pDevHandle, &pBuffer[5], (nNbBytesToRead + 1));
     if (ret < 0) {
       LOG(ERROR) << StringPrintf("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
       ret = -1;

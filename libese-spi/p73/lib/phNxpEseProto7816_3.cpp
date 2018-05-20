@@ -562,9 +562,13 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
   /* IFSC size */
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = 0;
   //phNxpEse_memcpy(phNxpEseProto7816_3_Var.pAtrData, &p_data[3], p_data[2]);
-  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = (p_data[11] << 8) | (p_data[12]);
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = (p_data[10] << 8);
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC |= (p_data[11]);
   if(!((p_data[11] << 8) | (p_data[12])))
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = IFSC_SIZE_SEND;
+  else
+    phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC -= (PH_PROTO_7816_EXT_HEADER_LEN +
+                                                                              PH_PROTO_7816_CRC_LEN);
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s Max DataLen=%d \n", __FUNCTION__,
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC);
@@ -678,8 +682,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = RFRAME;
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.RframeInfo.errCode =
             NO_ERROR;
-        if(phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC >
-          IFSC_SIZE_SEND)
+        if(0x00 == p_data[2]) /* Checking for extended frame prologue */
         {
           status = phNxpEseProro7816_SaveIframeData(&p_data[5], data_len - 6);
         } else {
@@ -692,8 +695,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
             false;
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
-        if(phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC >
-          IFSC_SIZE_SEND)
+        if(0x00 == p_data[2]) /* Checking for extended frame prologue */
         {
           status = phNxpEseProro7816_SaveIframeData(&p_data[5], data_len - 6);
         } else {
