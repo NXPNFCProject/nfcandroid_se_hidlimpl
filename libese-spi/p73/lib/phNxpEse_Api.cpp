@@ -1040,9 +1040,24 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
   int ret = -1;
   int sof_counter = 0; /* one read may take 1 ms*/
   int total_count = 0, numBytesToRead = 0, headerIndex = 0;
+  int max_sof_counter = 0;
 
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s Enter", __FUNCTION__);
+  /*Max retry to get SOF in case of chaining*/
+  if(poll_sof_chained_delay == 1)
+  {
+    /*Wait Max for 1.3 sec before retry/recvoery*/
+    /*(max_sof_counter(1300) * 10 us) = 1.3 sec */
+    max_sof_counter = ESE_POLL_TIMEOUT * 10;
+  }
+  /*Max retry to get SOF in case of Non-chaining*/
+  else
+  {
+    /*wait based on config option */
+    /*(nadPollingRetryTime * WAKE_UP_DELAY * NAD_POLLING_SCALER)*/
+    max_sof_counter = (ESE_POLL_TIMEOUT / nxpese_ctxt.nadPollingRetryTime);
+  }
   do {
     sof_counter++;
     ret = -1;
@@ -1080,7 +1095,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
                       WAKE_UP_DELAY * NAD_POLLING_SCALER);*/
       phPalEse_sleep(nxpese_ctxt.nadPollingRetryTime * WAKE_UP_DELAY * NAD_POLLING_SCALER);
     }
-  } while (sof_counter < ESE_NAD_POLLING_MAX);
+  } while (sof_counter < max_sof_counter);
   if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) || (pBuffer[0] == RECIEVE_PACKET_SOF)) {
     DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s SOF FOUND", __FUNCTION__);

@@ -32,9 +32,9 @@
  */
 #define SEND_PACKET_SOF 0x5A
 /*!
- * \brief ESE Poll timeout (max 2 seconds)
+ * \brief ESE Poll timeout (max 1.3 seconds)
  */
-#define ESE_POLL_TIMEOUT (2 * 1000)
+#define ESE_POLL_TIMEOUT (1300)
 /*!
  * \brief ESE Max Poll retry count
  */
