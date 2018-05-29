@@ -35,8 +35,8 @@
 typedef enum sFrameTypes {
   RESYNCH_REQ = 0x00, /*!< Re-synchronisation request between host and ESE */
   RESYNCH_RSP = 0x20, /*!< Re-synchronisation response between host and ESE */
-  IFSC_REQ = 0x01,    /*!< IFSC size request */
-  IFSC_RES = 0x21,    /*!< IFSC size response */
+  IFS_REQ = 0x01,    /*!< IFSC size request */
+  IFS_RES = 0x21,    /*!< IFSC size response */
   ABORT_REQ = 0x02,   /*!< Abort request */
   ABORT_RES = 0x22,   /*!< Abort response */
   WTX_REQ = 0x03,     /*!< WTX request */
@@ -109,8 +109,9 @@ typedef enum phNxpEseProto7816_TransceiveStates {
                         chip/hard reset command to be sent */
   SEND_S_WTX_REQ,  /*!< 7816-3 protocol transceive state: S-frame WTX command to
                       be sent */
-  SEND_S_WTX_RSP /*!< 7816-3 protocol transceive state: S-frame WTX response to
+  SEND_S_WTX_RSP, /*!< 7816-3 protocol transceive state: S-frame WTX response to
                     be sent */
+  SEND_S_IFS_ADJ
 } phNxpEseProto7816_TransceiveStates_t;
 
 /*!
@@ -249,7 +250,7 @@ typedef struct phNxpEseProto7816 {
   unsigned long int rnack_retry_limit;
   unsigned long int rnack_retry_counter;
   phNxpEseProto7816SecureTimer_t secureTimerParams;
-  uint32_t currentIFSCSize;
+  uint32_t currentIFSDSize;
 } phNxpEseProto7816_t;
 
 /*!
@@ -460,7 +461,7 @@ ESESTATUS phNxpEseProto7816_Reset(void);
  * \retval On success return true or else false.
  *
  */
-ESESTATUS phNxpEseProto7816_SetIfscSize(uint16_t IFSC_Size);
+ESESTATUS phNxpEseProto7816_SetIfs(uint16_t IFS_Size);
 /**
  * \ingroup ISO7816-3_protocol_lib
  * \brief This function is used to set the endpoint

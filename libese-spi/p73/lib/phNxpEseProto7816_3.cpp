@@ -167,6 +167,7 @@ static ESESTATUS phNxpEseProto7816_SendSFrame(sFrameInfo_t sFrameData) {
   uint32_t frame_len = 0;
   uint8_t* p_framebuff = NULL;
   uint8_t pcb_byte = 0;
+  uint8_t lenIFS = 0;
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("Enter %s ", __FUNCTION__);
   sFrameInfo_t sframeData = sFrameData;
@@ -184,6 +185,32 @@ static ESESTATUS phNxpEseProto7816_SendSFrame(sFrameInfo_t sFrameData) {
 
       pcb_byte |= PH_PROTO_7816_S_BLOCK_REQ; /* PCB */
       pcb_byte |= PH_PROTO_7816_S_RESYNCH;
+      break;
+    case IFS_REQ:
+      frame_len = (PH_PROTO_7816_HEADER_LEN + PH_PROTO_7816_CRC_LEN);
+      lenIFS = 0;
+      if(IFSC_SIZE_SEND < phNxpEseProto7816_3_Var.currentIFSDSize) {
+        frame_len += 2;
+        lenIFS = 2;
+      } else {
+        frame_len += 1;
+        lenIFS = 1;
+      }
+
+      p_framebuff = (uint8_t*)phNxpEse_memalloc(frame_len * sizeof(uint8_t));
+      if (NULL == p_framebuff) {
+        return ESESTATUS_FAILED;
+      }
+      p_framebuff[2] = lenIFS;
+      if(2 == lenIFS) {
+        p_framebuff[3] = (phNxpEseProto7816_3_Var.currentIFSDSize >> 8);
+        p_framebuff[4] = (phNxpEseProto7816_3_Var.currentIFSDSize & 0xFF);
+      } else {
+        p_framebuff[3] = phNxpEseProto7816_3_Var.currentIFSDSize;
+      }
+
+      pcb_byte |= PH_PROTO_7816_S_BLOCK_REQ; /* PCB */
+      pcb_byte |= IFS_REQ;
       break;
     case INTF_RESET_REQ:
       frame_len = (PH_PROTO_7816_HEADER_LEN + PH_PROTO_7816_CRC_LEN);
@@ -552,6 +579,35 @@ static void phNxpEseProto7816_DecodeSecureTimer(uint8_t* frameOffset,
 }
 
 /******************************************************************************
+ * Function         phNxpEseProto7816_DecodeSFrameIFSData
+ *
+ * Description      This internal function is to decode S-frame payload.
+ * Returns          void
+ *
+ ******************************************************************************/
+static void phNxpEseProto7816_DecodeSFrameIFSData(uint8_t* p_data) {
+  uint16_t ifsd_data = 0;
+  if(p_data[2] == 1) {
+    ifsd_data = p_data[3];
+  } else if(p_data[2] == 2) {
+    ifsd_data = p_data[3];
+    ifsd_data <<= 8;
+    ifsd_data |= p_data[4];
+  }
+  if(ifsd_data == phNxpEseProto7816_3_Var.currentIFSDSize) {
+    phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC =
+      phNxpEseProto7816_3_Var.currentIFSDSize;
+    DLOG_IF(INFO, ese_debug_enabled)
+          << StringPrintf("%s IFS adjustment: Max DataLen=%d \n", __FUNCTION__,
+            phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC);
+  } else {
+    DLOG_IF(ERROR, ese_debug_enabled)
+          << StringPrintf("%s ERROR IFS adjustment: Max DataLen=%d \n", __FUNCTION__,
+            phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC);
+  }
+}
+
+/******************************************************************************
  * Function         phNxpEseProto7816_DecodeSFrameATRData
  *
  * Description      This internal function is to decode S-frame payload.
@@ -865,13 +921,15 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
         break;
-      case IFSC_REQ:
+      case IFS_REQ:
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
-            IFSC_REQ;
+            IFS_REQ;
         break;
-      case IFSC_RES:
+      case IFS_RES:
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
-            IFSC_RES;
+            IFS_RES;
+        if (p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] > 0)
+          phNxpEseProto7816_DecodeSFrameIFSData(p_data);
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = UNKNOWN;
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
@@ -1148,6 +1206,10 @@ static ESESTATUS TransceiveProcess(void) {
         break;
       case SEND_S_INTF_RST:
         sFrameInfo.sFrameType = INTF_RESET_REQ;
+        status = phNxpEseProto7816_SendSFrame(sFrameInfo);
+        break;
+      case SEND_S_IFS_ADJ:
+        sFrameInfo.sFrameType = IFS_REQ;
         status = phNxpEseProto7816_SendSFrame(sFrameInfo);
         break;
       case SEND_S_EOS:
@@ -1477,6 +1539,43 @@ ESESTATUS phNxpEseProto7816_IntfReset(
 }
 
 /******************************************************************************
+ * Function         phNxpEseProto7816_SetIfs
+ *
+ * Description      This function is used to set IFSD value to card
+ *
+ * Returns          Always return true (1).
+ *
+ ******************************************************************************/
+ESESTATUS phNxpEseProto7816_SetIfs(uint16_t IFS_Size) {
+  //phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = IFSC_Size;
+  ESESTATUS status = ESESTATUS_FAILED;
+  DLOG_IF(INFO, ese_debug_enabled)
+      << StringPrintf("Enter %s ", __FUNCTION__);
+  /* IFSD > IFSC not allowed, card will reject by R-NACK so not sending */
+  if(IFS_Size > phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC) {
+    LOG(ERROR) << StringPrintf("%s ERROR: IFSD > IFSC, NOT ALLOWED", __FUNCTION__);
+  } else {
+    phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
+        PH_NXP_ESE_PROTO_7816_TRANSCEIVE;
+    phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
+    phNxpEseProto7816_3_Var.currentIFSDSize = IFS_Size;
+    phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.sFrameType =
+        IFS_REQ;
+    phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+        SEND_S_IFS_ADJ;
+    status = TransceiveProcess();
+    if (ESESTATUS_FAILED == status) {
+      /* reset all the structures */
+      LOG(ERROR) << StringPrintf("%s TransceiveProcess failed ", __FUNCTION__);
+    }
+    phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
+        PH_NXP_ESE_PROTO_7816_IDLE;
+    DLOG_IF(INFO, ese_debug_enabled)
+        << StringPrintf("Exit %s ", __FUNCTION__);
+  }
+  return status;
+}
+
  * Function         phNxpEseProto7816_SetIfscSize
  *
  * Description      This function is used to set the max T=1 data send size

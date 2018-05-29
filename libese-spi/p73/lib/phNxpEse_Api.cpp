@@ -134,7 +134,7 @@ void phNxpLog_InitializeLogLevel() {
  ******************************************************************************/
 ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
   ESESTATUS wConfigStatus = ESESTATUS_FAILED;
-  unsigned long int num;
+  unsigned long int num, ifsd_value = 0;
   unsigned long maxTimer = 0;
   phNxpEseProto7816InitParam_t protoInitParam;
   phNxpEse_memset(&protoInitParam, 0x00, sizeof(phNxpEseProto7816InitParam_t));
@@ -201,6 +201,19 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
     wConfigStatus = ESESTATUS_FAILED;
     LOG(ERROR) << StringPrintf("phNxpEseProto7816_Open failed");
   }
+
+  /* Retrieving the IFS-D value configured in the config file and applying to Card */
+  if (EseConfig::hasKey(NAME_NXP_IFSD_VALUE)) {
+    ifsd_value = EseConfig::getUnsigned(NAME_NXP_IFSD_VALUE);
+    if((0xFFFF > ifsd_value) &&
+      (ifsd_value > 0)) {
+      LOG(INFO) << StringPrintf("phNxpEseProto7816_SetIFS IFS adjustment requested with %ld", ifsd_value);
+      phNxpEse_setIfs(ifsd_value);
+    } else {
+      LOG(ERROR) << StringPrintf("phNxpEseProto7816_SetIFS IFS adjustment argument invalid");
+    }
+  }
+
   return wConfigStatus;
 }
 
@@ -209,7 +222,7 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
  *
  * Description      This function is called by Jni during the
  *                  initialization of the ESE. It opens the physical connection
- *                  with ESE and creates required client thread for
+ *                  with ESE and creates required NAME_NXP_MAX_RNACK_RETRYclient thread for
  *                  operation.
  * Returns          This function return ESESTATUS_SUCCES (0) in case of success
  *                  In case of failure returns other failure value.
@@ -1191,9 +1204,9 @@ ESESTATUS phNxpEse_WriteFrame(uint32_t data_len, uint8_t* p_data) {
  * Returns          Always return ESESTATUS_SUCCESS (0).
  *
  ******************************************************************************/
-ESESTATUS phNxpEse_setIfsc(uint16_t IFSC_Size) {
+ESESTATUS phNxpEse_setIfs(uint16_t IFS_Size) {
   /*SET the IFSC size to 240 bytes*/
-  phNxpEseProto7816_SetIfscSize(IFSC_Size);
+  phNxpEseProto7816_SetIfs(IFS_Size);
   return ESESTATUS_SUCCESS;
 }
 

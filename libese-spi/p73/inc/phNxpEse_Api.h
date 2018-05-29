@@ -232,7 +232,7 @@ ESESTATUS phNxpEse_chipReset(void);
  * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
  *
  */
-ESESTATUS phNxpEse_setIfsc(uint16_t IFSC_Size);
+ESESTATUS phNxpEse_setIfs(uint16_t IFS_Size);
 
 /**
  * \ingroup spi_libese
