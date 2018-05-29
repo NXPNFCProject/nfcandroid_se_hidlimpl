@@ -28,8 +28,8 @@
 #include <phNxpEseFeatures.h>
 /*! SPI Power Manager (SPM) possible error codes */
 typedef enum spm_power {
-  SPM_POWER_ENABLE = 0,
-  SPM_POWER_DISABLE,     /*!< SPM power disable */
+  SPM_POWER_DISABLE = 0,     /*!< SPM power disable */
+  SPM_POWER_ENABLE,    /*!< SPM power enable */
   SPM_POWER_RESET,       /*!< SPM Reset pwer */
   SPM_POWER_PRIO_ENABLE, /*!< SPM prio mode enable */
   SPM_POWER_PRIO_DISABLE /*!< SPM prio mode disable */

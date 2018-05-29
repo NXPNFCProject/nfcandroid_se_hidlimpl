@@ -331,9 +331,6 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
       ret = ESESTATUS_SUCCESS;
       break;
 #endif
-    case phPalEse_e_DisablePwrCntrl:
-      ret = pNfcAdapt.HalIoctl(HAL_NFC_INHIBIT_PWR_CNTRL, &inpOutData);
-      break;
     default:
       ret = ESESTATUS_IOCTL_FAILED;
       break;

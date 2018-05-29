@@ -278,7 +278,7 @@ ESESTATUS phNxpEse_SPM_DisablePwrControl(unsigned long arg) {
 
   ALOGD_IF(ese_debug_enabled, "%s : Inhibit power control is set to  = 0x%ld",
            __FUNCTION__, arg);
-  ret = phPalEse_ioctl(phPalEse_e_DisablePwrCntrl, pEseDeviceHandle, arg);
+  ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle, arg);
   if (ret < 0) {
     ALOGE("%s : failed errno = 0x%x", __FUNCTION__, errno);
     status = ESESTATUS_FAILED;
