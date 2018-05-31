@@ -1576,17 +1576,6 @@ ESESTATUS phNxpEseProto7816_SetIfs(uint16_t IFS_Size) {
   return status;
 }
 
- * Function         phNxpEseProto7816_SetIfscSize
- *
- * Description      This function is used to set the max T=1 data send size
- *
- * Returns          Always return true (1).
- *
- ******************************************************************************/
-ESESTATUS phNxpEseProto7816_SetIfscSize(uint16_t IFSC_Size) {
-  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = IFSC_Size;
-  return ESESTATUS_SUCCESS;
-}
 /******************************************************************************
  * Function         phNxpEseProto7816_SetEndPoint
  *
