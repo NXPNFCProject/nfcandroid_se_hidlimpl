@@ -47,6 +47,7 @@ typedef enum sFrameTypes {
   PROP_END_APDU_RSP = 0x25, /*!< Proprietary Enf of APDU response */
   HARD_RESET_REQ = 0x06,/*!< Chip reset request */
   HARD_RESET_RSP = 0x26,/*!< Chip reset request */
+  ATR_REQ = 0x07,    /*!< ATR request */
   ATR_RSP = 0x27,    /*!< ATR response */
   INVALID_REQ_RES           /*!< Invalid request */
 } sFrameTypes_t;
@@ -111,7 +112,8 @@ typedef enum phNxpEseProto7816_TransceiveStates {
                       be sent */
   SEND_S_WTX_RSP, /*!< 7816-3 protocol transceive state: S-frame WTX response to
                     be sent */
-  SEND_S_IFS_ADJ
+  SEND_S_IFS_ADJ, /*!< 7816-3 protocol transceive state: S-frame IFS adjustment */
+  SEND_S_ATR_REQ  /*!< 7816-3 protocol transceive state: S-frame ATR request */
 } phNxpEseProto7816_TransceiveStates_t;
 
 /*!
@@ -480,6 +482,15 @@ ESESTATUS phNxpEseProto7816_SetEndPoint(uint8_t uEndPoint);
  *
 */
 ESESTATUS phNxpEseProto7816_ResetEndPoint(uint8_t uEndPoint);
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief This function is used to get ATR bytes for the application
+ *
+ * \param[out] phNxpEse_data: Response ATR bytes from ESE
+ * \retval On success return TRUE or else FALSE.
+ *
+*/
+ESESTATUS phNxpEseProto7816_getAtr(phNxpEse_data* pATRRsp);
 
 /** @} */
 #endif /* _PHNXPESEPROTO7816_3_H_ */

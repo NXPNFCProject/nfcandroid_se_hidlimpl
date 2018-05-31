@@ -213,7 +213,6 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
       LOG(ERROR) << StringPrintf("phNxpEseProto7816_SetIFS IFS adjustment argument invalid");
     }
   }
-
   return wConfigStatus;
 }
 
@@ -1196,16 +1195,31 @@ ESESTATUS phNxpEse_WriteFrame(uint32_t data_len, uint8_t* p_data) {
 }
 
 /******************************************************************************
- * Function         phNxpEse_setIfsc
+ * Function         phNxpEse_getAtr
  *
- * Description      This function sets the IFSC size to 240/254 support JCOP OS
+ * Description      This function retrieves ATR bytes from 7816-3 layer
+ *Update.
+ *
+ * Returns          It returns ESESTATUS_SUCCESS (0) if write successful else
+ *                  ESESTATUS_FAILED(1
+ *
+ ******************************************************************************/
+ESESTATUS phNxpEse_getAtr(phNxpEse_data* pATR) {
+  ESESTATUS status = ESESTATUS_FAILED;
+  status = phNxpEseProto7816_getAtr(pATR);
+  return status;
+}
+
+/******************************************************************************
+ * Function         phNxpEse_setIfs
+ *
+ * Description      This function sets the IFS size to 240/254 support JCOP OS
  *Update.
  *
  * Returns          Always return ESESTATUS_SUCCESS (0).
  *
  ******************************************************************************/
 ESESTATUS phNxpEse_setIfs(uint16_t IFS_Size) {
-  /*SET the IFSC size to 240 bytes*/
   phNxpEseProto7816_SetIfs(IFS_Size);
   return ESESTATUS_SUCCESS;
 }

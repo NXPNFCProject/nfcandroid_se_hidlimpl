@@ -236,7 +236,7 @@ static ESESTATUS phNxpEseProto7816_SendSFrame(sFrameInfo_t sFrameData) {
       pcb_byte |= PH_PROTO_7816_S_BLOCK_REQ; /* PCB */
       pcb_byte |= PH_PROTO_7816_S_END_OF_APDU;
       break;
-case HARD_RESET_REQ:
+    case HARD_RESET_REQ:
       frame_len = (PH_PROTO_7816_HEADER_LEN + PH_PROTO_7816_CRC_LEN);
       p_framebuff = (uint8_t*)phNxpEse_memalloc(frame_len * sizeof(uint8_t));
       if (NULL == p_framebuff)
@@ -260,6 +260,19 @@ case HARD_RESET_REQ:
 
       pcb_byte |= PH_PROTO_7816_S_BLOCK_RSP;
       pcb_byte |= PH_PROTO_7816_S_WTX;
+      break;
+    case ATR_REQ:
+      frame_len = (PH_PROTO_7816_HEADER_LEN + PH_PROTO_7816_CRC_LEN);
+      p_framebuff = (uint8_t*)phNxpEse_memalloc(frame_len * sizeof(uint8_t));
+      if (NULL == p_framebuff)
+      {
+          return ESESTATUS_FAILED;
+      }
+      p_framebuff[2] = 0;
+      p_framebuff[3] = 0x00;
+
+      pcb_byte |= PH_PROTO_7816_S_BLOCK_REQ; /* PCB */
+      pcb_byte |= ATR_REQ;
       break;
     default:
       LOG(ERROR) << StringPrintf("Invalid S-block");
@@ -1046,9 +1059,10 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         break;
     case ATR_RSP:
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
-            PROP_END_APDU_RSP;
-        //if (p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] > 0)
-          //phNxpEseProto7816_DecodeSFrameATRData(p_data);
+            ATR_RSP;
+        if (p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] > 0)
+          phNxpEse_StoreDatainList(p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET],
+            &p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET + 1]);
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = UNKNOWN;
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
@@ -1224,6 +1238,9 @@ static ESESTATUS TransceiveProcess(void) {
         sFrameInfo.sFrameType = HARD_RESET_REQ;
         status = phNxpEseProto7816_SendSFrame(sFrameInfo);
         break;
+    case SEND_S_ATR_REQ:
+        sFrameInfo.sFrameType = ATR_REQ;
+        status = phNxpEseProto7816_SendSFrame(sFrameInfo);
       default:
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
@@ -1543,7 +1560,7 @@ ESESTATUS phNxpEseProto7816_IntfReset(
  *
  * Description      This function is used to set IFSD value to card
  *
- * Returns          Always return true (1).
+ * Returns          On success return true or else false.
  *
  ******************************************************************************/
 ESESTATUS phNxpEseProto7816_SetIfs(uint16_t IFS_Size) {
@@ -1573,6 +1590,50 @@ ESESTATUS phNxpEseProto7816_SetIfs(uint16_t IFS_Size) {
     DLOG_IF(INFO, ese_debug_enabled)
         << StringPrintf("Exit %s ", __FUNCTION__);
   }
+  return status;
+}
+
+/******************************************************************************
+ * Function         phNxpEseProto7816_getAtr
+ *
+ * Description      This function is used to get the ATR data from ESE
+ *
+ * Returns          On success return true or else false
+ *
+ ******************************************************************************/
+ESESTATUS phNxpEseProto7816_getAtr(phNxpEse_data* pATRRsp) {
+  //phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = IFSC_Size;
+  ESESTATUS status = ESESTATUS_FAILED;
+  UNUSED(pATRRsp);
+  DLOG_IF(INFO, ese_debug_enabled)
+      << StringPrintf("Enter %s ", __FUNCTION__);
+  phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
+      PH_NXP_ESE_PROTO_7816_TRANSCEIVE;
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
+  //phNxpEseProto7816_3_Var.currentIFSDSize = IFS_Size;
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.sFrameType =
+      ATR_REQ;
+  phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+      SEND_S_ATR_REQ;
+  status = TransceiveProcess();
+  if (ESESTATUS_FAILED == status) {
+    /* reset all the structures */
+    LOG(ERROR) << StringPrintf("%s TransceiveProcess failed ", __FUNCTION__);
+  }
+
+  status = phNxpEse_GetData(&(pATRRsp->len), &(pATRRsp->p_data));
+  if (ESESTATUS_SUCCESS == status) {
+    DLOG_IF(INFO, ese_debug_enabled)
+    << StringPrintf(
+        "%s Data successfully received at 7816, packaging to "
+        "send upper layers: DataLen = %d",
+        __FUNCTION__, pATRRsp->len);
+  } else
+    status = ESESTATUS_FAILED;
+  phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
+      PH_NXP_ESE_PROTO_7816_IDLE;
+  DLOG_IF(INFO, ese_debug_enabled)
+      << StringPrintf("Exit %s ", __FUNCTION__);
   return status;
 }
 

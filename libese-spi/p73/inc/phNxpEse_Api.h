@@ -234,6 +234,18 @@ ESESTATUS phNxpEse_chipReset(void);
  */
 ESESTATUS phNxpEse_setIfs(uint16_t IFS_Size);
 
+
+/**
+ * \ingroup spi_libese
+ * \brief This function is used to set IFSC size
+ *
+ * \param[in]       uint16_t IFSC_Size
+ *
+ * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
+ *
+ */
+ESESTATUS phNxpEse_getAtr(phNxpEse_data* pATR);
+
 /**
  * \ingroup spi_libese
  * \brief This function sends the S-frame to indicate END_OF_APDU

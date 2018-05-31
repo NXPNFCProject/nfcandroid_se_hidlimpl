@@ -118,8 +118,33 @@ Return<void> SecureElement::init(
 }
 
 Return<void> SecureElement::getAtr(getAtr_cb _hidl_cb) {
+  LOG(INFO) << "Mr Robot got a call for ATR";
+  phNxpEse_data atrData;
+  ESESTATUS status = ESESTATUS_FAILED;
+  status = phNxpEse_SetEndPoint_Cntxt(0);
+  if (status != ESESTATUS_SUCCESS) {
+    LOG(ERROR) << "Endpoint set failed";
+  }
+  status = phNxpEse_getAtr(&atrData);
   hidl_vec<uint8_t> response;
+  if (status != ESESTATUS_SUCCESS) {
+    //return Void(); TODO
+  } else {
+    response.resize(atrData.len);
+    memcpy(&response[0], atrData.p_data, atrData.len);
+  }
+
+  status = phNxpEse_ResetEndPoint_Cntxt(0);
+  if (status != ESESTATUS_SUCCESS) {
+    LOG(ERROR) << "Endpoint set failed";
+  }
+
+  LOG(INFO) << StringPrintf("ATR Data[BytebyByte]=Look below for %d bytes", atrData.len);
+  for (auto i = response.begin(); i != response.end(); ++i)
+    LOG(INFO) << StringPrintf("0x%x\t", *i);
+
   _hidl_cb(response);
+  phNxpEse_free(atrData.p_data);
   return Void();
 }
 
