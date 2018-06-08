@@ -122,7 +122,7 @@ SESTATUS JCOS_doDownload(
   /*If UAI specific files are present*/
   if(stats == true)
   {
-      for (int num = 0; num < 3; num++)
+      for (int num = 0; num < 1; num++)
       {
           if (stat(path[num], &st))
           {

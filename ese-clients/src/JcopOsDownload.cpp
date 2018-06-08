@@ -29,6 +29,7 @@ using android::base::StringPrintf;
 JcopOsDwnld JcopOsDwnld::sJcopDwnld;
 int32_t gTransceiveTimeout = 120000;
 uint8_t isUaiEnabled = false;
+uint8_t isPatchUpdate = false;
 
 tJBL_STATUS (JcopOsDwnld::*JcopOs_dwnld_seqhandler[])(
             JcopOs_ImageInfo_t* pContext, tJBL_STATUS status, JcopOs_TranscieveInfo_t* pInfo)={
@@ -97,6 +98,7 @@ bool JcopOsDwnld::getJcopOsFileInfo()
     static const char fn [] = "JcopOsDwnld::getJcopOsFileInfo";
     bool status = true;
     struct stat st;
+    isPatchUpdate = false;
     DLOG_IF(INFO, nfc_debug_enabled)
       << StringPrintf("%s: Enter", fn);
     for (int num = 0; num < 2; num++)
@@ -116,6 +118,13 @@ bool JcopOsDwnld::getJcopOsFileInfo()
         if (stat(path[num], &st))
         {
             status = false;
+        }
+        if(status == false && num == 1)
+        {
+          LOG(ERROR) << StringPrintf("%s: Patch update required %d", fn, status);
+          isPatchUpdate = true;
+          status = true;
+          break;
         }
     }
     DLOG_IF(INFO, nfc_debug_enabled)
@@ -838,6 +847,13 @@ tJBL_STATUS JcopOsDwnld::load_JcopOS_image(JcopOs_ImageInfo_t *Os_info, tJBL_STA
     if(status == STATUS_SUCCESS)
     {
         Os_info->cur_state++;
+        /*If Patch Update is required*/
+        if(isPatchUpdate)
+        {
+          /*Set the step to 3 to handle multiple
+          JCOP Patch update*/
+          Os_info->cur_state = 3;
+        }
         SetJcopOsState(Os_info, Os_info->cur_state);
     }
 
