@@ -42,6 +42,7 @@
 #include "hal_nxpnfc.h"
 #include "phNxpEse_Api.h"
 #include "eSEClient.h"
+#include "NfcAdaptation.h"
 using android::base::StringPrintf;
 
 #define MAX_RETRY_CNT 10
@@ -52,6 +53,7 @@ unsigned long int configNum1, configNum2;
 // Default max retry count for SPI CLT write blocked in secs
 unsigned long int MAX_SPI_WRITE_RETRY_COUNT = 10;
 eseIoctlData_t  eseioctldata;
+
 /*******************************************************************************
 **
 ** Function         phPalEse_spi_close
@@ -139,8 +141,8 @@ ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig) {
   int nHandle;
   int retryCnt = 0, nfc_access_retryCnt = 0;
   ese_nxp_IoctlInOutData_t inpOutData;
-  //NfcAdaptation& pNfcAdapt = NfcAdaptation::GetInstance();
-  //pNfcAdapt.Initialize();
+  NfcAdaptation& pNfcAdapt = NfcAdaptation::GetInstance();
+  pNfcAdapt.Initialize();
   static uint8_t cmd_omapi_concurrent[] = {0x2F, 0x01, 0x01, 0x01};
 
 #ifdef ESE_DEBUG_UTILS_INCLUDED
@@ -332,9 +334,9 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHand
                level);
   nfc_nci_IoctlInOutData_t inpOutData;
   inpOutData.inp.level = level;
-  //NfcAdaptation& pNfcAdapt = NfcAdaptation::GetInstance();
+  NfcAdaptation& pNfcAdapt = NfcAdaptation::GetInstance();
   if (NULL == pDevHandle) {
-    return ESESTATUS_IOCTL_FAILED;
+    //return ESESTATUS_IOCTL_FAILED; No dependency on dev handle
   }
   switch (eControlCode) {
     // Nfc Driver communication part
@@ -358,9 +360,24 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHand
       ret = ESESTATUS_SUCCESS;
       break;
 #if (NXP_ESE_JCOP_DWNLD_PROTECTION == true)
-    case phPalEse_e_SetJcopDwnldState:
-      // ret = sendIoctlData(p, HAL_NFC_SET_DWNLD_STATUS, &inpOutData);
-      ret = ESESTATUS_SUCCESS;
+    case phPalEse_e_SetClientUpdateState:
+    {
+      pNfcAdapt.Initialize();
+      DLOG_IF(INFO, ese_debug_enabled)
+      << StringPrintf("phPalEse_spi_ioctl state = phPalEse_e_SetJcopDwnldState");
+      ese_nxp_IoctlInOutData_t inpOutData;
+      memset(&inpOutData, 0x00, sizeof(ese_nxp_IoctlInOutData_t));
+      inpOutData.inp.data.nxpCmd.cmd_len = 1;
+      inpOutData.inp.data_source = 1;
+      uint8_t data = (uint8_t)level;
+      memcpy(inpOutData.inp.data.nxpCmd.p_cmd, &data,
+             sizeof(data));
+      DLOG_IF(INFO, ese_debug_enabled)
+      << StringPrintf("Before phPalEse_e_SetClientUpdateState");
+      ret = pNfcAdapt.HalIoctl(HAL_NFC_IOCTL_ESE_JCOP_DWNLD, &inpOutData);
+      DLOG_IF(INFO, ese_debug_enabled)
+      << StringPrintf("After phPalEse_e_SetClientUpdateState");
+    }
       break;
 #endif
     case phPalEse_e_DisablePwrCntrl:
@@ -371,5 +388,7 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHand
       ret = ESESTATUS_IOCTL_FAILED;
       break;
   }
+  DLOG_IF(INFO, ese_debug_enabled)
+  << StringPrintf("Exit  phPalEse_spi_ioctl : ret = %d", ret);
   return ret;
 }

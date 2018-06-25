@@ -19,10 +19,10 @@
 #include <android-base/logging.h>
 #include "phNxpEse_Apdu_Api.h"
 #include "phNxpEse_Api.h"
-#include "LsClient.h"
 #include <android-base/stringprintf.h>
 #include "hal_nxpese.h"
 #include "NxpEse.h"
+#include "eSEClient.h"
 /* Mutex to synchronize multiple transceive */
 
 namespace android {
@@ -68,7 +68,7 @@ Return<void> SecureElement::init(
     clientCallback->linkToDeath(this, 0 /*cookie*/);
   }
       LOG(ERROR) << "SecureElement::init called here";
-  if(eseioctldata.nfc_jcop_download_state == 1) {
+  if(ese_update != ESE_UPDATE_COMPLETED) {
     mIsEseInitialized = true;
     cCallback = clientCallback;
     clientCallback->onStateChange(false);
@@ -381,30 +381,7 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
   if (status != ESESTATUS_SUCCESS) {
     //return Void(); TODO
   }
-  if(!memcmp(ls_aid.data(), aid.data(), cpdu.lc))
-  {
-      LOG(ERROR) << "LSDownload aid matches";
-      tLSC_STATUS lsStatus = performLSDownload(cCallback);
-      /*performLSDownload returns STATUS_FAILED in case thread creation fails.
-      So return callback as false.
-      Otherwise callback will be called in LSDownload module.*/
-      if(lsStatus != STATUS_SUCCESS) {
-          LOG(ERROR) << "LSDownload thread creation failed!!!";
-          status = ESESTATUS_FAILED;
-          rpdu.len = 2;
-          rpdu.sw1 = 0x6A;
-          rpdu.sw2 = 0x86;
-          cCallback->onStateChange(false);
-      }else {
-          status = ESESTATUS_SUCCESS;
-          rpdu.len = 2;
-          rpdu.sw1 = 0x90;
-          rpdu.sw2 = 0x00;
-      }
-  }else {
-        status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
-  }
-
+  status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
   SecureElementStatus sestatus;
   memset(&sestatus, 0x00, sizeof(sestatus));
 

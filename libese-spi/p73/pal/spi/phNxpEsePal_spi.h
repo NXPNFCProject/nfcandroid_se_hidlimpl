@@ -202,5 +202,7 @@ void phPalEse_spi_print_packet(const char* pString, const uint8_t* p_data,
  *
  */
 void phPalEse_spi_sleep(uint32_t usec);
+
+
 /** @} */
 #endif /*  _PHNXPESE_PAL_SPI_H    */

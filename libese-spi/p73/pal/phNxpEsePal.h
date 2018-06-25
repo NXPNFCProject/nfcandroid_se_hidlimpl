@@ -57,7 +57,7 @@ typedef enum {
   phPalEse_e_DisablePwrCntrl
 #if (NXP_ESE_JCOP_DWNLD_PROTECTION == true)
   ,
-  phPalEse_e_SetJcopDwnldState, /*!< Set Jcop Download state */
+  phPalEse_e_SetClientUpdateState, /*!< Set Jcop Download state */
 #endif
 } phPalEse_ControlCode_t; /*!< Control code for IOCTL call */
 

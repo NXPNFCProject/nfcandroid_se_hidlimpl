@@ -1,83 +1,4 @@
-cc_library_shared {
 
-    name: "ls_client",
-    defaults: ["hidl_defaults"],
-    proprietary: true,
-
-    srcs: [
-        "ls_client/src/LsLib.cpp",
-        "ls_client/src/LsClient.cpp",
-    ],
-
-    local_include_dirs: [
-        "libese-spi/common/include",
-        "libese-spi/p73/common",
-        "libese-spi/p73/inc",
-        "libese-spi/p73/lib",
-        "libese-spi/p73/pal",
-        "libese-spi/p73/pal/spi",
-        "libese-spi/p73/utils",
-        "ls_client/inc",
-    ],
-
-    include_dirs: [
-        "hardware/nxp/nfc/extns/impl",
-        "hardware/nxp/secure_element/extns/impl",
-    ],
-
-    shared_libs: [
-        "ese_spi_nxp",
-        "android.hardware.secure_element@1.0",
-        "liblog",
-        "libhidlbase",
-        "liblog",
-        "libutils",
-    ],
-}
-
-cc_library_shared {
-
-    name: "se_client",
-    defaults: ["hidl_defaults"],
-    proprietary: true,
-
-    srcs: [
-        "ese-clients/src/eSEClient.cpp",
-        "ese-clients/src/JcDnld.cpp",
-        "ese-clients/src/JcopOsDownload.cpp",
-    ],
-
-    local_include_dirs: [
-        "libese-spi/common/include",
-        "libese-spi/p73/common",
-        "libese-spi/p73/inc",
-        "libese-spi/p73/lib",
-        "libese-spi/p73/pal",
-        "libese-spi/p73/pal/spi",
-        "libese-spi/p73/utils",
-        "ese-clients/inc",
-    ],
-
-    include_dirs: [
-        "hardware/nxp/nfc/extns/impl",
-        "hardware/nxp/secure_element/extns/impl",
-    ],
-
-    shared_libs: [
-        "ese_spi_nxp",
-        "android.hardware.secure_element@1.0",
-        "libbase",
-        "libcutils",
-        "libdl",
-        "libhidlbase",
-        "liblog",
-        "libutils",
-        "libchrome",
-        "libhardware",
-        "libhidltransport",
-        "libhwbinder",
-    ],
-}
 cc_binary {
     relative_install_path: "hw",
     name: "android.hardware.secure_element@1.0-service",
@@ -89,13 +10,13 @@ cc_binary {
         "1.0/SecureElement.cpp",
         "extns/impl/NxpEse.cpp",
         "1.0/VirtualISO.cpp",
+        "ese-clients/src/eSEClient.cpp"
     ],
 
     shared_libs: [
         "android.hardware.secure_element@1.0",
         "ese_spi_nxp",
         "libbase",
-        "ls_client",
         "libcutils",
         "libdl",
         "libhardware",
@@ -107,7 +28,9 @@ cc_binary {
         "libchrome",
         "vendor.nxp.nxpese@1.0",
         "vendor.nxp.nxpnfc@1.0",
-        "se_client",
+        "se_extn_client",
+        "ls_client",
+        "jcos_client"
     ],
 
     local_include_dirs: [
@@ -118,14 +41,16 @@ cc_binary {
         "libese-spi/p73/pal",
         "libese-spi/p73/pal/spi",
         "libese-spi/p73/utils",
-        "libese-spi/src/include",
-        "ese-clients/inc",
-        "ls_client/inc",
+        "libese-spi/p73/spm",
+        "ese-clients/inc"
     ],
 
     include_dirs: [
+        "hardware/nxp/secure_element_extns/inc",
         "hardware/nxp/nfc/extns/impl",
         "hardware/nxp/secure_element/extns/impl",
+        "hardware/nxp/secure_element_extns/jcos_client/inc",
+        "hardware/nxp/secure_element_extns/ls_client/inc",
     ],
 
 }

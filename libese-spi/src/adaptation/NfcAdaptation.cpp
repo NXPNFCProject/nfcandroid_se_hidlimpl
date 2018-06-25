@@ -36,7 +36,7 @@ using android::hardware::hidl_vec;
 using vendor::nxp::nxpnfc::V1_0::INxpNfc;
 using android::base::StringPrintf;
 
-sp<INxpNfc> NfcAdaptation::mHalNxpNfc;
+sp<INxpNfc> NfcAdaptation::mHalNxpNfc = nullptr;
 ThreadMutex NfcAdaptation::sIoctlLock;
 NfcAdaptation* NfcAdaptation::mpInstance = NULL;
 ThreadMutex NfcAdaptation::sLock;
@@ -46,10 +46,13 @@ extern bool ese_debug_enabled;
 void NfcAdaptation::Initialize() {
   const char* func = "NfcAdaptation::Initialize";
   DLOG_IF(INFO, ese_debug_enabled) << StringPrintf("%s", func);
-  mHalNxpNfc = INxpNfc::getService();
-  LOG_FATAL_IF(mHalNxpNfc == nullptr, "Failed to retrieve the NXP NFC HAL!");
-  DLOG_IF(INFO, ese_debug_enabled) << StringPrintf("%s: INxpNfc::getService() returned %p (%s)",
-          func,mHalNxpNfc.get(),(mHalNxpNfc->isRemote() ? "remote" : "local"));
+  if (mHalNxpNfc != nullptr) return;
+  mHalNxpNfc = INxpNfc::tryGetService();
+  if (mHalNxpNfc != nullptr) {
+    DLOG_IF(INFO, ese_debug_enabled) << StringPrintf("%s: INxpNfc::getService() returned %p (%s)",
+             func, mHalNxpNfc.get(),
+             (mHalNxpNfc->isRemote() ? "remote" : "local"));
+  }
   DLOG_IF(INFO, ese_debug_enabled) << StringPrintf("%s: exit", func);
 }
 /*******************************************************************************
@@ -158,7 +161,7 @@ NfcAdaptation::NfcAdaptation() {}
 ** Returns:     none
 **
 *******************************************************************************/
-NfcAdaptation::~NfcAdaptation() { mpInstance = NULL; }
+NfcAdaptation::~NfcAdaptation() { mpInstance = NULL;}
 
 /*******************************************************************************
 **
@@ -172,18 +175,18 @@ NfcAdaptation::~NfcAdaptation() { mpInstance = NULL; }
 *******************************************************************************/
 void IoctlCallback(::android::hardware::nfc::V1_0::NfcData outputData) {
   const char* func = "IoctlCallback";
-  nfc_nci_ExtnOutputData_t* pOutData =
-      (nfc_nci_ExtnOutputData_t*)&outputData[0];
+  ese_nxp_ExtnOutputData_t* pOutData =
+      (ese_nxp_ExtnOutputData_t*)&outputData[0];
   DLOG_IF(INFO, ese_debug_enabled) << StringPrintf("%s Ioctl Type=%lu",
          func,(unsigned long)pOutData->ioctlType);
   NfcAdaptation* pAdaptation = (NfcAdaptation*)pOutData->context;
   /*Output Data from stub->Proxy is copied back to output data
    * This data will be sent back to libnfc*/
   memcpy(&pAdaptation->mCurrentIoctlData->out, &outputData[0],
-         sizeof(nfc_nci_ExtnOutputData_t));
+         sizeof(ese_nxp_ExtnOutputData_t));
   DLOG_IF(INFO, ese_debug_enabled) << StringPrintf("%s Ioctl Type value[0]:0x%x and value[3] 0x%x",
-         func,pOutData->data.nciRsp.p_rsp[0], pOutData->data.nciRsp.p_rsp[3]);
-  omapi_status = pOutData->data.nciRsp.p_rsp[3];
+         func,pOutData->data.nxpRsp.p_rsp[0], pOutData->data.nxpRsp.p_rsp[3]);
+  omapi_status = pOutData->data.nxpRsp.p_rsp[3];
 }
 
 /*******************************************************************************
@@ -206,15 +209,19 @@ ESESTATUS NfcAdaptation::HalIoctl(long arg, void* p_data) {
   const char* func = "NfcAdaptation::HalIoctl";
   ::android::hardware::nfc::V1_0::NfcData data;
   ESESTATUS result = ESESTATUS_FAILED;
+  DLOG_IF(INFO, ese_debug_enabled) << StringPrintf("%s : Enter", func);
   AutoThreadMutex a(sIoctlLock);
-  nfc_nci_IoctlInOutData_t* pInpOutData = (nfc_nci_IoctlInOutData_t*)p_data;
+  ese_nxp_IoctlInOutData_t* pInpOutData = (ese_nxp_IoctlInOutData_t*)p_data;
   DLOG_IF(INFO, ese_debug_enabled) << StringPrintf("%s arg=%ld", func,arg);
   pInpOutData->inp.context = &NfcAdaptation::GetInstance();
   NfcAdaptation::GetInstance().mCurrentIoctlData = pInpOutData;
-  data.setToExternal((uint8_t*)pInpOutData, sizeof(nfc_nci_IoctlInOutData_t));
-  mHalNxpNfc->ioctl(arg, data, IoctlCallback);
+  data.setToExternal((uint8_t*)pInpOutData, sizeof(ese_nxp_IoctlInOutData_t));
+  if (mHalNxpNfc != nullptr) {
+    mHalNxpNfc->ioctl(arg, data, IoctlCallback);
+    DLOG_IF(INFO, ese_debug_enabled) << StringPrintf("NfcAdaptation::HalIoctl mHalNxpNfc exited");
+  }
   DLOG_IF(INFO, ese_debug_enabled) << StringPrintf("%s Ioctl Completed for Type=%lu",
-         func,(unsigned long)pInpOutData->out.ioctlType);
+         func,(unsigned long)pInpOutData);
   result = (ESESTATUS)(pInpOutData->out.result);
   return result;
 }

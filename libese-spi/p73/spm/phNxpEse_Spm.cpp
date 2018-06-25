@@ -348,20 +348,20 @@ ESESTATUS phNxpEse_SPM_GetState(spm_state_t* current_state) {
 }
 #if (NXP_ESE_JCOP_DWNLD_PROTECTION == true)
 /******************************************************************************
- * Function         phNxpEse_SPM_SetJcopDwnldState
+ * Function         phNxpEse_SPM_SetEseClientUpdateState
  *
- * Description      This function is used to set the JCOP OS download state
+ * Description      This function is used to set the ese Update state
  *
  * Returns          On Success ESESTATUS_SUCCESS else proper error code
  *
  ******************************************************************************/
-ESESTATUS phNxpEse_SPM_SetJcopDwnldState(long arg) {
+ESESTATUS phNxpEse_SPM_SetEseClientUpdateState(long arg) {
   int ret = -1;
   ESESTATUS status = ESESTATUS_SUCCESS;
 
   DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s :phNxpEse_SPM_SetJcopDwnldState  = 0x%ld", __FUNCTION__, arg);
-  ret = phPalEse_ioctl(phPalEse_e_SetJcopDwnldState, pEseDeviceHandle, arg);
+      << StringPrintf("%s :phNxpEse_SPM_SetEseClientUpdateState  = 0x%ld", __FUNCTION__, arg);
+  ret = phPalEse_ioctl(phPalEse_e_SetClientUpdateState, pEseDeviceHandle, arg);
   if (ret < 0) {
     LOG(ERROR) << StringPrintf("%s : failed errno = 0x%x", __FUNCTION__, errno);
     status = ESESTATUS_FAILED;

@@ -58,8 +58,7 @@ int main() {
     goto shutdown;
   }
   configureRpcThreadpool(1, true /*callerWillJoin*/);
-  ALOGI("Check & perform for OS update");
-  JCOS_doDownload();
+  checkEseClientUpdate();
   status = se_service->registerAsService("eSE1");
   if (status != OK) {
     LOG(ERROR) << StringPrintf("Could not register service for Secure Element HAL Iface (%d).",status);
@@ -92,6 +91,7 @@ int main() {
     goto shutdown;
   }
   ALOGI("Virtual ISO: Secure Element Service is ready");
+  perform_eSEClientUpdate();
   joinRpcThreadpool();
 // Should not pass this line
 shutdown:

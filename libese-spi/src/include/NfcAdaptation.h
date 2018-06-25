@@ -22,6 +22,7 @@
 #include <utils/RefBase.h>
 #include <vendor/nxp/nxpnfc/1.0/INxpNfc.h>
 #include "hal_nxpnfc.h"
+#include "hal_nxpese.h"
 #include <phEseStatus.h>
 using vendor::nxp::nxpnfc::V1_0::INxpNfc;
 
@@ -69,7 +70,7 @@ class NfcAdaptation {
   void Initialize();
   static NfcAdaptation& GetInstance();
   static ESESTATUS HalIoctl(long data_len, void* p_data);
-  nfc_nci_IoctlInOutData_t* mCurrentIoctlData;
+  ese_nxp_IoctlInOutData_t* mCurrentIoctlData;
 
  private:
   NfcAdaptation();
@@ -78,5 +79,5 @@ class NfcAdaptation {
   static ThreadMutex sIoctlLock;
   ThreadCondVar mCondVar;
   static ThreadCondVar mHalIoctlEvent;
-  static android::sp<vendor::nxp::nxpnfc::V1_0::INxpNfc> mHalNxpNfc;
+  static android::sp<INxpNfc> mHalNxpNfc;
 };

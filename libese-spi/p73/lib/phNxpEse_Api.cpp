@@ -356,15 +356,6 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
 #endif
   phNxpEse_memcpy(&nxpese_ctxt.initParams, &initParams,
                   sizeof(phNxpEse_initParams));
-  /* Updating ESE power state based on the init mode */
-  if (ESE_MODE_OSU == nxpese_ctxt.initParams.initMode) {
-    LOG(ERROR) << StringPrintf("%s Init mode ---->OSU", __FUNCTION__);
-    wConfigStatus = phNxpEse_checkJcopDwnldState();
-    if (wConfigStatus != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << StringPrintf("phNxpEse_checkJcopDwnldState failed");
-      goto clean_and_return_1;
-    }
-  }
   wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_ENABLE);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
     LOG(ERROR) << StringPrintf("phNxpEse_SPM_ConfigPwr: enabling power Failed");
@@ -612,9 +603,9 @@ clean_and_return_2:
 static ESESTATUS phNxpEse_setJcopDwnldState(phNxpEse_JcopDwnldState state) {
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
   ESESTATUS wConfigStatus = ESESTATUS_FAILED;
-  LOG(ERROR) << StringPrintf("phNxpEse_setJcopDwnldState Enter");
+  LOG(ERROR) << StringPrintf("phNxpEse_setJcopDwnldState Enter %d", state);
 
-  wSpmStatus = phNxpEse_SPM_SetJcopDwnldState(state);
+  wSpmStatus = phNxpEse_SPM_SetEseClientUpdateState(state);
   if (wSpmStatus == ESESTATUS_SUCCESS) {
     wConfigStatus = ESESTATUS_SUCCESS;
   }
@@ -963,12 +954,6 @@ ESESTATUS phNxpEse_close(void) {
     LOG(ERROR) << StringPrintf("phNxpEse_SPM_ConfigPwr: disabling power Failed");
   } else {
     nxpese_ctxt.spm_power_state = false;
-  }
-  if (ESE_MODE_OSU == nxpese_ctxt.initParams.initMode) {
-    status = phNxpEse_setJcopDwnldState(JCP_SPI_DWNLD_COMPLETE);
-    if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << StringPrintf("%s: phNxpEse_setJcopDwnldState failed", __FUNCTION__);
-    }
   }
   wSpmStatus = phNxpEse_SPM_DeInit();
   if (wSpmStatus != ESESTATUS_SUCCESS) {

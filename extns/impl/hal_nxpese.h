@@ -22,6 +22,7 @@
 #define MAX_IOCTL_TRANSCEIVE_CMD_LEN 256
 #define MAX_IOCTL_TRANSCEIVE_RESP_LEN 256
 #define MAX_ATR_INFO_LEN 128
+#define HAL_NFC_IOCTL_FIRST_EVT 0xA0
 enum {
   HAL_ESE_IOCTL_P61_IDLE_MODE = 0,
   HAL_ESE_IOCTL_P61_WIRED_MODE,
@@ -45,10 +46,10 @@ enum {
   HAL_ESE_IOCTL_REL_DWP_WAIT,
   HAL_ESE_IOCTL_GET_FEATURE_LIST,
   HAL_ESE_IOCTL_RF_STATUS_UPDATE,
-  HAL_ESE_IOCTL_NFC_JCOP_DWNLD
+  HAL_ESE_IOCTL_NFC_JCOP_DWNLD,
 };
 enum {
-  HAL_NFC_IOCTL_P61_IDLE_MODE = 0,
+  HAL_NFC_IOCTL_P61_IDLE_MODE = HAL_NFC_IOCTL_FIRST_EVT,
   HAL_NFC_IOCTL_P61_WIRED_MODE,
   HAL_NFC_IOCTL_P61_PWR_MODE,
   HAL_NFC_IOCTL_P61_DISABLE_MODE,
@@ -75,7 +76,9 @@ enum {
   HAL_NFC_GET_SPM_STATUS,
   HAL_NFC_GET_ESE_ACCESS,
   HAL_NFC_SET_DWNLD_STATUS,
-  HAL_NFC_INHIBIT_PWR_CNTRL
+  HAL_NFC_INHIBIT_PWR_CNTRL,
+  HAL_NFC_IOCTL_ESE_JCOP_DWNLD,
+  HAL_NFC_IOCTL_ESE_UPDATE_COMPLETE,
 };
 /*
  * Data structures provided below are used of Hal Ioctl calls
@@ -144,6 +147,7 @@ typedef union {
   uint8_t nfc_jcop_download_state;
 } eseIoctlData_t;
 extern eseIoctlData_t  eseioctldata;
+
 /*
  * ese_nxp_ExtnOutputData_t :Apart from outputData_t, there are other
  * information which is required during callback from stub to proxy. For ex

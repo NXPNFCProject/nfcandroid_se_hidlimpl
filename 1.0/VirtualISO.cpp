@@ -67,7 +67,7 @@ Return<void> VirtualISO::init(
     clientCallback->linkToDeath(this, 0 /*cookie*/);
   }
   LOG(ERROR) << "Mr Robot in VISO !!!";
-  if(eseioctldata.nfc_jcop_download_state == 1) {
+  if(ese_update != ESE_UPDATE_COMPLETED)  {
     mIsEseInitialized = true;
     cCallback = clientCallback;
     clientCallback->onStateChange(false);

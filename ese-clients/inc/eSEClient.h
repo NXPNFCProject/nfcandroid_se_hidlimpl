@@ -17,26 +17,21 @@
  ******************************************************************************/
 
 #include <android/hardware/secure_element/1.0/ISecureElementHalCallback.h>
-#ifndef JCOPCLIENT_H_
-#define JCOPCLIENT_H_
+#include "phNxpEse_Api.h"
+#include "../../../secure_element_extns/inc/eSEClientIntf.h"
 
-typedef enum {
-  SESTATUS_SUCCESS = (0x0000),
-  SESTATUS_FAILED = (0x0003),
-  SESTATUS_FILE_NOT_FOUND = (0x0005)
-} SESTATUS;
+#ifndef ESE_UPDATE_2_H_
+#define ESE_UPDATE_2_H_
 
+extern ese_update_state_t ese_update;
 using ::android::hardware::secure_element::V1_0::ISecureElementHalCallback;
 
-/*******************************************************************************
-**
-** Function:        LSC_doDownload
-**
-** Description:     Perform LS during hal init
-**
-** Returns:         SUCCESS of ok
-**
-*******************************************************************************/
-SESTATUS JCOS_doDownload();
 
-#endif /* LSCLIENT_H_ */
+void checkEseClientUpdate();
+
+SESTATUS perform_eSEClientUpdate();
+
+void eSEClientUpdate_Thread();
+
+void seteSEClientState(uint8_t state);
+#endif /* ESE_UPDATE_2_H_ */

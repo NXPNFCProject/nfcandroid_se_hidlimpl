@@ -175,7 +175,7 @@ ESESTATUS phPalEse_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
                level);
 
   if (NULL == pDevHandle) {
-    return ESESTATUS_IOCTL_FAILED;
+    //return ESESTATUS_IOCTL_FAILED;
   }
 #ifdef SPI_ENABLED
   ret = phPalEse_spi_ioctl(eControlCode, pDevHandle, level);

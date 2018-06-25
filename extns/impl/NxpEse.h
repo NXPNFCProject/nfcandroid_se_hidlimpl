@@ -46,9 +46,10 @@ struct NxpEse : public INxpEse {
                      ioctl_cb _hidl_cb) override;
   static Return<void> setSeCallBack(const android::sp<ISecureElementHalCallback>& clientCallback);
   static Return<void> setVirtualISOCallBack(const android::sp<ISecureElementHalCallback>& clientCallback);
+  static void initSEService();
+  static void initVIrtualISOService();
   private:
   Return<void> ioctlHandler(uint64_t ioctlType, ese_nxp_IoctlInOutData_t inpOutData);
-
 };
 
 }  // namespace implementation

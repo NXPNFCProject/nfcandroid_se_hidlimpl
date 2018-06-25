@@ -19,6 +19,8 @@
 #include "phNxpEse_Api.h"
 #include <android-base/stringprintf.h>
 #include <android-base/logging.h>
+#include "eSEClient.h"
+
 namespace vendor {
 namespace nxp {
 namespace nxpese {
@@ -37,11 +39,13 @@ static android::sp<ISecureElementHalCallback> virtualISOCallback;
     virtualISOCallback = clientCallback;
     return Void();
   }
-  ESESTATUS initSEService() {
+  void NxpEse::initSEService() {
     ESESTATUS status = ESESTATUS_SUCCESS;
     phNxpEse_initParams initParams;
     memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
     initParams.initMode = ESE_MODE_NORMAL;
+    if(!seCallback)
+      return;
 
     status = phNxpEse_open(initParams);
     if (status != ESESTATUS_SUCCESS) {
@@ -74,13 +78,15 @@ static android::sp<ISecureElementHalCallback> virtualISOCallback;
       LOG(ERROR) << "eSE-Hal Init failed";
       seCallback->onStateChange(false);
     }
-    return status;
   }
-  ESESTATUS initVIrtualISOService() {
+
+  void NxpEse::initVIrtualISOService() {
     ESESTATUS status = ESESTATUS_SUCCESS;
     phNxpEse_initParams initParams;
     memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
     initParams.initMode = ESE_MODE_NORMAL;
+    if(!virtualISOCallback)
+      return;
 
     status = phNxpEse_SetEndPoint_Cntxt(1);
     if (status != ESESTATUS_SUCCESS) {
@@ -108,7 +114,6 @@ static android::sp<ISecureElementHalCallback> virtualISOCallback;
       LOG(ERROR) << "eSE-Hal Init failed";
       virtualISOCallback->onStateChange(false);
     }
-    return status;
   }
 Return<void> NxpEse::ioctlHandler(uint64_t ioctlType,
                            ese_nxp_IoctlInOutData_t inpOutData) {
@@ -116,10 +121,11 @@ Return<void> NxpEse::ioctlHandler(uint64_t ioctlType,
   {
     case HAL_ESE_IOCTL_NFC_JCOP_DWNLD:
     //nfc_nci_IoctlInOutData_t* inpOutData = (nfc_nci_IoctlInOutData_t*)inpOutData;
-    int jcop_state = inpOutData.inp.data.nxpCmd.p_cmd[0];
-    if(jcop_state == 0) {
-      initSEService();
-      initVIrtualISOService();
+    int update_state = inpOutData.inp.data.nxpCmd.p_cmd[0];
+    if(update_state == ESE_JCOP_UPDATE_COMPLETED ||
+      update_state == ESE_LS_UPDATE_COMPLETED) {
+      seteSEClientState(update_state);
+      eSEClientUpdate_Thread();
     }
     break;
   }

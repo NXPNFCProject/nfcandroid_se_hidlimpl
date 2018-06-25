@@ -75,7 +75,7 @@ ESESTATUS phNxpEse_SPM_SetPwrScheme(long arg);
 
 ESESTATUS phNxpEse_SPM_DisablePwrControl(unsigned long arg);
 #if (NXP_ESE_JCOP_DWNLD_PROTECTION == true)
-ESESTATUS phNxpEse_SPM_SetJcopDwnldState(long arg);
+ESESTATUS phNxpEse_SPM_SetEseClientUpdateState(long arg);
 #endif
 #endif /*  _PHNXPESE_SPM_H    */
 /** @} */
