@@ -85,7 +85,7 @@ int main() {
     LOG(ERROR) << StringPrintf("Can not create an instance of Virtual ISO HAL Iface, exiting.");
     goto shutdown;
   }
-  status = virtual_iso_service->registerAsService("VirtualISO1");
+  status = virtual_iso_service->registerAsService("eSE3");
   if (status != OK) {
     LOG(ERROR) << StringPrintf("Could not register service for Virtual ISO HAL Iface (%d).",
           status);
