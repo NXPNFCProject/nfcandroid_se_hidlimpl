@@ -415,14 +415,17 @@ static ESESTATUS phNxpEseProto7816_SetNextIframeContxt(void) {
  ******************************************************************************/
 static ESESTATUS phNxpEseProro7816_SaveIframeData(uint8_t* p_data,
                                                   uint32_t data_len) {
-  ESESTATUS status = ESESTATUS_FAILED;
+  ESESTATUS status = ESESTATUS_SUCCESS;
   ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
+  if ((p_data == nullptr) || (data_len == 0)) {
+    ALOGE("%s -I Frame not stored. data_len = %x", __FUNCTION__, data_len);
+    return status;
+  }
   ALOGD_IF(ese_debug_enabled, "Data[0]=0x%x len=%d Data[%d]=0x%x", p_data[0],
            data_len, data_len - 1, p_data[data_len - 1]);
   if (ESESTATUS_SUCCESS != phNxpEse_StoreDatainList(data_len, p_data)) {
     ALOGE("%s - Error storing chained data in list", __FUNCTION__);
-  } else {
-    status = ESESTATUS_SUCCESS;
+    status = ESESTATUS_FAILED;
   }
   ALOGD_IF(ese_debug_enabled, "Exit %s ", __FUNCTION__);
   return status;
@@ -903,7 +906,7 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
     if (status == ESESTATUS_SUCCESS) {
       /* Resetting the RNACK retry counter */
       phNxpEseProto7816_3_Var.rnack_retry_counter = PH_PROTO_7816_VALUE_ZERO;
-      phNxpEseProto7816_DecodeFrame(p_data, data_len);
+      status = phNxpEseProto7816_DecodeFrame(p_data, data_len);
     } else {
       ALOGE("%s LRC Check failed", __FUNCTION__);
       if (phNxpEseProto7816_3_Var.rnack_retry_counter <
