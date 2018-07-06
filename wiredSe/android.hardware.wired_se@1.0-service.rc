@@ -1,0 +1,4 @@
+service wired_se_hal_service /vendor/bin/hw/android.hardware.wired_se@1.0-service
+    class hal
+    user secure_element
+    group secure_element
