@@ -1241,7 +1241,8 @@ static ESESTATUS TransceiveProcess(void) {
     case SEND_S_ATR_REQ:
         sFrameInfo.sFrameType = ATR_REQ;
         status = phNxpEseProto7816_SendSFrame(sFrameInfo);
-      default:
+        break;
+    default:
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
         break;
