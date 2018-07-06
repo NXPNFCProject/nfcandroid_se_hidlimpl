@@ -512,7 +512,6 @@ Return<void> WiredSe::setWiredSeCallback(
   if (wiredCallbackHandle == nullptr) {
     ALOGD("%s:Failed..!! WiredSeCallback handle is NULL", __func__);
     if (gSeHalCallback != nullptr) gSeHalCallback->onStateChange(false);
-    gSeHalCallback = nullptr;
   } else if (gSeHalCallback != nullptr)
     gSeHalCallback->onStateChange(true);
   return Void();
