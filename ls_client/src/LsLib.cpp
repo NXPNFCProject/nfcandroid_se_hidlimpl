@@ -439,35 +439,9 @@ LSCSTATUS LSC_loadapplet(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
       status = LSC_SendtoLsc(Os_info, status, pTranscv_Info, LS_Comm);
       if (status != LSCSTATUS_SUCCESS) {
         /*When the switching of LS 6320 case*/
-        if (status == LSCSTATUS_FILE_NOT_FOUND) {
-          /*When 6320 occurs close the existing channels*/
-          LSC_CloseChannel(Os_info, status, pTranscv_Info);
-
-          status = LSCSTATUS_FAILED;
-          status = LSC_OpenChannel(Os_info, status, pTranscv_Info);
-          if (status == LSCSTATUS_SUCCESS) {
-            ALOGD_IF(ese_debug_enabled,
-                     "%s: SUCCESS:Post Switching LS open channel", fn);
-            status = LSCSTATUS_FAILED;
-            status = LSC_SelectLsc(Os_info, status, pTranscv_Info);
-            if (status == LSCSTATUS_SUCCESS) {
-              ALOGD_IF(ese_debug_enabled,
-                       "%s: SUCCESS:Post Switching LS select", fn);
-              status = LSCSTATUS_FAILED;
-              status = LSC_StoreData(Os_info, status, pTranscv_Info);
-              if (status == LSCSTATUS_SUCCESS) {
-                /*Enable certificate and signature verification*/
-                tag40_found = LSCSTATUS_SUCCESS;
-                gsLsExecuteResp[2] = 0x90;
-                gsLsExecuteResp[3] = 0x00;
-                reachEOFCheck = true;
-                continue;
-              }
-              ALOGE("%s: Post Switching LS store data failure", fn);
-            }
-            ALOGE("%s: Post Switching LS select failure", fn);
-          }
-          ALOGE("%s: Post Switching LS failure", fn);
+        if (status == LSCSTATUS_SELF_UPDATE_DONE) {
+          status = LSCSTATUS_SUCCESS;
+          goto exit;
         }
         ALOGE("%s: Sending packet to lsc failed", fn);
         goto exit;
@@ -1031,7 +1005,7 @@ LSCSTATUS LSC_ProcessResp(Lsc_ImageInfo_t* image_info, int32_t recvlen,
       }
     }
     if (wStatus == 2) {
-      status = LSCSTATUS_FILE_NOT_FOUND;
+      status = LSCSTATUS_SELF_UPDATE_DONE;
     } else {
       status = LSCSTATUS_FAILED;
     }
