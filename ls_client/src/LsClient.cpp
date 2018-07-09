@@ -90,8 +90,7 @@ LSCSTATUS LSC_doDownload(
 void* performLSDownload_thread(__attribute__((unused)) void* data) {
   ALOGD_IF(ese_debug_enabled, "%s enter:  ", __func__);
 
-  const char* lsUpdateBackupPath =
-      "/data/vendor/secure_element/loaderservice_updater.txt";
+  const char* lsUpdateBackupPath = "/vendor/etc/loaderservice_updater.lss";
   const char* lsUpdateBackupOutPath =
       "/data/vendor/secure_element/loaderservice_updater_out.txt";
 
@@ -143,13 +142,6 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
                                  (uint8_t*)hash, (uint16_t)sizeof(hash), resSW);
     ALOGD_IF(ese_debug_enabled, "%s LSC_Start completed\n", __func__);
     if (status == LSCSTATUS_SUCCESS) {
-      if (remove(lsUpdateBackupPath) == 0) {
-        ALOGD_IF(ese_debug_enabled, "%s  : %s file deleted successfully\n",
-                 __func__, lsUpdateBackupPath);
-      } else {
-        ALOGD_IF(ese_debug_enabled, "%s  : %s file deletion failed!!!\n",
-                 __func__, lsUpdateBackupPath);
-      }
       cCallback->onStateChange(true);
     } else {
       ESESTATUS status = phNxpEse_deInit();
