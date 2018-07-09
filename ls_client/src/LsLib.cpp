@@ -1264,7 +1264,7 @@ LSCSTATUS Send_Backall_Loadcmds(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
       phNxpEse_free(cmdApdu.p_data);
       phNxpEse_free(rspApdu.p_data);
 
-      if (eseStat != LSCSTATUS_SUCCESS || (recvBufferActualSize < 2)) {
+      if (eseStat != ESESTATUS_SUCCESS || (recvBufferActualSize < 2)) {
         ALOGE("%s: Transceive failed; status=0x%X", fn, eseStat);
       } else if (gsCmd_count == 0x00) {
         // Last command in the buffer
