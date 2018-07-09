@@ -113,26 +113,10 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
   } else {
     ALOGD_IF(ese_debug_enabled, "%s File opened %s\n", __func__,
              lsUpdateBackupPath);
-    fseek(fIn, 0, SEEK_END);
-    long fsize = ftell(fIn);
-    rewind(fIn);
-
-    char* lsUpdateBuf = (char*)phNxpEse_memalloc(fsize + 1);
-    fread(lsUpdateBuf, fsize, 1, fIn);
 
     FILE* fOut = fopen(lsUpdateBackupOutPath, "wb+");
     if (fOut == NULL) {
       ALOGE("%s Failed to open file %s\n", __func__, lsUpdateBackupOutPath);
-      phNxpEse_free(lsUpdateBuf);
-      pthread_exit(NULL);
-      cCallback->onStateChange(true);
-      return NULL;
-    }
-
-    long size = fwrite(lsUpdateBuf, 1, fsize, fOut);
-    if (size != fsize) {
-      ALOGE("%s ERROR - Failed to write %ld bytes to file\n", __func__, fsize);
-      phNxpEse_free(lsUpdateBuf);
       pthread_exit(NULL);
       cCallback->onStateChange(true);
       return NULL;
@@ -155,7 +139,6 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
       }
       cCallback->onStateChange(false);
     }
-    phNxpEse_free(lsUpdateBuf);
   }
   pthread_exit(NULL);
   ALOGD_IF(ese_debug_enabled, "%s pthread_exit\n", __func__);
