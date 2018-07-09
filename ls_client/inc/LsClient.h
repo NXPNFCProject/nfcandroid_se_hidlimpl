@@ -24,7 +24,9 @@
 typedef enum {
   LSCSTATUS_SUCCESS = (0x0000),
   LSCSTATUS_FAILED = (0x0003),
-  LSCSTATUS_SELF_UPDATE_DONE = (0x0005)
+  LSCSTATUS_SELF_UPDATE_DONE = (0x0005),
+  LSCSTATUS_HASH_SLOT_EMPTY = (0x0006),
+  LSCSTATUS_HASH_SLOT_INVALID = (0x0007)
 } LSCSTATUS;
 
 using ::android::hardware::secure_element::V1_0::ISecureElementHalCallback;

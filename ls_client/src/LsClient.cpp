@@ -19,12 +19,26 @@
 #include "LsClient.h"
 #include <dirent.h>
 #include <log/log.h>
+#include <openssl/evp.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include "LsLib.h"
 
 uint8_t datahex(char c);
+unsigned char* getHASH(uint8_t* buffer, size_t buffSize);
 extern bool ese_debug_enabled;
+
+#define ls_script_source_prefix "/vendor/etc/loaderservice_updater_"
+#define ls_script_source_suffix ".lss"
+#define ls_script_output_prefix \
+  "/data/vendor/secure_element/loaderservice_updater_out_"
+#define ls_script_output_suffix ".txt"
+const size_t HASH_DATA_LENGTH = 21;
+const uint16_t HASH_STATUS_INDEX = 20;
+const uint8_t LS_MAX_COUNT = 10;
+const uint8_t LS_DOWNLOAD_SUCCESS = 0x00;
+const uint8_t LS_DOWNLOAD_FAILED = 0x01;
+
 static android::sp<ISecureElementHalCallback> cCallback;
 void* performLSDownload_thread(void* data);
 /*******************************************************************************
@@ -88,12 +102,7 @@ LSCSTATUS LSC_doDownload(
 **
 *******************************************************************************/
 void* performLSDownload_thread(__attribute__((unused)) void* data) {
-  ALOGD_IF(ese_debug_enabled, "%s enter:  ", __func__);
-
-  const char* lsUpdateBackupPath = "/vendor/etc/loaderservice_updater.lss";
-  const char* lsUpdateBackupOutPath =
-      "/data/vendor/secure_element/loaderservice_updater_out.txt";
-
+  ALOGD_IF(ese_debug_enabled, "%s enter  ", __func__);
   /*generated SHA-1 string for secureElementLS
   This will remain constant as handled in secureElement HAL*/
   char sha1[] = "6d583e84f2710e6b0f06beebc1a12a1083591373";
@@ -105,44 +114,143 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
   }
 
   uint8_t resSW[4] = {0x4e, 0x02, 0x69, 0x87};
-  FILE* fIn = fopen(lsUpdateBackupPath, "rb");
-  if (fIn == NULL) {
-    ALOGE("%s Cannot open LS script file %s\n", __func__, lsUpdateBackupPath);
-    ALOGE("%s Error : %s", __func__, strerror(errno));
-    cCallback->onStateChange(true);
-  } else {
-    ALOGD_IF(ese_debug_enabled, "%s File opened %s\n", __func__,
-             lsUpdateBackupPath);
 
-    FILE* fOut = fopen(lsUpdateBackupOutPath, "wb+");
+  std::string sourcePath;
+  std::string outPath;
+  int index = 1;
+  LSCSTATUS status = LSCSTATUS_SUCCESS;
+  Lsc_HashInfo_t lsHashInfo;
+  do {
+    /*Open the script file from specified location and name*/
+    sourcePath.assign(ls_script_source_prefix);
+    sourcePath += ('0' + index);
+    sourcePath += ls_script_source_suffix;
+    FILE* fIn = fopen(sourcePath.c_str(), "rb");
+    if (fIn == NULL) {
+      ALOGE("%s Cannot open LS script file %s\n", __func__, sourcePath.c_str());
+      ALOGE("%s Error : %s", __func__, strerror(errno));
+      break;
+    }
+    ALOGD_IF(ese_debug_enabled, "%s File opened %s\n", __func__,
+             sourcePath.c_str());
+
+    outPath.assign(ls_script_output_prefix);
+    outPath += ('0' + index);
+    outPath += ls_script_output_suffix;
+
+    FILE* fOut = fopen(outPath.c_str(), "wb+");
     if (fOut == NULL) {
-      ALOGE("%s Failed to open file %s\n", __func__, lsUpdateBackupOutPath);
-      pthread_exit(NULL);
-      cCallback->onStateChange(true);
-      return NULL;
+      ALOGE("%s Failed to open file %s\n", __func__, outPath.c_str());
+      break;
+    }
+    /*Read the script content to a local buffer*/
+    fseek(fIn, 0, SEEK_END);
+    long lsBufSize = ftell(fIn);
+    rewind(fIn);
+    if (lsHashInfo.lsRawScriptBuf == nullptr) {
+      lsHashInfo.lsRawScriptBuf = (uint8_t*)phNxpEse_memalloc(lsBufSize + 1);
+    }
+    memset(lsHashInfo.lsRawScriptBuf, 0x00, (lsBufSize + 1));
+    fread(lsHashInfo.lsRawScriptBuf, lsBufSize, 1, fIn);
+
+    LSCSTATUS lsHashStatus = LSCSTATUS_FAILED;
+
+    /*Get 20bye SHA1 of the script*/
+    lsHashInfo.lsScriptHash =
+        getHASH(lsHashInfo.lsRawScriptBuf, (size_t)lsBufSize);
+    if (lsHashInfo.lsScriptHash == nullptr) break;
+
+    if (lsHashInfo.readBuffHash == nullptr) {
+      lsHashInfo.readBuffHash = (uint8_t*)phNxpEse_memalloc(HASH_DATA_LENGTH);
+    }
+    memset(lsHashInfo.readBuffHash, 0x00, HASH_DATA_LENGTH);
+
+    /*Read the hash from applet for specified slot*/
+    lsHashStatus =
+        LSC_ReadLsHash(lsHashInfo.readBuffHash, &lsHashInfo.readHashLen, index);
+
+    /*Check if previously script is successfully installed.
+    if yes, continue reading next script else try update wit current script*/
+    if ((lsHashStatus == LSCSTATUS_SUCCESS) &&
+        (lsHashInfo.readHashLen == HASH_DATA_LENGTH) &&
+        (0 == memcmp(lsHashInfo.lsScriptHash, lsHashInfo.readBuffHash,
+                     HASH_DATA_LENGTH)) &&
+        (lsHashInfo.readBuffHash[HASH_STATUS_INDEX] == LS_DOWNLOAD_SUCCESS)) {
+      ALOGD_IF(ese_debug_enabled, "%s LS Loader sript is already installed \n",
+               __func__);
+      continue;
     }
 
-    LSCSTATUS status = LSC_Start(lsUpdateBackupPath, lsUpdateBackupOutPath,
-                                 (uint8_t*)hash, (uint16_t)sizeof(hash), resSW);
-    ALOGD_IF(ese_debug_enabled, "%s LSC_Start completed\n", __func__);
-    if (status == LSCSTATUS_SUCCESS) {
-      cCallback->onStateChange(true);
-    } else {
-      ESESTATUS status = phNxpEse_deInit();
-      if (status == ESESTATUS_SUCCESS) {
-        status = phNxpEse_close();
-        if (status == ESESTATUS_SUCCESS) {
+    /*Uptdates current script*/
+    status = LSC_Start(sourcePath.c_str(), outPath.c_str(), (uint8_t*)hash,
+                       (uint16_t)sizeof(hash), resSW);
+    ALOGD_IF(ese_debug_enabled, "%s script %s perform done, result = %d\n",
+             __func__, sourcePath.c_str(), status);
+    if (status != LSCSTATUS_SUCCESS) {
+      lsHashInfo.lsScriptHash[HASH_STATUS_INDEX] = LS_DOWNLOAD_FAILED;
+      /*If current script updation fails, update the status with hash to the
+       * applet then clean and exit*/
+      lsHashStatus =
+          LSC_UpdateLsHash(lsHashInfo.lsScriptHash, HASH_DATA_LENGTH, index);
+      if (lsHashStatus != LSCSTATUS_SUCCESS) {
+        ALOGD_IF(ese_debug_enabled, "%s LSC_UpdateLsHash Failed\n", __func__);
+      }
+      ESESTATUS estatus = phNxpEse_deInit();
+      if (estatus == ESESTATUS_SUCCESS) {
+        estatus = phNxpEse_close();
+        if (estatus == ESESTATUS_SUCCESS) {
           ALOGD_IF(ese_debug_enabled, "%s: Ese_close success\n", __func__);
         }
       } else {
         ALOGE("%s: Ese_deInit failed", __func__);
       }
       cCallback->onStateChange(false);
+      break;
+    } else {
+      /*If current script execution is succes, update the status along with the
+       * hash to the applet*/
+      lsHashInfo.lsScriptHash[HASH_STATUS_INDEX] = LS_DOWNLOAD_SUCCESS;
+      lsHashStatus =
+          LSC_UpdateLsHash(lsHashInfo.lsScriptHash, HASH_DATA_LENGTH, index);
+      if (lsHashStatus != LSCSTATUS_SUCCESS) {
+        ALOGD_IF(ese_debug_enabled, "%s LSC_UpdateLsHash Failed\n", __func__);
+      }
     }
+  } while (++index <= LS_MAX_COUNT);
+
+  phNxpEse_free(lsHashInfo.lsRawScriptBuf);
+  phNxpEse_free(lsHashInfo.readBuffHash);
+
+  if (status == LSCSTATUS_SUCCESS) {
+    cCallback->onStateChange(true);
   }
   pthread_exit(NULL);
   ALOGD_IF(ese_debug_enabled, "%s pthread_exit\n", __func__);
   return NULL;
+}
+
+/*******************************************************************************
+**
+** Function:        getHASH
+**
+** Description:     generates SHA1 of given buffer
+**
+** Returns:         20 bytes of SHA1
+**
+*******************************************************************************/
+unsigned char* getHASH(uint8_t* buffer, size_t buffSize) {
+  static uint8_t outHash[HASH_DATA_LENGTH] = {0};
+  unsigned int md_len = -1;
+  const EVP_MD* md = EVP_get_digestbyname("SHA1");
+  if (NULL != md) {
+    EVP_MD_CTX mdctx;
+    EVP_MD_CTX_init(&mdctx);
+    EVP_DigestInit_ex(&mdctx, md, NULL);
+    EVP_DigestUpdate(&mdctx, buffer, buffSize);
+    EVP_DigestFinal_ex(&mdctx, outHash, &md_len);
+    EVP_MD_CTX_cleanup(&mdctx);
+  }
+  return outHash;
 }
 
 /*******************************************************************************
