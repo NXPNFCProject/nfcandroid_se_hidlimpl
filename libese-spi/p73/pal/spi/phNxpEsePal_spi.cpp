@@ -43,6 +43,7 @@
 
 #define MAX_RETRY_CNT 10
 #define HAL_NFC_SPI_DWP_SYNC 21
+#define RF_ON 1
 
 extern int omapi_status;
 extern bool ese_debug_enabled;
@@ -50,7 +51,8 @@ extern bool ese_debug_enabled;
 static int rf_status;
 unsigned long int configNum1, configNum2;
 // Default max retry count for SPI CLT write blocked in secs
-static unsigned long int gsMaxSpiWriteRetryCnt = 10;
+static const uint8_t DEFAULT_MAX_SPI_WRITE_RETRY_COUNT_RF_ON = 10;
+static const uint8_t MAX_SPI_WRITE_RETRY_COUNT_HW_ERR = 3;
 /*******************************************************************************
 **
 ** Function         phPalEse_spi_close
@@ -236,17 +238,11 @@ int phPalEse_spi_write(void* pDevHandle, uint8_t* pBuffer,
   } else {
     /* Do Nothing */
   }
-  ALOGE("NXP_SPI_WRITE_TIMEOUT value is... : %ld secs", configNum2);
-  if (configNum2 > 0) {
-    gsMaxSpiWriteRetryCnt = configNum2;
-    ALOGE(" spi_write_timeout Wait time ... : %ld", gsMaxSpiWriteRetryCnt);
-  } else {
-    /* Do Nothing */
-  }
 
+  unsigned int maxRetryCount = 0, retryDelay = 0;
   while (numWrote < nNbBytesToWrite) {
     // usleep(5000);
-    if (rf_status == 0) {
+    if (rf_status != RF_ON) {
       ret = write((intptr_t)pDevHandle, pBuffer + numWrote,
                   nNbBytesToWrite - numWrote);
     } else {
@@ -259,19 +255,23 @@ int phPalEse_spi_write(void* pDevHandle, uint8_t* pBuffer,
       return -1;
     } else {
       ALOGE("_spi_write() errno : %x", errno);
-      ALOGD_IF(ese_debug_enabled, "rf_status value is %d", rf_status);
-      if ((errno == EINTR || errno == EAGAIN || rf_status == 1) &&
-          (retryCount < gsMaxSpiWriteRetryCnt)) {
-        /*Configure retry count or timeout here,now its configured for 2*10
-         * secs*/
-        if (retryCount > gsMaxSpiWriteRetryCnt) {
-          ret = -1;
-          break;
-        }
 
+      if (rf_status == RF_ON) {
+        maxRetryCount = (configNum2 > 0)
+                            ? configNum2
+                            : DEFAULT_MAX_SPI_WRITE_RETRY_COUNT_RF_ON;
+        retryDelay = 1000 * WRITE_WAKE_UP_DELAY;
+        ALOGD_IF(ese_debug_enabled, "spi_Write failed as RF is ON.");
+      } else {
+        maxRetryCount = MAX_SPI_WRITE_RETRY_COUNT_HW_ERR;
+        retryDelay = WRITE_WAKE_UP_DELAY;
+        ALOGD_IF(ese_debug_enabled, "spi_write failed");
+      }
+
+      if (retryCount < maxRetryCount) {
         retryCount++;
-        /* 1sec delay to give ESE wake up */
-        phPalEse_sleep(1000 * WRITE_WAKE_UP_DELAY);
+        /*wait for eSE wake up*/
+        phPalEse_sleep(retryDelay);
         ALOGE("_spi_write() failed. Going to retry, counter:%ld !", retryCount);
         continue;
       }
