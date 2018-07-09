@@ -189,7 +189,6 @@ tLSC_STATUS LSC_update_seq_handler(
       ALOGE("%s: exiting; status=0x0%X", fn, status);
       break;
     }
-    usleep(2*1000*1000);
     seq_counter++;
   }
 
@@ -588,7 +587,6 @@ tLSC_STATUS LSC_loadapplet(Lsc_ImageInfo_t* Os_info, tLSC_STATUS status,
       status = STATUS_FAILED;
       break;
     }
-    usleep(2*1000*1000);
   }
   if (Os_info->bytes_wrote == 0xAA) {
     fclose(Os_info->fResp);
