@@ -42,15 +42,17 @@
 /*!
  * \brief ESE wakeup delay in case of write error retry
  */
-#define WAKE_UP_DELAY 1000
+#define WRITE_WAKE_UP_DELAY 1000
+
+/*!
+ * \brief ESE SOF polling delay
+ */
+#define READ_WAKE_UP_DELAY 100
+
 /*!
  * \brief ESE wakeup delay in case of write error retry
  */
 #define NAD_POLLING_SCALER 10
-/*!
- * \brief ESE wakeup delay in case of write error retry
- */
-#define CHAINED_PKT_SCALER 1
 
 /* Function declarations */
 /**

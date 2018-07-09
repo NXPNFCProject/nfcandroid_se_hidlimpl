@@ -270,8 +270,8 @@ int phPalEse_spi_write(void* pDevHandle, uint8_t* pBuffer,
         }
 
         retryCount++;
-        /* 5ms delay to give ESE wake up delay */
-        phPalEse_sleep(1000 * WAKE_UP_DELAY);
+        /* 1sec delay to give ESE wake up */
+        phPalEse_sleep(1000 * WRITE_WAKE_UP_DELAY);
         ALOGE("_spi_write() failed. Going to retry, counter:%ld !", retryCount);
         continue;
       }

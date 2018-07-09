@@ -27,8 +27,6 @@
 #include <phNxpEse_Internal.h>
 
 #define RECIEVE_PACKET_SOF 0xA5
-#define CHAINED_PACKET_WITHSEQN 0x60
-#define CHAINED_PACKET_WITHOUTSEQN 0x20
 #define PH_PAL_ESE_PRINT_PACKET_TX(data, len) \
   ({ phPalEse_print_packet("SEND", data, len); })
 #define PH_PAL_ESE_PRINT_PACKET_RX(data, len) \
@@ -47,7 +45,6 @@ static void phNxpEse_GetMaxTimer(unsigned long* pMaxTimer);
 static unsigned char* phNxpEse_GgetTimerTlvBuffer(unsigned char* timer_buffer,
                                                   unsigned int value);
 #endif
-static int poll_sof_chained_delay = 0;
 /*********************** Global Variables *************************************/
 
 /* ESE Context structure */
@@ -964,16 +961,9 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       headerIndex = 0;
       break;
     }
-    /*If it is Chained packet wait for 100 usec*/
-    if (poll_sof_chained_delay == 1) {
-      ALOGD_IF(ese_debug_enabled, "%s Chained Pkt, delay read %dus",
-               __FUNCTION__, WAKE_UP_DELAY * CHAINED_PKT_SCALER);
-      phPalEse_sleep(WAKE_UP_DELAY * CHAINED_PKT_SCALER);
-    } else {
-      ALOGD_IF(ese_debug_enabled, "%s Normal Pkt, delay read %dus",
-               __FUNCTION__, WAKE_UP_DELAY * NAD_POLLING_SCALER);
-      phPalEse_sleep(WAKE_UP_DELAY * NAD_POLLING_SCALER);
-    }
+    ALOGD_IF(ese_debug_enabled, "%s Normal Pkt, delay read %dus", __FUNCTION__,
+             READ_WAKE_UP_DELAY * NAD_POLLING_SCALER);
+    phPalEse_sleep(READ_WAKE_UP_DELAY * NAD_POLLING_SCALER);
   } while (sof_counter < ESE_NAD_POLLING_MAX);
   if (pBuffer[0] == RECIEVE_PACKET_SOF) {
     ALOGD_IF(ese_debug_enabled, "%s SOF FOUND", __FUNCTION__);
@@ -982,16 +972,6 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
     ret = phPalEse_read(pDevHandle, &pBuffer[1 + headerIndex], numBytesToRead);
     if (ret < 0) {
       ALOGE("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
-    }
-    if ((pBuffer[1] == CHAINED_PACKET_WITHOUTSEQN) ||
-        (pBuffer[1] == CHAINED_PACKET_WITHSEQN)) {
-      poll_sof_chained_delay = 1;
-      ALOGD_IF(ese_debug_enabled, "poll_sof_chained_delay value is %d ",
-               poll_sof_chained_delay);
-    } else {
-      poll_sof_chained_delay = 0;
-      ALOGD_IF(ese_debug_enabled, "poll_sof_chained_delay value is %d ",
-               poll_sof_chained_delay);
     }
     total_count = 3;
     nNbBytesToRead = pBuffer[2];
