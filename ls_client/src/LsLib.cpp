@@ -39,7 +39,8 @@ static int32_t gsResp_len = 0;
 
 LSCSTATUS(*Applet_load_seqhandler[])
 (Lsc_ImageInfo_t* pContext, LSCSTATUS status, Lsc_TranscieveInfo_t* pInfo) = {
-    LSC_OpenChannel, LSC_SelectLsc, LSC_StoreData, LSC_loadapplet, NULL};
+    LSC_OpenChannel, LSC_ResetChannel, LSC_SelectLsc,
+    LSC_StoreData,   LSC_loadapplet,   NULL};
 
 /*******************************************************************************
 **
@@ -179,6 +180,69 @@ LSCSTATUS LSC_OpenChannel(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
     Os_info->channel_cnt++;
     status = LSCSTATUS_SUCCESS;
   }
+
+  phNxpEse_free(cmdApdu.p_data);
+  phNxpEse_free(rspApdu.p_data);
+  ALOGD_IF(ese_debug_enabled, "%s: exit; status=0x%x", fn, status);
+  return status;
+}
+/*******************************************************************************
+**
+** Function:        LSC_ResetChannel
+**
+** Description:     Reset(Open & Close) next available logical channel
+**
+** Returns:         Success if ok.
+**
+*******************************************************************************/
+LSCSTATUS LSC_ResetChannel(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
+                           Lsc_TranscieveInfo_t* pTranscv_Info) {
+  static const char fn[] = "LSC_ResetChannel";
+
+  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  if (Os_info == NULL || pTranscv_Info == NULL) {
+    ALOGE("%s: Invalid parameter", fn);
+    return LSCSTATUS_FAILED;
+  }
+
+  ESESTATUS eseStat = ESESTATUS_FAILED;
+  bool bResetCompleted = false;
+  phNxpEse_data cmdApdu;
+  phNxpEse_data rspApdu;
+  phNxpEse_memset(&cmdApdu, 0x00, sizeof(phNxpEse_data));
+  phNxpEse_memset(&rspApdu, 0x00, sizeof(phNxpEse_data));
+  cmdApdu.len = (int32_t)sizeof(OpenChannel);
+  cmdApdu.p_data = (uint8_t*)phNxpEse_memalloc(cmdApdu.len * sizeof(uint8_t));
+  memcpy(cmdApdu.p_data, OpenChannel, cmdApdu.len);
+
+  do {
+    ALOGD_IF(ese_debug_enabled, "%s: Calling Secure Element Transceive", fn);
+    eseStat = phNxpEse_Transceive(&cmdApdu, &rspApdu);
+    if (eseStat != ESESTATUS_SUCCESS && (rspApdu.len < 0x03)) {
+      status = LSCSTATUS_FAILED;
+      ALOGE("%s: SE transceive failed status = 0x%X", fn, status);
+    } else if (((rspApdu.p_data[rspApdu.len - 2] != 0x90) &&
+                (rspApdu.p_data[rspApdu.len - 1] != 0x00))) {
+      status = LSCSTATUS_FAILED;
+      ALOGE("%s: invalid response = 0x%X", fn, status);
+    } else if (!bResetCompleted) {
+      /*close the previously opened channel*/
+      uint8_t xx = 0;
+      cmdApdu.p_data[xx++] = rspApdu.p_data[rspApdu.len - 3]; /*channel id*/
+      cmdApdu.p_data[xx++] = 0x70;
+      cmdApdu.p_data[xx++] = 0x80;
+      cmdApdu.p_data[xx++] = rspApdu.p_data[rspApdu.len - 3];
+      cmdApdu.p_data[xx++] = 0x00;
+      cmdApdu.len = 5;
+      bResetCompleted = true;
+      phNxpEse_free(rspApdu.p_data);
+      status = LSCSTATUS_SUCCESS;
+    } else {
+      ALOGD_IF(ese_debug_enabled, "%s: Channel reset success", fn);
+      status = LSCSTATUS_SUCCESS;
+      break;
+    }
+  } while (status == LSCSTATUS_SUCCESS);
 
   phNxpEse_free(cmdApdu.p_data);
   phNxpEse_free(rspApdu.p_data);

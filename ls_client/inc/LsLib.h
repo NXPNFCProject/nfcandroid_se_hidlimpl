@@ -174,6 +174,19 @@ static LSCSTATUS LSC_OpenChannel(Lsc_ImageInfo_t* pContext, LSCSTATUS status,
 
 /*******************************************************************************
 **
+** Function:        LSC_ResetChannel
+**
+** Description:     Reset(Open & Close) next available logical channel
+**
+** Returns:         Success if ok.
+**
+*******************************************************************************/
+static LSCSTATUS LSC_ResetChannel(Lsc_ImageInfo_t* pContext, LSCSTATUS status,
+                                  Lsc_TranscieveInfo_t* pInfo)
+    __attribute__((unused));
+
+/*******************************************************************************
+**
 ** Function:        LSC_SelectLsc
 **
 ** Description:     Creates the logical channel with lsc
