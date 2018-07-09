@@ -158,6 +158,8 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
     /*Get 20bye SHA1 of the script*/
     lsHashInfo.lsScriptHash =
         getHASH(lsHashInfo.lsRawScriptBuf, (size_t)lsBufSize);
+    phNxpEse_free(lsHashInfo.lsRawScriptBuf);
+    lsHashInfo.lsRawScriptBuf = nullptr;
     if (lsHashInfo.lsScriptHash == nullptr) break;
 
     if (lsHashInfo.readBuffHash == nullptr) {
@@ -218,7 +220,6 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
     }
   } while (++index <= LS_MAX_COUNT);
 
-  phNxpEse_free(lsHashInfo.lsRawScriptBuf);
   phNxpEse_free(lsHashInfo.readBuffHash);
 
   if (status == LSCSTATUS_SUCCESS) {
