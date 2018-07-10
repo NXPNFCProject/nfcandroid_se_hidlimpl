@@ -15,7 +15,7 @@
  *  limitations under the License.
  *
  ******************************************************************************/
-#define LOG_TAG "NxpWiredEseHal"
+#define LOG_TAG "WiredEseHal"
 #include "WiredSe.h"
 #include <android-base/logging.h>
 #include <log/log.h>
