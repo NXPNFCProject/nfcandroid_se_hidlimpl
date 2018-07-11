@@ -216,8 +216,9 @@ Return<void> WiredSe::openLogicalChannel(const hidl_vec<uint8_t>& aid,
     if (*(rspSelectApdu.end() - 2) == 0x90 &&
         *(rspSelectApdu.end() - 1) == 0x00) {
       sestatus = SecureElementStatus::SUCCESS;
-      std::copy(rspSelectApdu.begin(), rspSelectApdu.end(),
-                &(resApduBuff.selectResponse[0]));
+      resApduBuff.selectResponse.resize(rspSelectApdu.size());
+      for (int i=0; i<rspSelectApdu.size(); i++)
+        resApduBuff.selectResponse[i]=rspSelectApdu[i];
     }
     /*AID provided doesn't match any applet on the secure element*/
     else if (*(rspSelectApdu.end() - 2) == 0x6A &&
