@@ -474,7 +474,17 @@ WIREDSESTATUS WiredSe::seHalInit() {
     if (wiredSeHandle <= 0) {
       status = WIREDSESTATUS_FAILED;
     } else {
-      /* Do Nothing */
+      if(atrResponse.size() == 0) {
+            std::vector<uint8_t> getAtrResponse;
+            wiredCallbackHandle->getAtr(wiredSeHandle,
+                [&getAtrResponse](std::vector<uint8_t> res) {
+                getAtrResponse.resize(res.size());
+                for (size_t i = 0; i < res.size(); i++) {
+                   getAtrResponse[i] = res[i];
+                }
+            });
+          atrResponse.swap(getAtrResponse);
+       }
     }
   }
   return status;
@@ -512,8 +522,10 @@ Return<void> WiredSe::setWiredSeCallback(
   if (wiredCallbackHandle == nullptr) {
     ALOGD("%s:Failed..!! WiredSeCallback handle is NULL", __func__);
     if (gSeHalCallback != nullptr) gSeHalCallback->onStateChange(false);
-  } else if (gSeHalCallback != nullptr)
+  } else if (gSeHalCallback != nullptr) {
+    atrResponse.clear();
     gSeHalCallback->onStateChange(true);
+  }
   return Void();
 }
 
