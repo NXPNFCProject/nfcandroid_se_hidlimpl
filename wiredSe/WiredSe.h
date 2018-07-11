@@ -60,7 +60,7 @@ using ::vendor::nxp::nxpese::V1_0::INxpWiredSeHalCallback;
 typedef enum {
   WIREDSESTATUS_SUCCESS = 0x00,
   WIREDSESTATUS_FAILED = -1
-}WIREDSESTATUS;
+} WIREDSESTATUS;
 
 struct WiredSe : public ISecureElement, public hidl_death_recipient {
   WiredSe();
@@ -86,13 +86,14 @@ struct WiredSe : public ISecureElement, public hidl_death_recipient {
  private:
   uint8_t mOpenedchannelCount = 0;
   bool mOpenedChannels[MAX_LOGICAL_CHANNELS];
-  int32_t wiredSeHandle;
-  static android::sp<INxpWiredSeHalCallback> wiredCallbackHandle;
+  int32_t mWiredSeHandle;
+  static android::sp<INxpWiredSeHalCallback> sWiredCallbackHandle;
   Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
   seHalDeInit();
   WIREDSESTATUS seHalInit();
   Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
   internalCloseChannel(uint8_t channelNumber);
+  void resetWiredSeContext();
 };
 
 }  // namespace implementation

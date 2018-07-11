@@ -28,6 +28,7 @@ namespace nxpese {
 namespace V1_0 {
 namespace implementation {
 
+using ::android::hardware::hidl_death_recipient;
 using ::android::hardware::hidl_array;
 using ::android::hardware::hidl_memory;
 using ::android::hardware::hidl_string;
@@ -35,13 +36,15 @@ using ::android::hardware::hidl_vec;
 using ::android::hardware::Return;
 using ::android::hardware::Void;
 using ::android::sp;
+using ::android::wp;
 
-struct NxpWiredSe : public INxpWiredSe {
+struct NxpWiredSe : public INxpWiredSe, public hidl_death_recipient {
   // Methods from ::vendor::nxp::nxpese::V1_0::INxpWiredSe follow.
   Return<void> setWiredSeCallback(
       const sp<::vendor::nxp::nxpese::V1_0::INxpWiredSeHalCallback>&
           wiredCallback) override;
-
+  void serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) override;
+  static android::sp<INxpWiredSeHalCallback> sNxpWiredCallbackHandle;
   // Methods from ::android::hidl::base::V1_0::IBase follow.
 };
 
