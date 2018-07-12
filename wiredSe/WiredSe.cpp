@@ -24,7 +24,9 @@
 #include "hal_nxpese.h"
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 using android::hardware::secure_element::V1_0::ISecureElementHalCallback;
+using vendor::nxp::wired_se::V1_0::implementation::WiredSe;
 
+extern android::sp<WiredSe> pWiredSe;
 namespace vendor {
 namespace nxp {
 namespace wired_se {
@@ -77,8 +79,9 @@ Return<void> WiredSe::init(const sp<
 
 Return<void> WiredSe::getAtr(getAtr_cb _hidl_cb) {
   hidl_vec<uint8_t> response;
-  if ((!wiredCallbackHandle) && (wiredSeHandle <= 0)) {
+  if ((!wiredCallbackHandle) || (wiredSeHandle <= 0)) {
     ALOGE("%s: Handle to access NfcWiredSe is invalid", __func__);
+    _hidl_cb(response);
     return Void();
   }
   _hidl_cb(atrResponse);
@@ -89,13 +92,13 @@ Return<bool> WiredSe::isCardPresent() { return true; }
 
 Return<void> WiredSe::transmit(const hidl_vec<uint8_t>& data,
                                transmit_cb _hidl_cb) {
-  if ((!wiredCallbackHandle) && (wiredSeHandle <= 0)) {
+  std::vector<uint8_t> transmitResponse;
+  if ((!wiredCallbackHandle) || (wiredSeHandle <= 0)) {
     ALOGE("%s: Handle to access NfcWiredSe is invalid", __func__);
-
+    _hidl_cb(transmitResponse);
     return Void();
   }
   /* Deep copy of the reponse buffer after transmit */
-  std::vector<uint8_t> transmitResponse;
   wiredCallbackHandle->transmit(data, wiredSeHandle,
                                 [&transmitResponse](std::vector<uint8_t> res) {
                                   transmitResponse.resize(res.size());
@@ -335,6 +338,11 @@ WiredSe::internalCloseChannel(uint8_t channelNumber) {
   SecureElementStatus sestatus = SecureElementStatus::FAILED;
   WIREDSESTATUS status = WIREDSESTATUS_SUCCESS;
   ALOGD("%s: Enter", __func__);
+  if (wiredCallbackHandle == nullptr || (wiredSeHandle <= 0)) {
+    ALOGD("%s: sWiredCallbackHandle is nullptr. Returning", __func__);
+    return SecureElementStatus::FAILED;
+  }
+
   if (channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     ALOGE("%s: invalid channel!!! 0x%02x", __func__, channelNumber);
@@ -397,6 +405,11 @@ WiredSe::closeChannel(uint8_t channelNumber) {
   WIREDSESTATUS status = WIREDSESTATUS_SUCCESS;
   SecureElementStatus sestatus = SecureElementStatus::FAILED;
   ALOGD("%s: Enter 0x%02x", __func__, channelNumber);
+
+  if (wiredCallbackHandle == nullptr || (wiredSeHandle <= 0)) {
+    ALOGD("%s: sWiredCallbackHandle is nullptr. Returning", __func__);
+    return SecureElementStatus::FAILED;
+  }
 
   if (channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
@@ -504,15 +517,19 @@ WiredSe::seHalDeInit() {
   if (wiredSeStatus < 0) {
     sestatus = SecureElementStatus::FAILED;
   } else {
-    wiredSeHandle = 0;
-    sestatus = SecureElementStatus::SUCCESS;
-
-    for (uint8_t xx = 0; xx < MAX_LOGICAL_CHANNELS; xx++) {
-      mOpenedChannels[xx] = false;
-    }
-    mOpenedchannelCount = 0;
+    resetWiredSeContext();
   }
   return sestatus;
+}
+
+void WiredSe::resetWiredSeContext() {
+  ALOGD("%s: Enter", __func__);
+  wiredSeHandle = 0;
+  for (uint8_t xx = 0; xx < MAX_LOGICAL_CHANNELS; xx++) {
+    mOpenedChannels[xx] = false;
+  }
+  mOpenedchannelCount = 0;
+  return;
 }
 
 Return<void> WiredSe::setWiredSeCallback(
@@ -522,6 +539,7 @@ Return<void> WiredSe::setWiredSeCallback(
   wiredCallbackHandle = wiredCallback;
   if (wiredCallbackHandle == nullptr) {
     ALOGD("%s:Failed..!! WiredSeCallback handle is NULL", __func__);
+    pWiredSe->resetWiredSeContext();
     if (gSeHalCallback != nullptr) gSeHalCallback->onStateChange(false);
   } else if (gSeHalCallback != nullptr) {
     atrResponse.clear();
