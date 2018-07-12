@@ -224,6 +224,7 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
       }
       /*If manageChanle is failed in any of above cases
       send the callback and return*/
+      phNxpEse_ResetEndPoint_Cntxt(1);
       _hidl_cb(resApduBuff, sestatus);
       return Void();
   }
