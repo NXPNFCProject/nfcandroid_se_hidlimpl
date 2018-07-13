@@ -635,9 +635,7 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC |= (p_data[11]);
   if(!((p_data[11] << 8) | (p_data[12])))
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = IFSC_SIZE_SEND;
-  else
-    phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC -= (PH_PROTO_7816_EXT_HEADER_LEN +
-                                                                              PH_PROTO_7816_CRC_LEN);
+
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s Max DataLen=%d \n", __FUNCTION__,
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC);
