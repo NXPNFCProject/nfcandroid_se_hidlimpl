@@ -254,9 +254,9 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   if (status != ESESTATUS_SUCCESS) {
     /*Transceive failed*/
     if (rpdu.len > 0 && (rpdu.sw1 == 0x64 && rpdu.sw2 == 0xFF)) {
-      _hidl_cb(resApduBuff, SecureElementStatus::IOERROR);
-    } else {
-      _hidl_cb(resApduBuff, SecureElementStatus::FAILED);
+       sestatus = SecureElementStatus::IOERROR;
+     } else {
+      sestatus = SecureElementStatus::FAILED;
     }
   } else {
     /*Status word to be passed as part of response
@@ -346,9 +346,9 @@ Return<void> VirtualISO::openBasicChannel(const hidl_vec<uint8_t>& aid,
   if (status != ESESTATUS_SUCCESS) {
     /* Transceive failed */
     if (rpdu.len > 0 && (rpdu.sw1 == 0x64 && rpdu.sw2 == 0xFF)) {
-      _hidl_cb(result, SecureElementStatus::IOERROR);
+      sestatus = SecureElementStatus::IOERROR;
     } else {
-      _hidl_cb(result, SecureElementStatus::FAILED);
+      sestatus = SecureElementStatus::FAILED;
     }
   } else {
     /*Status word to be passed as part of response
