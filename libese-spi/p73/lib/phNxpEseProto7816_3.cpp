@@ -137,16 +137,21 @@ static ESESTATUS phNxpEseProto7816_CheckLRC(uint32_t data_len, uint8_t* p_data) 
   uint8_t calc_crc = 0;
   uint8_t recv_crc = 0;
   DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Enter %s ", __FUNCTION__);
-  recv_crc = p_data[data_len - 1];
+      << StringPrintf("Enter %s len %d", __FUNCTION__, data_len);
+  if(data_len > 0) {
+    recv_crc = p_data[data_len - 1];
 
-  /* calculate the CRC after excluding CRC  */
-  calc_crc = phNxpEseProto7816_ComputeLRC(p_data, 1, (data_len - 1));
-  DLOG_IF(INFO, ese_debug_enabled)
+    /* calculate the CRC after excluding CRC  */
+    calc_crc = phNxpEseProto7816_ComputeLRC(p_data, 1, (data_len - 1));
+    DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("Received LRC:0x%x Calculated LRC:0x%x", recv_crc, calc_crc);
-  if (recv_crc != calc_crc) {
+    if (recv_crc != calc_crc) {
+      status = ESESTATUS_FAILED;
+      LOG(ERROR) << StringPrintf("%s LRC failed", __FUNCTION__);
+    }
+  } else {
     status = ESESTATUS_FAILED;
-    LOG(ERROR) << StringPrintf("%s LRC failed", __FUNCTION__);
+    LOG(ERROR) << StringPrintf("%s LRC failed length = 0", __FUNCTION__);
   }
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("Exit %s ", __FUNCTION__);
@@ -1603,6 +1608,18 @@ ESESTATUS phNxpEseProto7816_SetIfs(uint16_t IFS_Size) {
         << StringPrintf("Exit %s ", __FUNCTION__);
   }
   return status;
+}
+
+/******************************************************************************
+ * Function         phNxpEseProto7816_GetIfs
+ *
+ * Description      This function is used to get current IFS adjusted value wrt card
+ *
+ * Returns          On success return true or else false.
+ *
+ ******************************************************************************/
+uint16_t phNxpEseProto7816_GetIfs(void) {
+    return phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC;
 }
 
 /******************************************************************************

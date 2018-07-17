@@ -1073,20 +1073,27 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       numBytesToRead = 2;/*Read PCB + INF LEN*/
       headerIndex = 0;
       break;
+    } else if ((pBuffer[0] == 0x00) || (pBuffer[1] == 0x00) ||
+            (pBuffer[0] == 0xFF) || (pBuffer[1] == 0xFF))  {
+      LOG(ERROR) << StringPrintf("_spi_read() Buf[0]: %X Buf[1]: %X", pBuffer[0], pBuffer[1]);
+    } else if(ret > 0) { /* Corruption happened during the receipt from Card, go flush out the data */
+        LOG(ERROR) << StringPrintf("_spi_read() Corruption Buf[0]: %X Buf[1]: %X ..len=%d", pBuffer[0], pBuffer[1], ret);
+        break;
     }
     /*If it is Chained packet wait for 100 usec*/
     if (poll_sof_chained_delay == 1) {
       DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s Chained Pkt, delay read %dus", __FUNCTION__,
-                      WAKE_UP_DELAY * CHAINED_PKT_SCALER);
+        << StringPrintf("%s Chained Pkt, delay read %dus", __FUNCTION__,
+            WAKE_UP_DELAY * CHAINED_PKT_SCALER);
       phPalEse_sleep(WAKE_UP_DELAY * CHAINED_PKT_SCALER);
     } else {
       /*DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s Normal Pkt, delay read %dus", __FUNCTION__,
-                      WAKE_UP_DELAY * NAD_POLLING_SCALER);*/
+        << StringPrintf("%s Normal Pkt, delay read %dus", __FUNCTION__,
+        WAKE_UP_DELAY * NAD_POLLING_SCALER);*/
       phPalEse_sleep(nxpese_ctxt.nadPollingRetryTime * WAKE_UP_DELAY * NAD_POLLING_SCALER);
     }
   } while (sof_counter < max_sof_counter);
+
   if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) || (pBuffer[0] == RECIEVE_PACKET_SOF)) {
     DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s SOF FOUND", __FUNCTION__);
@@ -1100,13 +1107,13 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
         (pBuffer[1] == CHAINED_PACKET_WITHSEQN)) {
       poll_sof_chained_delay = 1;
       DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("poll_sof_chained_delay value is %d ",
-                      poll_sof_chained_delay);
+        << StringPrintf("poll_sof_chained_delay value is %d ",
+            poll_sof_chained_delay);
     } else {
       poll_sof_chained_delay = 0;
       DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("poll_sof_chained_delay value is %d ",
-                      poll_sof_chained_delay);
+        << StringPrintf("poll_sof_chained_delay value is %d ",
+            poll_sof_chained_delay);
     }
     total_count = 3;
     uint8_t pcb;
@@ -1129,6 +1136,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
         if (ret < 0) {
           LOG(ERROR) << StringPrintf("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
         }
+        LOG(ERROR) << StringPrintf("_spi_read() [HDR]errno 4444444 %d", ret);
         nNbBytesToRead = (pBuffer[3] << 8);
         nNbBytesToRead = nNbBytesToRead | pBuffer[4];
         total_count += 2;
@@ -1147,15 +1155,38 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       LOG(ERROR) << StringPrintf("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
       ret = -1;
     }else {
-        ret = (total_count +(nNbBytesToRead + 1));
+      ret = (total_count +(nNbBytesToRead + 1));
     }
   } else if (ret < 0) {
     /*In case of IO Error*/
     ret = -2;
     pBuffer[0] = 0x64;
     pBuffer[1] = 0xFF;
-  } else {
-    ret = -1;
+  } else { /* Received corrupted frame:
+              Flushing out data in the Rx buffer so that Card can switch the mode */
+    uint16_t ifsd_size = phNxpEseProto7816_GetIfs();
+    uint32_t total_frame_size = 0;
+    LOG(ERROR) << StringPrintf("_spi_read() corrupted, IFSD size=%d flushing it out!!", ifsd_size);
+    /* If a non-zero byte is received while polling for NAD byte and the byte is not a valid NAD byte (0xA5 or 0xB4):
+        1)  Read & discard (without de-asserting SPI CS line) :
+          a.  Max IFSD size + 5 (remaining four prologue + one LRC bytes) bytes from eSE  if max IFS size is greater than 254 bytes
+        OR
+          b.  Max IFSD size + 3 (remaining two prologue + one LRC bytes) bytes from eSE  if max IFS size is less than 255 bytes.
+
+        2) Send R-NACK to request eSE to re-transmit the frame*/
+
+    if(ifsd_size > IFSC_SIZE_SEND) {
+      total_frame_size = ifsd_size + 4;
+    } else {
+      total_frame_size = ifsd_size + 2;
+    }
+    ret = phPalEse_read(pDevHandle, &pBuffer[2], total_frame_size);
+    if (ret < 0) {
+      LOG(ERROR) << StringPrintf("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
+    } else { /* LRC fail expected for this frame to send R-NACK*/
+      ret = total_frame_size + 2;
+      LOG(ERROR) << StringPrintf("_spi_read() SUCCESS  ret : %X LRC fail excpected for this frame", ret);
+    }
   }
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s Exit ret = %d", __FUNCTION__, ret);

@@ -494,5 +494,13 @@ ESESTATUS phNxpEseProto7816_ResetEndPoint(uint8_t uEndPoint);
 */
 ESESTATUS phNxpEseProto7816_getAtr(phNxpEse_data* pATRRsp);
 
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief This function is used to set the max T=1 data send size
+ *
+ * \retval Current IFS adjusted value wrt card.
+ *
+ */
+uint16_t phNxpEseProto7816_GetIfs(void);
 /** @} */
 #endif /* _PHNXPESEPROTO7816_3_H_ */
