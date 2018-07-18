@@ -690,6 +690,10 @@ ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp) {
     if (ESESTATUS_SUCCESS != status) {
       LOG(ERROR) << StringPrintf(" %s phNxpEseProto7816_Transceive- Failed \n",
                       __FUNCTION__);
+      if(ESESTATUS_TRANSCEIVE_FAILED == status) {
+        //phPalEse_ioctl(phPalEse_e_ChipPwrRst, nxpese_ctxt.pDevHandle, SPM_POWER_RESET);
+        phNxpEse_SPM_ConfigPwr(SPM_POWER_RESET);
+      }
     }
     nxpese_ctxt.EseLibStatus = ESE_STATUS_IDLE;
 
@@ -1043,6 +1047,8 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
     /*(nadPollingRetryTime * WAKE_UP_DELAY * NAD_POLLING_SCALER)*/
     max_sof_counter = (ESE_POLL_TIMEOUT / nxpese_ctxt.nadPollingRetryTime);
   }
+  DLOG_IF(INFO, ese_debug_enabled)
+      << StringPrintf("read() max_sof_counter: %X ESE_POLL_TIMEOUT %2X", max_sof_counter, ESE_POLL_TIMEOUT);
   do {
     sof_counter++;
     ret = -1;

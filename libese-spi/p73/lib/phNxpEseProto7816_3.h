@@ -113,7 +113,7 @@ typedef enum phNxpEseProto7816_TransceiveStates {
   SEND_S_WTX_RSP, /*!< 7816-3 protocol transceive state: S-frame WTX response to
                     be sent */
   SEND_S_IFS_ADJ, /*!< 7816-3 protocol transceive state: S-frame IFS adjustment */
-  SEND_S_ATR_REQ  /*!< 7816-3 protocol transceive state: S-frame ATR request */
+  SEND_S_ATR_REQ,  /*!< 7816-3 protocol transceive state: S-frame ATR request */
 } phNxpEseProto7816_TransceiveStates_t;
 
 /*!
@@ -252,6 +252,7 @@ typedef struct phNxpEseProto7816 {
   unsigned long int rnack_retry_limit;
   unsigned long int rnack_retry_counter;
   phNxpEseProto7816SecureTimer_t secureTimerParams;
+  unsigned long int reset_type;
   uint32_t currentIFSDSize;
 } phNxpEseProto7816_t;
 
@@ -395,6 +396,7 @@ static phNxpEseProto7816_t phNxpEseProto7816_3_Var;
  * APIs exposed from the 7816-3 protocol layer
  */
 
+#define RESET_TYPE_NONE   0x00
 /**
  * \ingroup ISO7816-3_protocol_lib
  * \brief This function is used to reset just the current interface

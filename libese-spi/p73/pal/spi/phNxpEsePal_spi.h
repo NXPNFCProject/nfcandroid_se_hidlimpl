@@ -34,7 +34,7 @@
 /*!
  * \brief ESE Poll timeout (max 1.3 seconds)
  */
-#define ESE_POLL_TIMEOUT (1300)
+#define ESE_POLL_TIMEOUT (2000)
 /*!
  * \brief ESE Max Poll retry count
  */

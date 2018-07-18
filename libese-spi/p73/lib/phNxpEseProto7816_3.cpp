@@ -987,15 +987,26 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
           if (phNxpEseProto7816_3_Var.wtx_counter ==
               phNxpEseProto7816_3_Var.wtx_counter_limit) {
             phNxpEseProto7816_3_Var.wtx_counter = 0;
-            phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo
+
+            if(phNxpEseProto7816_3_Var.reset_type != INTF_RESET_REQ)
+            {
+              phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo
                 .sFrameType = INTF_RESET_REQ;
-            phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
-            phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.sFrameType =
+              phNxpEseProto7816_3_Var.reset_type = INTF_RESET_REQ;
+              phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
+              phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.sFrameType =
                 INTF_RESET_REQ;
-            phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+              phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
                 SEND_S_INTF_RST;
-            LOG(ERROR) << StringPrintf("%s Interface Reset to eSE wtx count reached!!!",
+              LOG(ERROR) << StringPrintf("%s Interface Reset to eSE wtx count reached!!!",
                             __FUNCTION__);
+            } else {
+              LOG(ERROR) << StringPrintf("%s Power cycle to eSE  max WTX received",
+                            __FUNCTION__);
+              phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+                IDLE_STATE;
+              status = ESESTATUS_TRANSCEIVE_FAILED;
+            }
           } else {
             phNxpEse_Sleep(DELAY_ERROR_RECOVERY);
             phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo
@@ -1104,7 +1115,7 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
     if (status == ESESTATUS_SUCCESS) {
       /* Resetting the RNACK retry counter */
       phNxpEseProto7816_3_Var.rnack_retry_counter = PH_PROTO_7816_VALUE_ZERO;
-      phNxpEseProto7816_DecodeFrame(p_data, data_len);
+      status = phNxpEseProto7816_DecodeFrame(p_data, data_len);
     } else {
       LOG(ERROR) << StringPrintf("%s LRC Check failed", __FUNCTION__);
       if (phNxpEseProto7816_3_Var.rnack_retry_counter <
@@ -1166,6 +1177,7 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
         /* Re-transmission failed completely, Going to exit */
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
+        status = ESESTATUS_TRANSCEIVE_FAILED;
         phNxpEseProto7816_3_Var.timeoutCounter = PH_PROTO_7816_VALUE_ZERO;
         LOG(ERROR) << StringPrintf("%s calling phNxpEse_StoreDatainList", __FUNCTION__);
         phNxpEse_StoreDatainList(data_len, p_data);
@@ -1298,7 +1310,7 @@ ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp)
       << StringPrintf("Transceive data ptr 0x%p len:%d", pCmd->p_data, pCmd->len);
   status = phNxpEseProto7816_SetFirstIframeContxt();
   status = TransceiveProcess();
-  if (ESESTATUS_FAILED == status) {
+  if (ESESTATUS_FAILED == status || ESESTATUS_TRANSCEIVE_FAILED == status) {
     /* ESE hard reset to be done */
     LOG(ERROR) << StringPrintf("Transceive failed, hard reset to proceed");
     wStatus = phNxpEse_GetData(&pRes.len, &pRes.p_data);
@@ -1328,6 +1340,7 @@ ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp)
   }
   phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
       PH_NXP_ESE_PROTO_7816_IDLE;
+  phNxpEseProto7816_3_Var.reset_type = RESET_TYPE_NONE;
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("Exit %s Status 0x%x", __FUNCTION__, status);
   return status;
