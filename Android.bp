@@ -67,7 +67,8 @@ cc_binary {
         "extns/impl/NxpWiredSe.cpp",
     ],
         local_include_dirs: [
-        "wiredSe/"
+        "wiredSe/",
+        "extns/impl"
     ],
 shared_libs: [
         "android.hardware.secure_element@1.0",
