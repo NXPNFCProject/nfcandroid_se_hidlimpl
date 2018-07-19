@@ -23,7 +23,7 @@
 #include <hardware/hardware.h>
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>
-#include <vendor/nxp/nxpese/1.0/INxpWiredSeHalCallback.h>
+#include <vendor/nxp/nxpwiredse/1.0/INxpWiredSeHalCallback.h>
 
 namespace vendor {
 namespace nxp {
@@ -45,7 +45,7 @@ using ::android::hardware::Return;
 using ::android::hardware::Void;
 using ::android::sp;
 using android::base::StringPrintf;
-using ::vendor::nxp::nxpese::V1_0::INxpWiredSeHalCallback;
+using ::vendor::nxp::nxpwiredse::V1_0::INxpWiredSeHalCallback;
 
 #ifndef MAX_LOGICAL_CHANNELS
 #define MAX_LOGICAL_CHANNELS 0x04

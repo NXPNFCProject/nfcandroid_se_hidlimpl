@@ -20,9 +20,6 @@
 #include <android-base/logging.h>
 #include <log/log.h>
 
-#include "NxpEse.h"
-#include "hal_nxpese.h"
-using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 using android::hardware::secure_element::V1_0::ISecureElementHalCallback;
 using vendor::nxp::wired_se::V1_0::implementation::WiredSe;
 

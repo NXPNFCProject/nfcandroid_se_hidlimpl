@@ -20,11 +20,11 @@
 
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>
-#include <vendor/nxp/nxpese/1.0/INxpWiredSe.h>
+#include <vendor/nxp/nxpwiredse/1.0/INxpWiredSe.h>
 
 namespace vendor {
 namespace nxp {
-namespace nxpese {
+namespace nxpwiredse {
 namespace V1_0 {
 namespace implementation {
 
@@ -41,7 +41,7 @@ using ::android::wp;
 struct NxpWiredSe : public INxpWiredSe, public hidl_death_recipient {
   // Methods from ::vendor::nxp::nxpese::V1_0::INxpWiredSe follow.
   Return<void> setWiredSeCallback(
-      const sp<::vendor::nxp::nxpese::V1_0::INxpWiredSeHalCallback>&
+      const sp<::vendor::nxp::nxpwiredse::V1_0::INxpWiredSeHalCallback>&
           wiredCallback) override;
   void serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) override;
   static android::sp<INxpWiredSeHalCallback> sNxpWiredCallbackHandle;

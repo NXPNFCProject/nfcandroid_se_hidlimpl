@@ -19,9 +19,7 @@
 #include <android/hardware/secure_element/1.0/ISecureElement.h>
 #include <hidl/LegacySupport.h>
 #include <log/log.h>
-#include <vendor/nxp/nxpese/1.0/INxpEse.h>
-#include <vendor/nxp/nxpese/1.0/INxpWiredSe.h>
-#include "NxpEse.h"
+#include <vendor/nxp/nxpwiredse/1.0/INxpWiredSe.h>
 #include "NxpWiredSe.h"
 #include "WiredSe.h"
 
@@ -32,10 +30,8 @@ using android::hardware::joinRpcThreadpool;
 using android::OK;
 using android::sp;
 using android::status_t;
-using vendor::nxp::nxpese::V1_0::INxpEse;
-using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
-using vendor::nxp::nxpese::V1_0::INxpWiredSe;
-using vendor::nxp::nxpese::V1_0::implementation::NxpWiredSe;
+using vendor::nxp::nxpwiredse::V1_0::INxpWiredSe;
+using vendor::nxp::nxpwiredse::V1_0::implementation::NxpWiredSe;
 sp<WiredSe> pWiredSe;
 
 int main() {
