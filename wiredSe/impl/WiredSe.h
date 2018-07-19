@@ -23,7 +23,7 @@
 #include <hardware/hardware.h>
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>
-#include <vendor/nxp/nxpese/1.0/INxpWiredSeHalCallback.h>
+#include <vendor/nxp/nxpwiredse/1.0/INxpWiredSeHalCallback.h>
 
 namespace vendor {
 namespace nxp {
@@ -45,7 +45,7 @@ using ::android::hardware::Return;
 using ::android::hardware::Void;
 using ::android::sp;
 using android::base::StringPrintf;
-using ::vendor::nxp::nxpese::V1_0::INxpWiredSeHalCallback;
+using ::vendor::nxp::nxpwiredse::V1_0::INxpWiredSeHalCallback;
 
 #ifndef MAX_LOGICAL_CHANNELS
 #define MAX_LOGICAL_CHANNELS 0x04
@@ -64,26 +64,26 @@ typedef enum {
 
 struct WiredSe : public ISecureElement, public hidl_death_recipient {
   WiredSe();
-  Return<void> init(
-      const sp<
-          ::android::hardware::secure_element::V1_0::ISecureElementHalCallback>&
-          clientCallback) override;
+  Return<void>
+  init(const sp<
+       ::android::hardware::secure_element::V1_0::ISecureElementHalCallback>
+           &clientCallback) override;
   Return<void> getAtr(getAtr_cb _hidl_cb) override;
   Return<bool> isCardPresent() override;
-  Return<void> transmit(const hidl_vec<uint8_t>& data,
+  Return<void> transmit(const hidl_vec<uint8_t> &data,
                         transmit_cb _hidl_cb) override;
-  Return<void> openLogicalChannel(const hidl_vec<uint8_t>& aid, uint8_t p2,
+  Return<void> openLogicalChannel(const hidl_vec<uint8_t> &aid, uint8_t p2,
                                   openLogicalChannel_cb _hidl_cb) override;
-  Return<void> openBasicChannel(const hidl_vec<uint8_t>& aid, uint8_t p2,
+  Return<void> openBasicChannel(const hidl_vec<uint8_t> &aid, uint8_t p2,
                                 openBasicChannel_cb _hidl_cb) override;
   Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
   closeChannel(uint8_t channelNumber) override;
 
-  void serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) override;
-  static Return<void> setWiredSeCallback(
-      const android::sp<INxpWiredSeHalCallback>& wiredCallback);
+  void serviceDied(uint64_t /*cookie*/, const wp<IBase> & /*who*/) override;
+  static Return<void>
+  setWiredSeCallback(const android::sp<INxpWiredSeHalCallback> &wiredCallback);
 
- private:
+private:
   uint8_t mOpenedchannelCount = 0;
   bool mOpenedChannels[MAX_LOGICAL_CHANNELS];
   int32_t mWiredSeHandle;
@@ -96,10 +96,10 @@ struct WiredSe : public ISecureElement, public hidl_death_recipient {
   void resetWiredSeContext();
 };
 
-}  // namespace implementation
-}  // namespace V1_0
-}  // namespace wired_se
-}  // namespace nxp
-}  // namespace vendor
+} // namespace implementation
+} // namespace V1_0
+} // namespace wired_se
+} // namespace nxp
+} // namespace vendor
 
-#endif  // ANDROID_HARDWARE_SECURE_ELEMENT_V1_0_WIREDSE_H
+#endif // ANDROID_HARDWARE_SECURE_ELEMENT_V1_0_WIREDSE_H

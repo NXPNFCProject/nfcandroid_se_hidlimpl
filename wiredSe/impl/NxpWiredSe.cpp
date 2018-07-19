@@ -22,16 +22,16 @@
 
 namespace vendor {
 namespace nxp {
-namespace nxpese {
+namespace nxpwiredse {
 namespace V1_0 {
 namespace implementation {
 using vendor::nxp::wired_se::V1_0::implementation::WiredSe;
 android::sp<INxpWiredSeHalCallback> NxpWiredSe::sNxpWiredCallbackHandle =
     nullptr;
-// Methods from ::vendor::nxp::nxpese::V1_0::INxpNxpWiredSe follow.
+// Methods from ::vendor::nxp::nxpwiredse::V1_0::INxpNxpWiredSe follow.
 Return<void> NxpWiredSe::setWiredSeCallback(
-    const android::sp< ::vendor::nxp::nxpese::V1_0::INxpWiredSeHalCallback>&
-        wiredCallback) {
+    const android::sp<::vendor::nxp::nxpwiredse::V1_0::INxpWiredSeHalCallback>
+        &wiredCallback) {
   if (wiredCallback != nullptr) {
     wiredCallback->linkToDeath(this, 0 /*cookie*/);
   }
@@ -40,7 +40,7 @@ Return<void> NxpWiredSe::setWiredSeCallback(
   return Void();
 }
 
-void NxpWiredSe::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
+void NxpWiredSe::serviceDied(uint64_t /*cookie*/, const wp<IBase> & /*who*/) {
   ALOGE("%s: Enter", __func__);
   if (sNxpWiredCallbackHandle != nullptr) {
     WiredSe::setWiredSeCallback(nullptr);
@@ -49,8 +49,8 @@ void NxpWiredSe::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
 }
 // Methods from ::android::hidl::base::V1_0::IBase follow.
 
-}  // namespace implementation
-}  // namespace V1_0
-}  // namespace nxpese
-}  // namespace nxp
-}  // namespace vendor
+} // namespace implementation
+} // namespace V1_0
+} // namespace nxpwiredse
+} // namespace nxp
+} // namespace vendor

@@ -116,11 +116,11 @@ cc_binary {
     defaults: ["hidl_defaults"],
     srcs: [
         "wiredSe/NxpWiredSeService.cpp",
-        "wiredSe/WiredSe.cpp",
-        "extns/impl/NxpWiredSe.cpp",
+        "wiredSe/impl/WiredSe.cpp",
+        "wiredSe/impl/NxpWiredSe.cpp",
     ],
         local_include_dirs: [
-        "wiredSe/"
+        "wiredSe/impl"
     ],
 shared_libs: [
         "android.hardware.secure_element@1.0",
@@ -133,6 +133,6 @@ shared_libs: [
         "libhwbinder",
         "liblog",
         "libutils",
-        "vendor.nxp.nxpese@1.0",
+        "vendor.nxp.nxpwiredse@1.0",
     ],
 }

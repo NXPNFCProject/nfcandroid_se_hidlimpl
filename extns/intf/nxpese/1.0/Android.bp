@@ -9,8 +9,6 @@ hidl_interface {
     root: "vendor.nxp.nxpese",
     srcs: [
         "INxpEse.hal",
-        "INxpWiredSe.hal",
-        "INxpWiredSeHalCallback.hal",
     ],
     interfaces: [
         "android.hidl.base@1.0",

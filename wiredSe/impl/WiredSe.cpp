@@ -20,13 +20,11 @@
 #include <android-base/logging.h>
 #include <log/log.h>
 
-#include "NxpEse.h"
 #include "hal_nxpese.h"
-using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 using android::hardware::secure_element::V1_0::ISecureElementHalCallback;
 using vendor::nxp::wired_se::V1_0::implementation::WiredSe;
 
-extern WiredSe * pWiredSe;
+extern WiredSe *pWiredSe;
 namespace vendor {
 namespace nxp {
 namespace wired_se {
@@ -38,13 +36,13 @@ static android::sp<ISecureElementHalCallback> gSeHalCallback;
 std::vector<uint8_t> atrResponse;
 
 WiredSe::WiredSe()
-    : mOpenedchannelCount(0),
-      mOpenedChannels{false, false, false, false},
+    : mOpenedchannelCount(0), mOpenedChannels{false, false, false, false},
       mWiredSeHandle(0) {}
 
-Return<void> WiredSe::init(const sp<
-    ::android::hardware::secure_element::V1_0::ISecureElementHalCallback>&
-                               clientCallback) {
+Return<void> WiredSe::init(
+    const sp<
+        ::android::hardware::secure_element::V1_0::ISecureElementHalCallback>
+        &clientCallback) {
   if (clientCallback == nullptr) {
     return Void();
   }
@@ -90,7 +88,7 @@ Return<void> WiredSe::getAtr(getAtr_cb _hidl_cb) {
 
 Return<bool> WiredSe::isCardPresent() { return true; }
 
-Return<void> WiredSe::transmit(const hidl_vec<uint8_t>& data,
+Return<void> WiredSe::transmit(const hidl_vec<uint8_t> &data,
                                transmit_cb _hidl_cb) {
   std::vector<uint8_t> transmitResponse;
   if ((!sWiredCallbackHandle) || (mWiredSeHandle <= 0)) {
@@ -110,7 +108,7 @@ Return<void> WiredSe::transmit(const hidl_vec<uint8_t>& data,
   return Void();
 }
 
-Return<void> WiredSe::openLogicalChannel(const hidl_vec<uint8_t>& aid,
+Return<void> WiredSe::openLogicalChannel(const hidl_vec<uint8_t> &aid,
                                          uint8_t p2,
                                          openLogicalChannel_cb _hidl_cb) {
   std::vector<uint8_t> manageChannelCommand = {0x00, 0x70, 0x00, 0x00, 0x01};
@@ -219,8 +217,8 @@ Return<void> WiredSe::openLogicalChannel(const hidl_vec<uint8_t>& aid,
         *(rspSelectApdu.end() - 1) == 0x00) {
       sestatus = SecureElementStatus::SUCCESS;
       resApduBuff.selectResponse.resize(rspSelectApdu.size());
-      for (int i=0; i<rspSelectApdu.size(); i++)
-        resApduBuff.selectResponse[i]=rspSelectApdu[i];
+      for (int i = 0; i < rspSelectApdu.size(); i++)
+        resApduBuff.selectResponse[i] = rspSelectApdu[i];
     }
     /*AID provided doesn't match any applet on the secure element*/
     else if (*(rspSelectApdu.end() - 2) == 0x6A &&
@@ -248,7 +246,7 @@ Return<void> WiredSe::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   return Void();
 }
 
-Return<void> WiredSe::openBasicChannel(const hidl_vec<uint8_t>& aid, uint8_t p2,
+Return<void> WiredSe::openBasicChannel(const hidl_vec<uint8_t> &aid, uint8_t p2,
                                        openBasicChannel_cb _hidl_cb) {
   hidl_vec<uint8_t> result;
 
@@ -466,7 +464,7 @@ WiredSe::closeChannel(uint8_t channelNumber) {
   return sestatus;
 }
 
-void WiredSe::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
+void WiredSe::serviceDied(uint64_t /*cookie*/, const wp<IBase> & /*who*/) {
   ALOGE("%s: WiredSe serviceDied!!!", __func__);
   SecureElementStatus sestatus = seHalDeInit();
   if (sestatus != SecureElementStatus::SUCCESS) {
@@ -521,21 +519,23 @@ void WiredSe::resetWiredSeContext() {
 }
 
 Return<void> WiredSe::setWiredSeCallback(
-    const android::sp<INxpWiredSeHalCallback>& wiredCallback) {
+    const android::sp<INxpWiredSeHalCallback> &wiredCallback) {
   ALOGD("%s: Enter", __func__);
   /* Callback handle from NfcService WiredSe is copied and cached */
   sWiredCallbackHandle = wiredCallback;
   if (sWiredCallbackHandle == nullptr) {
     ALOGD("%s WiredSeCallback handle is NULL", __func__);
-    if (pWiredSe != nullptr) pWiredSe->resetWiredSeContext();
-    if (gSeHalCallback != nullptr) gSeHalCallback->onStateChange(false);
+    if (pWiredSe != nullptr)
+      pWiredSe->resetWiredSeContext();
+    if (gSeHalCallback != nullptr)
+      gSeHalCallback->onStateChange(false);
   } else if (gSeHalCallback != nullptr)
     gSeHalCallback->onStateChange(true);
   return Void();
 }
 
-}  // namespace implementation
-}  // namespace V1_0
-}  // namespace wired_se
-}  // namespace nxp
-}  // namespace vendor
+} // namespace implementation
+} // namespace V1_0
+} // namespace wired_se
+} // namespace nxp
+} // namespace vendor

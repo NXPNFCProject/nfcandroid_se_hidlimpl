@@ -16,7 +16,7 @@
  *
  ******************************************************************************/
 
-package vendor.nxp.nxpese@1.0;
+package vendor.nxp.nxpwiredse@1.0;
 
 import INxpWiredSeHalCallback;
 interface INxpWiredSe {
