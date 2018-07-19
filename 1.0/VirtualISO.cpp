@@ -81,8 +81,8 @@ Return<void> VirtualISO::init(
     return Void();
   }
   status = phNxpEse_open(initParams);
-  if (status != ESESTATUS_SUCCESS) {
-    //return Void();
+  if (status != ESESTATUS_SUCCESS && ESESTATUS_BUSY != status) {
+    return Void();
   }
 
   status = phNxpEse_SetEndPoint_Cntxt(1);

@@ -83,7 +83,7 @@ Return<void> SecureElement::init(
   }
 
   status = phNxpEse_open(initParams);
-  if (status != ESESTATUS_SUCCESS) {
+  if (status != ESESTATUS_SUCCESS && ESESTATUS_BUSY != status) {
     goto exit;
   }
 
