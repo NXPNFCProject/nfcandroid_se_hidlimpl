@@ -24,7 +24,9 @@
 #include "hal_nxpese.h"
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 using android::hardware::secure_element::V1_0::ISecureElementHalCallback;
+using vendor::nxp::wired_se::V1_0::implementation::WiredSe;
 
+extern WiredSe * pWiredSe;
 namespace vendor {
 namespace nxp {
 namespace wired_se {
@@ -49,7 +51,6 @@ Return<void> WiredSe::init(const sp<
   gSeHalCallback = clientCallback;
   gSeHalCallback->linkToDeath(this, 0 /*cookie*/);
   if (sWiredCallbackHandle == nullptr) {
-    resetWiredSeContext();
     gSeHalCallback->onStateChange(false);
     ALOGE("%s: NfcService callback handle not registered yet!", __func__);
     return Void();
@@ -79,7 +80,6 @@ Return<void> WiredSe::init(const sp<
 Return<void> WiredSe::getAtr(getAtr_cb _hidl_cb) {
   hidl_vec<uint8_t> response;
   if ((!sWiredCallbackHandle) || (mWiredSeHandle <= 0)) {
-    resetWiredSeContext();
     ALOGE("%s: Handle to access NfcWiredSe is invalid", __func__);
     _hidl_cb(response);
     return Void();
@@ -94,7 +94,6 @@ Return<void> WiredSe::transmit(const hidl_vec<uint8_t>& data,
                                transmit_cb _hidl_cb) {
   std::vector<uint8_t> transmitResponse;
   if ((!sWiredCallbackHandle) || (mWiredSeHandle <= 0)) {
-    resetWiredSeContext();
     ALOGE("%s: Handle to access NfcWiredSe is invalid", __func__);
     _hidl_cb(transmitResponse);
     return Void();
@@ -124,7 +123,6 @@ Return<void> WiredSe::openLogicalChannel(const hidl_vec<uint8_t>& aid,
     WIREDSESTATUS status = seHalInit();
     if (status != WIREDSESTATUS_SUCCESS) {
       ALOGE("%s: seHalInit Failed!!!", __func__);
-      resetWiredSeContext();
       _hidl_cb(resApduBuff, SecureElementStatus::IOERROR);
       return Void();
     }
@@ -258,7 +256,6 @@ Return<void> WiredSe::openBasicChannel(const hidl_vec<uint8_t>& aid, uint8_t p2,
     WIREDSESTATUS status = seHalInit();
     if (status != WIREDSESTATUS_SUCCESS) {
       ALOGE("%s: seHalInit Failed!!!", __func__);
-      resetWiredSeContext();
       _hidl_cb(result, SecureElementStatus::IOERROR);
       return Void();
     }
@@ -339,11 +336,11 @@ WiredSe::internalCloseChannel(uint8_t channelNumber) {
   SecureElementStatus sestatus = SecureElementStatus::FAILED;
   WIREDSESTATUS status = WIREDSESTATUS_SUCCESS;
   ALOGD("%s: Enter", __func__);
-  if (sWiredCallbackHandle == nullptr) {
+  if (sWiredCallbackHandle == nullptr || (mWiredSeHandle <= 0)) {
     ALOGD("%s: sWiredCallbackHandle is nullptr. Returning", __func__);
-    resetWiredSeContext();
     return SecureElementStatus::FAILED;
   }
+
   if (channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     ALOGE("%s: invalid channel!!! 0x%02x", __func__, channelNumber);
@@ -407,7 +404,7 @@ WiredSe::closeChannel(uint8_t channelNumber) {
   SecureElementStatus sestatus = SecureElementStatus::FAILED;
   ALOGD("%s: Enter 0x%02x", __func__, channelNumber);
 
-  if (sWiredCallbackHandle == nullptr) {
+  if (sWiredCallbackHandle == nullptr || (mWiredSeHandle <= 0)) {
     ALOGD("%s: sWiredCallbackHandle is nullptr. Returning", __func__);
     return SecureElementStatus::FAILED;
   }
@@ -529,7 +526,8 @@ Return<void> WiredSe::setWiredSeCallback(
   /* Callback handle from NfcService WiredSe is copied and cached */
   sWiredCallbackHandle = wiredCallback;
   if (sWiredCallbackHandle == nullptr) {
-    ALOGD("%s:Failed..!! WiredSeCallback handle is NULL", __func__);
+    ALOGD("%s WiredSeCallback handle is NULL", __func__);
+    if (pWiredSe != nullptr) pWiredSe->resetWiredSeContext();
     if (gSeHalCallback != nullptr) gSeHalCallback->onStateChange(false);
   } else if (gSeHalCallback != nullptr)
     gSeHalCallback->onStateChange(true);

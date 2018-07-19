@@ -36,10 +36,12 @@ using vendor::nxp::nxpese::V1_0::INxpEse;
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 using vendor::nxp::nxpese::V1_0::INxpWiredSe;
 using vendor::nxp::nxpese::V1_0::implementation::NxpWiredSe;
+WiredSe* pWiredSe = nullptr;
 
 int main() {
   ALOGD("WiredSe HAL Service is starting.");
-  sp<ISecureElement> ese_wired_service = new WiredSe();
+  pWiredSe = new WiredSe();
+  sp<ISecureElement> ese_wired_service(pWiredSe);
   configureRpcThreadpool(1, true /*callerWillJoin*/);
   status_t status = ese_wired_service->registerAsService("eSE2");
   if (status != OK) {
