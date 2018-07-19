@@ -34,4 +34,8 @@ SESTATUS perform_eSEClientUpdate();
 void eSEClientUpdate_Thread();
 
 void seteSEClientState(uint8_t state);
+typedef enum {
+ESE = 0,
+EUICC = 1,
+}SEDomainID;
 #endif /* ESE_UPDATE_2_H_ */

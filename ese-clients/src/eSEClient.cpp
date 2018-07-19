@@ -44,7 +44,7 @@ SESTATUS ESE_ChannelInit(IChannel *ch);
 SESTATUS handleJcopOsDownload();
 void* LSUpdate_Thread(void* data);
 uint8_t performLSUpdate();
-SESTATUS initializeEse(phNxpEse_initMode mode);
+SESTATUS initializeEse(phNxpEse_initMode mode, SEDomainID Id);
 ese_update_state_t ese_update = ESE_UPDATE_COMPLETED;
 SESTATUS eSEUpdate_SeqHandler();
 int16_t SE_Open()
@@ -220,7 +220,7 @@ SESTATUS handleJcopOsDownload()
 {
   SESTATUS status = SESTATUS_FAILED;
   uint8_t retstat;
-  status = initializeEse(ESE_MODE_OSU);
+  status = initializeEse(ESE_MODE_OSU, ESE);
   if(status == SESTATUS_SUCCESS)
   {
     retstat = JCDNLD_Init(&Ch);
@@ -258,13 +258,21 @@ SESTATUS handleJcopOsDownload()
 uint8_t performLSUpdate()
 {
   uint8_t status = SESTATUS_FAILED;
-  status = initializeEse(ESE_MODE_NORMAL);
-  ALOGE("%s: ", __FUNCTION__);
+  status = initializeEse(ESE_MODE_NORMAL, ESE);
+  ALOGE("%s:On eSE domain ", __FUNCTION__);
   if(status == SESTATUS_SUCCESS)
   {
     seteSEClientState(ESE_UPDATE_STARTED);
     status = performLSDownload(&Ch);
-    phNxpEse_ResetEndPoint_Cntxt(0);
+    phNxpEse_ResetEndPoint_Cntxt(ESE);
+  }
+  phNxpEse_close();
+  ALOGE("%s:On eUICC domain ", __FUNCTION__);
+  status = initializeEse(ESE_MODE_NORMAL, EUICC);
+  if(status == SESTATUS_SUCCESS)
+  {
+    status = performLSDownload(&Ch);
+    phNxpEse_ResetEndPoint_Cntxt(EUICC);
   }
   phNxpEse_close();
   return status;
@@ -279,7 +287,7 @@ uint8_t performLSUpdate()
 ** Returns:         SUCCESS of ok
 **
 *******************************************************************************/
-SESTATUS initializeEse(phNxpEse_initMode mode)
+SESTATUS initializeEse(phNxpEse_initMode mode, SEDomainID Id)
 {
   uint8_t retstat;
   SESTATUS status = SESTATUS_FAILED;
@@ -292,11 +300,11 @@ SESTATUS initializeEse(phNxpEse_initMode mode)
   if (retstat != ESESTATUS_SUCCESS) {
     return status;
   }
-  phNxpEse_SetEndPoint_Cntxt(0);
+  phNxpEse_SetEndPoint_Cntxt(Id);
   retstat = phNxpEse_init(initParams);
   if(retstat != ESESTATUS_SUCCESS)
   {
-    phNxpEse_ResetEndPoint_Cntxt(0);
+    phNxpEse_ResetEndPoint_Cntxt(Id);
     phNxpEse_close();
     return status;
   }
