@@ -100,15 +100,18 @@ tLSC_STATUS performLSDownload(IChannel_t* data) {
 
     char* lsUpdateBuf = (char*)malloc(fsize + 1);
     fread(lsUpdateBuf, fsize, 1, fIn);
+    fclose(fIn);
 
     if ((fOut = fopen(lsUpdateBackupOutPath, "wb")) == NULL) {
       ALOGE("%s Failed to open file %s\n", __func__, lsUpdateBackupOutPath);
     } else {
       ALOGD("%s File opened %s\n", __func__, lsUpdateBackupOutPath);
-    }
 
-    if ((long)fwrite(lsUpdateBuf, 1, fsize, fOut) != fsize) {
-      ALOGE("%s ERROR - Failed to write %ld bytes to file\n", __func__, fsize);
+      if ((long)fwrite(lsUpdateBuf, 1, fsize, fOut) != fsize) {
+        ALOGE("%s ERROR - Failed to write %ld bytes to file\n", __func__, fsize);
+      }
+
+      fclose(fOut);
     }
 
     status = LSC_Start(lsUpdateBackupPath, lsUpdateBackupOutPath,
