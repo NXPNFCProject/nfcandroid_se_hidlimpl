@@ -15,30 +15,27 @@
  *  limitations under the License.
  *
  ******************************************************************************/
-#pragma once
-#include <pthread.h>
 
-#include "SyncEvent.h"
-#include "hal_nxpese.h"
-#include <android/hardware/nfc/1.0/types.h>
-#include <phEseStatus.h>
-#include <utils/RefBase.h>
-#include <vendor/nxp/nxpnfc/1.0/INxpNfc.h>
+#ifndef LIBESE_SPI_SRC_SYNC_STATEMACHINE_H_
+#define LIBESE_SPI_SRC_SYNC_STATEMACHINE_H_
 
-using vendor::nxp::nxpnfc::V1_0::INxpNfc;
+#include "EseHalStates.h"
+#include <SyncEvent.h>
 
-class NfcAdaptation {
- public:
-   ~NfcAdaptation();
-   void Initialize();
-   static NfcAdaptation &GetInstance();
-   static ESESTATUS HalIoctl(long data_len, void *p_data);
-   ese_nxp_IoctlInOutData_t *mCurrentIoctlData;
+#include "StateMachineInfo.h"
 
- private:
-  NfcAdaptation();
-  static Mutex sLock;
-  static Mutex sIoctlLock;
-  static NfcAdaptation* mpInstance;
-  static android::sp<INxpNfc> mHalNxpNfc;
+class StateMachine {
+private:
+  Mutex mProcessExtEventLock;
+  StateMachine();
+  static StateMachine sStateMachine;
+  StateBase *mPtrCurrentState;
+
+public:
+  ~StateMachine();
+  static StateMachine &GetInstance();
+  eStates_t GetCurrentState();
+  eStatus_t ProcessExtEvent(eExtEvent_t);
 };
+
+#endif /* LIBESE_SPI_SRC_SYNC_STATEMACHINE_H_ */

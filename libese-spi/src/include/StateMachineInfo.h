@@ -1,5 +1,4 @@
 /******************************************************************************
- *
  *  Copyright 2018 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,30 +14,34 @@
  *  limitations under the License.
  *
  ******************************************************************************/
-#pragma once
-#include <pthread.h>
 
-#include "SyncEvent.h"
-#include "hal_nxpese.h"
-#include <android/hardware/nfc/1.0/types.h>
-#include <phEseStatus.h>
-#include <utils/RefBase.h>
-#include <vendor/nxp/nxpnfc/1.0/INxpNfc.h>
+#ifndef LIBESE_SPI_SRC_INCLUDE_STATEMACHINEINFO_H_
+#define LIBESE_SPI_SRC_INCLUDE_STATEMACHINEINFO_H_
 
-using vendor::nxp::nxpnfc::V1_0::INxpNfc;
+typedef enum {
+  EVT_UNKNOWN,
+  EVT_RF_ON,
+  EVT_RF_OFF,
+  EVT_RF_ACT_NTF_ESE_F,
+  EVT_SPI_HW_SERVICE_START,
+  EVT_SPI_OPEN,
+  EVT_SPI_CLOSE,
+  EVT_SPI_TX,
+  EVT_SPI_RX,
+} eExtEvent_t;
 
-class NfcAdaptation {
- public:
-   ~NfcAdaptation();
-   void Initialize();
-   static NfcAdaptation &GetInstance();
-   static ESESTATUS HalIoctl(long data_len, void *p_data);
-   ese_nxp_IoctlInOutData_t *mCurrentIoctlData;
+typedef enum {
+  ST_UNKNOWN,
+  ST_SPI_CLOSED_RF_IDLE,
+  ST_SPI_CLOSED_RF_BUSY,
+  ST_SPI_OPEN_RF_IDLE,
+  ST_SPI_BUSY_RF_IDLE,
+  ST_SPI_RX_PENDING_RF_IDLE,
+  ST_SPI_OPEN_SUSPENDED_RF_BUSY,
+  ST_SPI_OPEN_RESUMED_RF_BUSY,
+  ST_SPI_BUSY_RF_BUSY
+} eStates_t;
 
- private:
-  NfcAdaptation();
-  static Mutex sLock;
-  static Mutex sIoctlLock;
-  static NfcAdaptation* mpInstance;
-  static android::sp<INxpNfc> mHalNxpNfc;
-};
+typedef enum { SM_STATUS_SUCCESS, SM_STATUS_FAILED } eStatus_t;
+
+#endif /* LIBESE_SPI_SRC_INCLUDE_STATEMACHINEINFO_H_ */

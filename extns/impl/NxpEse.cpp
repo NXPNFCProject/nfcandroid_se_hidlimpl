@@ -15,8 +15,11 @@
  *  limitations under the License.
  *
  ******************************************************************************/
+
+#define LOG_TAG "vendor.nxp.nxpese@1.0-impl"
 #include "NxpEse.h"
 #include "phNxpEse_Api.h"
+#include <log/log.h>
 
 namespace vendor {
 namespace nxp {
@@ -28,6 +31,7 @@ using ::android::hardware::hidl_vec;
 Return<void> NxpEse::ioctl(uint64_t ioctlType,
                            const hidl_vec<uint8_t>& inOutData,
                            ioctl_cb _hidl_cb) {
+  ALOGD("NxpEse::ioctl(): enter");
   ese_nxp_IoctlInOutData_t inpOutData;
   ese_nxp_IoctlInOutData_t* pInOutData =
       (ese_nxp_IoctlInOutData_t*)&inOutData[0];
@@ -46,6 +50,20 @@ Return<void> NxpEse::ioctl(uint64_t ioctlType,
   outputData.setToExternal((uint8_t*)&inpOutData.out,
                            sizeof(ese_nxp_ExtnOutputData_t));
   _hidl_cb(outputData);
+  ALOGD("NxpEse::ioctl(): exit");
+  return Void();
+}
+
+Return<void> NxpEse::nfccNtf(uint64_t ntfType,
+                             const hidl_vec<uint8_t> &ntfData) {
+  ALOGD("NxpEse::nfccNtf(): enter");
+  ese_nxp_IoctlInOutData_t inpOutData;
+  ese_nxp_IoctlInOutData_t *pInOutData =
+      (ese_nxp_IoctlInOutData_t *)&ntfData[0];
+  /*data from proxy->stub is copied to local data*/
+  memcpy(&inpOutData, pInOutData, sizeof(ese_nxp_IoctlInOutData_t));
+  phNxpEse_spiIoctl(ntfType, &inpOutData);
+  ALOGD("NxpEse::nfccNtf(): exit");
   return Void();
 }
 

@@ -24,6 +24,8 @@
 #define _PHNXPESE_PAL_SPI_H
 
 /* Basic type definitions */
+#include <IntervalTimer.h>
+#include <StateMachineInfo.h>
 #include <phNxpEsePal.h>
 
 /*!
@@ -145,5 +147,38 @@ void phPalEse_spi_print_packet(const char* pString, const uint8_t* p_data,
  *
  */
 void phPalEse_spi_sleep(uint32_t usec);
+
+/**
+ * \ingroup eSe_PAL_Spi
+ * \brief This function stops a rf debounce timer
+ *
+ * \param[in]
+ *
+ * \retval   void
+ *
+ */
+void phPalEse_spi_stop_debounce_timer();
+
+/**
+ * \ingroup eSe_PAL_Spi
+ * \brief This function starts a rf denounce timer
+ *
+ * \param[in]    millisecs    - number of millisec
+ *
+ * \retval   void
+ *
+ */
+void phPalEse_spi_start_debounce_timer(unsigned long millisecs);
+
+/**
+ * \ingroup eSe_PAL_Spi
+ * \brief This function sends rf off event to state machine
+ *
+ * \param[in]
+ *
+ * \retval   void
+ *
+ */
+void phPalEse_spi_rf_off_timer_expired_cb(union sigval);
 /** @} */
 #endif /*  _PHNXPESE_PAL_SPI_H    */

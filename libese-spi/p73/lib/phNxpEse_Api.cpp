@@ -18,6 +18,8 @@
 #define LOG_TAG "NxpEseHal"
 #include <log/log.h>
 
+#include "StateMachine.h"
+#include "StateMachineInfo.h"
 #include <cutils/properties.h>
 #include <ese_config.h>
 #include <phNxpEseFeatures.h>
@@ -50,6 +52,7 @@ static unsigned char* phNxpEse_GgetTimerTlvBuffer(unsigned char* timer_buffer,
 /* ESE Context structure */
 phNxpEse_Context_t nxpese_ctxt;
 bool ese_debug_enabled = true;
+SyncEvent gSpiOpenLock;
 
 /******************************************************************************
  * Function         phNxpLog_InitializeLogLevel
@@ -167,8 +170,19 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
   spm_state_t current_spm_state = SPM_STATE_INVALID;
 #endif
-
-  ALOGE("phNxpEse_open Enter");
+  ALOGD("%s: Enter", __FUNCTION__);
+  {
+    SyncEventGuard guard(gSpiOpenLock);
+    ALOGD_IF(ese_debug_enabled, "%s: CurrentState:%d", __FUNCTION__,
+             StateMachine::GetInstance().GetCurrentState());
+    if ((eStates_t)ST_SPI_CLOSED_RF_BUSY ==
+        (eStates_t)StateMachine::GetInstance().GetCurrentState()) {
+      ALOGD_IF(ese_debug_enabled,
+               "%s: Waiting for either 10seconds or RF-OFF...", __FUNCTION__);
+      gSpiOpenLock.wait(MAX_WAIT_TIME_FOR_RF_OFF);
+    }
+  }
+  ALOGD("%s: Proceed with open...", __FUNCTION__);
   /*When spi channel is already opened return status as FAILED*/
   if (nxpese_ctxt.EseLibStatus != ESE_STATUS_CLOSE) {
     ALOGD_IF(ese_debug_enabled, "already opened\n");
@@ -178,10 +192,10 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   phNxpEse_memset(&nxpese_ctxt, 0x00, sizeof(nxpese_ctxt));
   phNxpEse_memset(&tPalConfig, 0x00, sizeof(tPalConfig));
 
-  ALOGE("MW SEAccessKit Version");
-  ALOGE("Android Version:0x%x", NXP_ANDROID_VER);
-  ALOGE("Major Version:0x%x", ESELIB_MW_VERSION_MAJ);
-  ALOGE("Minor Version:0x%x", ESELIB_MW_VERSION_MIN);
+  ALOGD("MW SEAccessKit Version");
+  ALOGD("Android Version:0x%x", NXP_ANDROID_VER);
+  ALOGD("Major Version:0x%x", ESELIB_MW_VERSION_MAJ);
+  ALOGD("Minor Version:0x%x", ESELIB_MW_VERSION_MIN);
 
   if (EseConfig::hasKey(NAME_NXP_TP_MEASUREMENT)) {
     tpm_enable = EseConfig::getUnsigned(NAME_NXP_TP_MEASUREMENT);
@@ -196,7 +210,7 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   if (EseConfig::hasKey(NAME_NXP_POWER_SCHEME)) {
     num = EseConfig::getUnsigned(NAME_NXP_POWER_SCHEME);
     nxpese_ctxt.pwr_scheme = num;
-    ALOGE("Power scheme read from config file - %lu", num);
+    ALOGD("Power scheme read from config file - %lu", num);
   } else {
     nxpese_ctxt.pwr_scheme = PN67T_POWER_SCHEME;
     ALOGE("Power scheme not defined in config file - %lu", num);
@@ -219,6 +233,9 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
     ALOGE("phPalEse_Init Failed");
     goto clean_and_return;
   }
+
+  StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_OPEN);
+
   /* Copying device handle to ESE Lib context*/
   nxpese_ctxt.pDevHandle = tPalConfig.pDevHandle;
 
@@ -313,6 +330,7 @@ clean_and_return_2:
     phPalEse_close(nxpese_ctxt.pDevHandle);
     phNxpEse_memset(&nxpese_ctxt, 0x00, sizeof(nxpese_ctxt));
   }
+  StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_CLOSE);
   nxpese_ctxt.EseLibStatus = ESE_STATUS_CLOSE;
   nxpese_ctxt.spm_power_state = false;
   return ESESTATUS_FAILED;
@@ -502,7 +520,7 @@ clean_and_return:
 #ifdef SPM_INTEGRATED
   wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_DISABLE);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
-    ALOGE("phNxpEse_SPM_ConfigPwr: disabling power Failed");
+    ALOGE("phNxpEse_SPM_ConfigPwr : disabling power Failed");
   }
 clean_and_return_1:
   phNxpEse_SPM_DeInit();
@@ -856,7 +874,7 @@ ESESTATUS phNxpEse_close(void) {
   /* Release the Access of  */
   wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_DISABLE);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
-    ALOGE("phNxpEse_SPM_ConfigPwr: disabling power Failed");
+    ALOGE("phNxpEse_SPM_ConfigPwr : disabling power Failed");
   } else {
     nxpese_ctxt.spm_power_state = false;
   }
@@ -881,6 +899,7 @@ ESESTATUS phNxpEse_close(void) {
              "phNxpEse_close - ESE Context deinit completed");
   }
   /* Return success always */
+  StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_CLOSE);
   return status;
 }
 
@@ -1164,7 +1183,7 @@ static void phNxpEse_GetMaxTimer(unsigned long* pMaxTimer) {
 ESESTATUS phNxpEse_DisablePwrCntrl(void) {
   ESESTATUS status = ESESTATUS_SUCCESS;
   unsigned long maxTimer = 0;
-  ALOGE("%s Enter", __FUNCTION__);
+  ALOGD("%s Enter", __FUNCTION__);
   phNxpEse_GetMaxTimer(&maxTimer);
 #ifdef NXP_SECURE_TIMER_SESSION
   status = phNxpEse_SPM_DisablePwrControl(maxTimer);

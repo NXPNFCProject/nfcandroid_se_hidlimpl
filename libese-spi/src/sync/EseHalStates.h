@@ -15,30 +15,30 @@
  *  limitations under the License.
  *
  ******************************************************************************/
-#pragma once
-#include <pthread.h>
 
-#include "SyncEvent.h"
-#include "hal_nxpese.h"
-#include <android/hardware/nfc/1.0/types.h>
-#include <phEseStatus.h>
-#include <utils/RefBase.h>
-#include <vendor/nxp/nxpnfc/1.0/INxpNfc.h>
+#ifndef LIBESE_SPI_SRC_SYNC_ESEHALSTATES_H_
+#define LIBESE_SPI_SRC_SYNC_ESEHALSTATES_H_
 
-using vendor::nxp::nxpnfc::V1_0::INxpNfc;
+#include <StateMachineInfo.h>
+#include <map>
+#include <string>
 
-class NfcAdaptation {
- public:
-   ~NfcAdaptation();
-   void Initialize();
-   static NfcAdaptation &GetInstance();
-   static ESESTATUS HalIoctl(long data_len, void *p_data);
-   ese_nxp_IoctlInOutData_t *mCurrentIoctlData;
+using namespace std;
 
- private:
-  NfcAdaptation();
-  static Mutex sLock;
-  static Mutex sIoctlLock;
-  static NfcAdaptation* mpInstance;
-  static android::sp<INxpNfc> mHalNxpNfc;
+class StateBase {
+public:
+  StateBase(){};
+  virtual ~StateBase(){};
+  static StateBase *InitializeStates();
+  virtual eStates_t GetState() = 0;
+  virtual StateBase *ProcessEvent(eExtEvent_t) = 0;
+
+protected:
+  static map<eStates_t, StateBase *> sListOfStates;
+  eStatus_t SendOMAPISessionOpenCmd();
+  eStatus_t SendOMAPISessionCloseCmd();
+  eStatus_t SendSwpSwitchAllowCmd();
+  eStatus_t SendOMAPICommand(uint8_t cmd[], uint8_t cmd_len);
 };
+
+#endif /* LIBESE_SPI_SRC_SYNC_ESEHALSTATES_H_ */

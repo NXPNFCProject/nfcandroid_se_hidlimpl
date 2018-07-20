@@ -15,6 +15,11 @@ cc_library_shared {
         "libese-spi/p73/utils/config.cpp",
         "libese-spi/p73/utils/ringbuffer.cpp",
         "libese-spi/src/adaptation/NfcAdaptation.cpp",
+        "libese-spi/p73/utils/IntervalTimer.cpp",
+        "libese-spi/src/adaptation/CondVar.cpp",
+        "libese-spi/src/adaptation/Mutex.cpp",
+        "libese-spi/src/sync/EseHalStates.cpp",
+        "libese-spi/src/sync/StateMachine.cpp",
     ],
 
     local_include_dirs: [
@@ -22,6 +27,7 @@ cc_library_shared {
         "libese-spi/p73/pal/spi",
         "libese-spi/p73/utils",
         "libese-spi/src/include",
+        "libese-spi/src/sync",
     ],
     export_include_dirs: [
         "extns/impl",
@@ -90,7 +96,11 @@ cc_binary {
         "1.0/SecureElement.cpp",
         "extns/impl/NxpEse.cpp",
     ],
-
+    local_include_dirs: [
+        "libese-spi/src/include",
+        "libese-spi/src/sync",
+        "libese-spi/p73/utils",
+    ],
     shared_libs: [
         "android.hardware.secure_element@1.0",
         "ese_spi_nxp",

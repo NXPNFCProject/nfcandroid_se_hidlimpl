@@ -23,6 +23,7 @@
 
 #include "NxpEse.h"
 #include "SecureElement.h"
+#include "StateMachine.h"
 
 // Generated HIDL files
 using android::hardware::secure_element::V1_0::ISecureElement;
@@ -36,9 +37,12 @@ using vendor::nxp::nxpese::V1_0::INxpEse;
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 
 int main() {
-  ALOGD("Secure Element HAL Service 1.0 is starting.");
+  ALOGD("Initializing State Machine...");
+  StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_HW_SERVICE_START);
+
+  ALOGD("Registering SecureElement HALIMPL Service v1.0...");
   sp<ISecureElement> se_service = new SecureElement();
-  configureRpcThreadpool(1, true /*callerWillJoin*/);
+  configureRpcThreadpool(2, true /*callerWillJoin*/);
   status_t status = se_service->registerAsService("eSE1");
   if (status != OK) {
     LOG_ALWAYS_FATAL(
@@ -46,6 +50,8 @@ int main() {
         status);
     return -1;
   }
+
+  ALOGD("Registering SecureElement HALIOCTL Service v1.0...");
   sp<INxpEse> nxp_se_service = new NxpEse();
   status = nxp_se_service->registerAsService();
   if (status != OK) {
@@ -54,7 +60,7 @@ int main() {
         status);
     return -1;
   }
-  ALOGD("Secure Element Service is ready");
+  ALOGD("Secure Element HAL Service is ready");
   joinRpcThreadpool();
   return 1;
 }

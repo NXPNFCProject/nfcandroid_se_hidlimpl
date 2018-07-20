@@ -31,15 +31,17 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+#include "NfcAdaptation.h"
+#include "StateMachine.h"
+#include "StateMachineInfo.h"
+#include "hal_nxpese.h"
+#include "phNxpEse_Api.h"
 #include <ese_config.h>
 #include <hardware/nfc.h>
 #include <phEseStatus.h>
 #include <phNxpEsePal.h>
 #include <phNxpEsePal_spi.h>
 #include <string.h>
-#include "NfcAdaptation.h"
-#include "hal_nxpese.h"
-#include "phNxpEse_Api.h"
 
 #define MAX_RETRY_CNT 10
 #define HAL_NFC_SPI_DWP_SYNC 21
@@ -47,12 +49,14 @@
 
 extern int omapi_status;
 extern bool ese_debug_enabled;
+extern SyncEvent gSpiTxLock;
+extern SyncEvent gSpiOpenLock;
 
 static int rf_status;
 unsigned long int configNum1, configNum2;
-// Default max retry count for SPI CLT write blocked in secs
-static const uint8_t DEFAULT_MAX_SPI_WRITE_RETRY_COUNT_RF_ON = 10;
+
 static const uint8_t MAX_SPI_WRITE_RETRY_COUNT_HW_ERR = 3;
+static IntervalTimer sTimerInstance;
 /*******************************************************************************
 **
 ** Function         phPalEse_spi_close
@@ -88,21 +92,41 @@ void phPalEse_spi_close(void* pDevHandle) {
   ALOGD_IF(ese_debug_enabled, "halimpl close exit.");
   return;
 }
+
 ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
-  ese_nxp_IoctlInOutData_t* inpOutData = (ese_nxp_IoctlInOutData_t*)p_data;
-  rf_status = inpOutData->inp.data.nxpCmd.p_cmd[0];
-  if (rf_status == 1) {
-    ALOGD_IF(ese_debug_enabled,
-             "******************RF IS ON*************************************");
-  } else {
+  ese_nxp_IoctlInOutData_t *inpOutData;
+  if (p_data != NULL) {
+    inpOutData = (ese_nxp_IoctlInOutData_t *)p_data;
+    ALOGD_IF(ese_debug_enabled, "phNxpEse_spiIoctl(): ioctlType: %ld",
+             (long)ioctlType);
+  }
+  switch (ioctlType) {
+  case HAL_NFC_IOCTL_RF_STATUS_UPDATE: {
+    rf_status = inpOutData->inp.data.nxpCmd.p_cmd[0];
+    if (rf_status == 1) {
+      ALOGD_IF(
+          ese_debug_enabled,
+          "*******************RF IS ON*************************************");
+      phPalEse_spi_stop_debounce_timer();
+      StateMachine::GetInstance().ProcessExtEvent(EVT_RF_ON);
+    } else {
+      ALOGD_IF(
+          ese_debug_enabled,
+          "*******************RF IS OFF************************************");
+      phPalEse_spi_start_debounce_timer(500);
+    }
+  } break;
+  case HAL_NFC_IOCTL_RF_ACTION_NTF: {
     ALOGD_IF(
         ese_debug_enabled,
-        "******************RF IS OFF*************************************");
-  }
-  if (p_data != NULL) {
-    ALOGD_IF(ese_debug_enabled,
-             "halimpl phNxpEse_spiIoctl p_data is not null ioctltyp: %ld",
-             (long)ioctlType);
+        "*******************RF ACT NTF*************************************");
+    if (inpOutData->inp.data.nxpCmd.p_cmd[0] == 0xC0 &&
+        inpOutData->inp.data.nxpCmd.p_cmd[3] == 0x02) {
+      StateMachine::GetInstance().ProcessExtEvent(EVT_RF_ACT_NTF_ESE_F);
+    }
+  } break;
+  default:
+    break;
   }
   return ESESTATUS_SUCCESS;
 }
@@ -159,10 +183,9 @@ retry_nfc_access:
     if (nfc_access_retryCnt < 5) goto retry_nfc_access;
     return ESESTATUS_FAILED;
   }
-
+  ALOGD_IF(ese_debug_enabled, "halimpl open exit");
+  /* open port */
   ALOGD_IF(ese_debug_enabled, "Opening port=%s\n", pConfig->pDevName);
-/* open port */
-
 retry:
   nHandle = open((char const*)pConfig->pDevName, O_RDWR);
   if (nHandle < 0) {
@@ -228,6 +251,7 @@ int phPalEse_spi_write(void* pDevHandle, uint8_t* pBuffer,
   int ret = -1;
   int numWrote = 0;
   unsigned long int retryCount = 0;
+
   if (NULL == pDevHandle) {
     return -1;
   }
@@ -239,39 +263,21 @@ int phPalEse_spi_write(void* pDevHandle, uint8_t* pBuffer,
     /* Do Nothing */
   }
 
-  unsigned int maxRetryCount = 0, retryDelay = 0;
   while (numWrote < nNbBytesToWrite) {
     // usleep(5000);
-    if (rf_status != RF_ON) {
-      ret = write((intptr_t)pDevHandle, pBuffer + numWrote,
-                  nNbBytesToWrite - numWrote);
-    } else {
-      ret = -1;
-    }
+    ret = write((intptr_t)pDevHandle, pBuffer + numWrote,
+                nNbBytesToWrite - numWrote);
     if (ret > 0) {
       numWrote += ret;
     } else if (ret == 0) {
       ALOGE("_spi_write() EOF");
       return -1;
     } else {
-      ALOGE("_spi_write() errno : %x", errno);
-
-      if (rf_status == RF_ON) {
-        maxRetryCount = (configNum2 > 0)
-                            ? configNum2
-                            : DEFAULT_MAX_SPI_WRITE_RETRY_COUNT_RF_ON;
-        retryDelay = 1000 * WRITE_WAKE_UP_DELAY;
-        ALOGD_IF(ese_debug_enabled, "spi_Write failed as RF is ON.");
-      } else {
-        maxRetryCount = MAX_SPI_WRITE_RETRY_COUNT_HW_ERR;
-        retryDelay = WRITE_WAKE_UP_DELAY;
-        ALOGD_IF(ese_debug_enabled, "spi_write failed");
-      }
-
-      if (retryCount < maxRetryCount) {
+      ALOGE("_spi_write() failed errno : %x", errno);
+      if (retryCount < MAX_SPI_WRITE_RETRY_COUNT_HW_ERR) {
         retryCount++;
         /*wait for eSE wake up*/
-        phPalEse_sleep(retryDelay);
+        phPalEse_sleep(WRITE_WAKE_UP_DELAY);
         ALOGE("_spi_write() failed. Going to retry, counter:%ld !", retryCount);
         continue;
       }
@@ -336,4 +342,71 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
       break;
   }
   return ret;
+}
+
+/*******************************************************************************
+**
+** Function         phPalEse_spi_rf_off_timer_expired_cb
+**
+** Description      Sends event RF-OFF after expiry of debounce timer.
+**
+** Parameters       union sigval
+**
+** Returns          none
+**
+*******************************************************************************/
+void phPalEse_spi_rf_off_timer_expired_cb(union sigval) {
+  ALOGD_IF(true, "RF debounce timer expired...");
+  StateMachine::GetInstance().ProcessExtEvent(EVT_RF_OFF);
+  // just to be sure that we acquired dwp channel before allowing any activity
+  // on SPI
+  usleep(100);
+  {
+    SyncEventGuard guard(gSpiTxLock);
+    ALOGD_IF(ese_debug_enabled, "%s: Notifying SPI_TX Wait if waiting...",
+             __FUNCTION__);
+    gSpiTxLock.notifyOne();
+  }
+  {
+    SyncEventGuard guard(gSpiOpenLock);
+    ALOGD_IF(ese_debug_enabled, "%s: Notifying SPI_OPEN Wait if waiting...",
+             __FUNCTION__);
+    gSpiOpenLock.notifyOne();
+  }
+}
+
+/*******************************************************************************
+**
+** Function         phPalEse_spi_start_debounce_timer
+**
+** Description      Starts a rf debounce timer
+**
+** Parameters       unsigned long millisecs
+**
+** Returns          none
+**
+*******************************************************************************/
+void phPalEse_spi_start_debounce_timer(unsigned long millisecs) {
+  if (sTimerInstance.set(millisecs, phPalEse_spi_rf_off_timer_expired_cb) ==
+      true) {
+    ALOGD_IF(true, "Starting RF debounce timer...");
+  } else {
+    ALOGE_IF(true, "Error, Starting timer...");
+  }
+}
+
+/*******************************************************************************
+**
+** Function         phPalEse_spi_stop_debounce_timer
+**
+** Description      Stops the rf debounce timer.
+**
+** Parameters       none
+**
+** Returns          none
+**
+*******************************************************************************/
+void phPalEse_spi_stop_debounce_timer() {
+  ALOGD_IF(true, "Stopping RF debounce timer...");
+  sTimerInstance.kill();
 }

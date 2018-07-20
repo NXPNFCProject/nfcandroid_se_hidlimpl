@@ -23,9 +23,17 @@ interface INxpEse {
      *
      * Based on the ioctlType, input data bytes are processed and
      * Output data bytes are generated.
-     * @param ioctlType contains type of functionality as below
-     *         HAL_NFC_IOCTL_RF_STATUS_UPDATE to update RF status information
-     * @return output data as stream of bytes
+     * @param ioctlType contains type of functionality requested.
+     * @return output data as stream of bytes.
      */
     ioctl(uint64_t ioctlType, vec<uint8_t> inputData) generates(vec<uint8_t> outputData);
+    /*
+     * Non blocking API, used to process nfc notifications coming from nfcc.
+     *
+     * Based on the ntfType, input data bytes are processed.
+     * @param ntfType contains type of functionality.
+     * @param ntfData contains data related to ntfType.
+     * @return nothing.
+     */
+    oneway nfccNtf(uint64_t ntfType, vec<uint8_t> ntfData);
 };

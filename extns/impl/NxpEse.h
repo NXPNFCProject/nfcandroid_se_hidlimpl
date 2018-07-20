@@ -45,6 +45,7 @@ using ::android::sp;
 struct NxpEse : public INxpEse {
   Return<void> ioctl(uint64_t ioctlType, const hidl_vec<uint8_t>& inOutData,
                      ioctl_cb _hidl_cb) override;
+  Return<void> nfccNtf(uint64_t ntfType, const hidl_vec<uint8_t> &ntfData);
 };
 
 }  // namespace implementation

@@ -29,13 +29,24 @@ using android::hardware::Void;
 using android::hardware::hidl_vec;
 using vendor::nxp::nxpnfc::V1_0::INxpNfc;
 
+Mutex NfcAdaptation::sLock;
+Mutex NfcAdaptation::sIoctlLock;
+
 sp<INxpNfc> NfcAdaptation::mHalNxpNfc = nullptr;
-ThreadMutex NfcAdaptation::sIoctlLock;
-NfcAdaptation* NfcAdaptation::mpInstance = NULL;
-ThreadMutex NfcAdaptation::sLock;
+NfcAdaptation *NfcAdaptation::mpInstance = nullptr;
 
 int omapi_status;
 extern bool ese_debug_enabled;
+
+/*******************************************************************************
+**
+** Function:    NfcAdaptation::Initialize()
+**
+** Description: Tries to get reference to Hw service
+**
+** Returns:     none
+**
+*******************************************************************************/
 void NfcAdaptation::Initialize() {
   const char* func = "NfcAdaptation::Initialize";
   ALOGD_IF(ese_debug_enabled, "%s", func);
@@ -49,6 +60,7 @@ void NfcAdaptation::Initialize() {
   }
   ALOGD_IF(ese_debug_enabled, "%s: exit", func);
 }
+
 /*******************************************************************************
 **
 ** Function:    NfcAdaptation::GetInstance()
@@ -59,81 +71,11 @@ void NfcAdaptation::Initialize() {
 **
 *******************************************************************************/
 NfcAdaptation& NfcAdaptation::GetInstance() {
-  AutoThreadMutex a(sLock);
+  AutoMutex guard(sLock);
 
   if (!mpInstance) mpInstance = new NfcAdaptation;
   return *mpInstance;
 }
-/*******************************************************************************
-**
-** Function:    ThreadMutex::ThreadMutex()
-**
-** Description: class constructor
-**
-** Returns:     none
-**
-*******************************************************************************/
-ThreadMutex::ThreadMutex() {
-  pthread_mutexattr_t mutexAttr;
-
-  pthread_mutexattr_init(&mutexAttr);
-  pthread_mutex_init(&mMutex, &mutexAttr);
-  pthread_mutexattr_destroy(&mutexAttr);
-}
-/*******************************************************************************
-**
-** Function:    ThreadMutex::~ThreadMutex()
-**
-** Description: class destructor
-**
-** Returns:     none
-**
-*******************************************************************************/
-ThreadMutex::~ThreadMutex() { pthread_mutex_destroy(&mMutex); }
-
-/*******************************************************************************
-**
-** Function:    AutoThreadMutex::AutoThreadMutex()
-**
-** Description: class constructor, automatically lock the mutex
-**
-** Returns:     none
-**
-*******************************************************************************/
-AutoThreadMutex::AutoThreadMutex(ThreadMutex& m) : mm(m) { mm.lock(); }
-
-/*******************************************************************************
-**
-** Function:    AutoThreadMutex::~AutoThreadMutex()
-**
-** Description: class destructor, automatically unlock the mutex
-**
-** Returns:     none
-**
-*******************************************************************************/
-AutoThreadMutex::~AutoThreadMutex() { mm.unlock(); }
-
-/*******************************************************************************
-**
-** Function:    ThreadMutex::lock()
-**
-** Description: lock kthe mutex
-**
-** Returns:     none
-**
-*******************************************************************************/
-void ThreadMutex::lock() { pthread_mutex_lock(&mMutex); }
-
-/*******************************************************************************
-**
-** Function:    ThreadMutex::unblock()
-**
-** Description: unlock the mutex
-**
-** Returns:     none
-**
-*******************************************************************************/
-void ThreadMutex::unlock() { pthread_mutex_unlock(&mMutex); }
 
 /*******************************************************************************
 **
@@ -204,7 +146,7 @@ ESESTATUS NfcAdaptation::HalIoctl(long arg, void* p_data) {
   const char* func = "NfcAdaptation::HalIoctl";
   ::android::hardware::nfc::V1_0::NfcData data;
   ESESTATUS result = ESESTATUS_FAILED;
-  AutoThreadMutex a(sIoctlLock);
+  AutoMutex guard(sIoctlLock);
   ese_nxp_IoctlInOutData_t* pInpOutData = (ese_nxp_IoctlInOutData_t*)p_data;
   ALOGD_IF(ese_debug_enabled, "%s arg=%ld", func, arg);
   pInpOutData->inp.context = &NfcAdaptation::GetInstance();
@@ -218,32 +160,3 @@ ESESTATUS NfcAdaptation::HalIoctl(long arg, void* p_data) {
   result = (ESESTATUS)(pInpOutData->out.result);
   return result;
 }
-
-/*******************************************************************************
-**
-** Function:    ThreadCondVar::ThreadCondVar()
-**
-** Description: class constructor
-**
-** Returns:     none
-**
-*******************************************************************************/
-ThreadCondVar::ThreadCondVar() {
-  pthread_condattr_t CondAttr;
-
-  pthread_condattr_init(&CondAttr);
-  pthread_cond_init(&mCondVar, &CondAttr);
-
-  pthread_condattr_destroy(&CondAttr);
-}
-
-/*******************************************************************************
-**
-** Function:    ThreadCondVar::~ThreadCondVar()
-**
-** Description: class destructor
-**
-** Returns:     none
-**
-*******************************************************************************/
-ThreadCondVar::~ThreadCondVar() { pthread_cond_destroy(&mCondVar); }

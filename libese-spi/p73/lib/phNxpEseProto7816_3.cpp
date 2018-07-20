@@ -16,8 +16,13 @@
  *
  ******************************************************************************/
 #define LOG_TAG "NxpEseHal"
+#include "StateMachine.h"
+#include "StateMachineInfo.h"
+#include "SyncEvent.h"
 #include <log/log.h>
 #include <phNxpEseProto7816_3.h>
+
+SyncEvent gSpiTxLock;
 
 extern bool ese_debug_enabled;
 
@@ -894,7 +899,7 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
   uint32_t data_len = 0;
   uint8_t* p_data = NULL;
   ESESTATUS status = ESESTATUS_FAILED;
-  ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Enter %s", __FUNCTION__);
   status = phNxpEseProto7816_GetRawFrame(&data_len, &p_data);
   ALOGD_IF(ese_debug_enabled, "%s p_data ----> %p len ----> 0x%x", __FUNCTION__,
            p_data, data_len);
@@ -993,12 +998,25 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
 static ESESTATUS TransceiveProcess(void) {
   ESESTATUS status = ESESTATUS_FAILED;
   sFrameInfo_t sFrameInfo;
-
   ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
+  {
+    SyncEventGuard guard(gSpiTxLock);
+    ALOGD_IF(ese_debug_enabled, "%s: CurrentState:%d", __FUNCTION__,
+             StateMachine::GetInstance().GetCurrentState());
+    if (!((eStates_t)ST_SPI_OPEN_RF_IDLE ==
+              (eStates_t)StateMachine::GetInstance().GetCurrentState() ||
+          (eStates_t)ST_SPI_OPEN_RESUMED_RF_BUSY ==
+              (eStates_t)StateMachine::GetInstance().GetCurrentState())) {
+      ALOGD_IF(ese_debug_enabled,
+               "%s: Waiting for either 10seconds or RF-OFF...", __FUNCTION__);
+      gSpiTxLock.wait(MAX_WAIT_TIME_FOR_RF_OFF);
+    }
+  }
   while (phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState !=
          IDLE_STATE) {
     ALOGD_IF(ese_debug_enabled, "%s nextTransceiveState %x", __FUNCTION__,
              phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState);
+    StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_TX);
     switch (phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState) {
       case SEND_IFRAME:
         status = phNxpEseProto7816_SendIframe(
@@ -1036,6 +1054,7 @@ static ESESTATUS TransceiveProcess(void) {
                       &phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx,
                       sizeof(phNxpEseProto7816_NextTx_Info_t));
       status = phNxpEseProto7816_ProcessResponse();
+      StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_RX);
     } else {
       ALOGD_IF(ese_debug_enabled,
                "%s Transceive send failed, going to recovery!", __FUNCTION__);
