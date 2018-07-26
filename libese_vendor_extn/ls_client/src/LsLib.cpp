@@ -83,8 +83,22 @@ bool initialize (IChannel_t* channel)
         return (false);
     }
     gpLsc_Dwnld_Context->mchannel = channel;
+    if((channel != NULL) &&
+       (channel->open) != NULL)
+    {
+      if(channel->open() == STATUS_FAILED)
+      {
+        ALOGD ("%s: exit : channle open failed", fn);
+        return false;
+      }
+    }
+    else
+    {
+      ALOGD ("%s: exit : channel null", fn);
+      return false;
+    }
     mIsInit = true;
-    ALOGD ("%s: exit", fn);
+    ALOGD ("%s: exit : success", fn);
     return (true);
 }
 

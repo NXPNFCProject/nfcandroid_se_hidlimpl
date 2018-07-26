@@ -123,7 +123,7 @@ uint8_t checkeSEClientRequired( ) {
   }
   else
   {
-	  LOG(ERROR) <<"Jcop update not required  ";
+    LOG(ERROR) <<"Jcop update not required  ";
     seExtn.isJcopUpdateRequired = false;
   }
 

@@ -84,7 +84,9 @@ tLSC_STATUS performLSDownload(IChannel_t* data) {
   /*Check and update if any new LS AID is available*/
   updateLsAid();
 
-  initialize ((IChannel_t*) data);
+  if(!initialize ((IChannel_t*) data))
+    return status;
+
 
   uint8_t resSW[4] = {0x4e, 0x02, 0x69, 0x87};
   FILE* fIn, *fOut;
