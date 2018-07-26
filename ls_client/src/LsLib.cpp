@@ -277,73 +277,33 @@ LSCSTATUS LSC_SelectLsc(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
   phNxpEse_memset(&cmdApdu, 0x00, sizeof(phNxpEse_data));
   phNxpEse_memset(&rspApdu, 0x00, sizeof(phNxpEse_data));
 
-  uint8_t selectCnt = 3;
-  while ((selectCnt--) > 0) {
-    if (selectCnt == 2) {
-      cmdApdu.p_data = (uint8_t*)phNxpEse_memalloc(
-          ((ArrayOfAIDs[selectCnt - 1][0]) - 1) * sizeof(uint8_t));
-      cmdApdu.len = (int32_t)ArrayOfAIDs[selectCnt - 1][0];
-    } else {
-      cmdApdu.p_data = (uint8_t*)phNxpEse_memalloc(
-          ((ArrayOfAIDs[selectCnt][0]) - 1) * sizeof(uint8_t));
-      cmdApdu.len = (int32_t)ArrayOfAIDs[selectCnt][0];
+  /*p_data will have channel_id (1 byte) + SelectLsc APDU*/
+  cmdApdu.len = (int32_t)(sizeof(SelectLsc) + 1);
+  cmdApdu.p_data = (uint8_t*)phNxpEse_memalloc(cmdApdu.len * sizeof(uint8_t));
+  cmdApdu.p_data[0] = Os_info->Channel_Info[0].channel_id;
+
+  memcpy(&(cmdApdu.p_data[1]), SelectLsc, sizeof(SelectLsc));
+
+  ALOGD_IF(ese_debug_enabled,
+           "%s: Calling Secure Element Transceive with Loader service AID", fn);
+
+  ESESTATUS eseStat = phNxpEse_Transceive(&cmdApdu, &rspApdu);
+
+  if (eseStat != ESESTATUS_SUCCESS && (rspApdu.len == 0x00)) {
+    status = LSCSTATUS_FAILED;
+    ALOGE("%s: SE transceive failed status = 0x%X", fn, status);
+  } else if (((rspApdu.p_data[rspApdu.len - 2] == 0x90) &&
+              (rspApdu.p_data[rspApdu.len - 1] == 0x00))) {
+    status = Process_SelectRsp(rspApdu.p_data, (rspApdu.len - 2));
+    if (status != LSCSTATUS_SUCCESS) {
+      ALOGE("%s: Select Lsc Rsp doesnt have a valid key; status = 0x%X", fn,
+            status);
     }
-
-    cmdApdu.p_data[0] = Os_info->Channel_Info[0].channel_id;
-
-    memcpy(&(cmdApdu.p_data[1]), &ArrayOfAIDs[selectCnt][2],
-           ((ArrayOfAIDs[selectCnt][0]) - 1));
-
-    /*If NFC/SPI Deinitialize requested*/
-    ALOGD_IF(ese_debug_enabled,
-             "%s: Calling Secure Element Transceive with Loader service AID",
-             fn);
-
-    ESESTATUS eseStat = phNxpEse_Transceive(&cmdApdu, &rspApdu);
-
-    if (eseStat != ESESTATUS_SUCCESS && (rspApdu.len == 0x00)) {
-      status = LSCSTATUS_FAILED;
-      ALOGE("%s: SE transceive failed status = 0x%X", fn, status);
-      break;
-    } else if (((rspApdu.p_data[rspApdu.len - 2] == 0x90) &&
-                (rspApdu.p_data[rspApdu.len - 1] == 0x00))) {
-      status = Process_SelectRsp(rspApdu.p_data, (rspApdu.len - 2));
-      if (status != LSCSTATUS_SUCCESS) {
-        ALOGE("%s: Select Lsc Rsp doesnt have a valid key; status = 0x%X", fn,
-              status);
-      }
-      /*If AID is found which is successfully selected break while loop*/
-      if (status == LSCSTATUS_SUCCESS) {
-        uint8_t totalLen = ArrayOfAIDs[selectCnt][0];
-        uint8_t cnt = 0;
-        int32_t wStatus = 0;
-        status = LSCSTATUS_FAILED;
-
-        FILE* fAidMem = fopen(AID_MEM_PATH, "w+");
-
-        if (fAidMem == NULL) {
-          ALOGE("Error opening AID data file for writing: %s", strerror(errno));
-          phNxpEse_free(cmdApdu.p_data);
-          return status;
-        }
-        while (cnt <= totalLen) {
-          wStatus = fprintf(fAidMem, "%02x", ArrayOfAIDs[selectCnt][cnt++]);
-          if (wStatus != 2) {
-            ALOGE("%s: Error writing AID data to AID_MEM file: %s", fn,
-                  strerror(errno));
-            break;
-          }
-        }
-        if (wStatus == 2) status = LSCSTATUS_SUCCESS;
-        fclose(fAidMem);
-        break;
-      }
-    } else if (((rspApdu.p_data[rspApdu.len - 2] != 0x90))) {
-      /*Copy the response SW in failure case*/
-      memcpy(&gsLsExecuteResp[2], &(rspApdu.p_data[rspApdu.len - 2]), 2);
-    } else {
-      status = LSCSTATUS_FAILED;
-    }
+  } else if (((rspApdu.p_data[rspApdu.len - 2] != 0x90))) {
+    /*Copy the response SW in failure case*/
+    memcpy(&gsLsExecuteResp[2], &(rspApdu.p_data[rspApdu.len - 2]), 2);
+  } else {
+    status = LSCSTATUS_FAILED;
   }
   phNxpEse_free(cmdApdu.p_data);
   phNxpEse_free(rspApdu.p_data);
@@ -1053,39 +1013,9 @@ LSCSTATUS LSC_ProcessResp(Lsc_ImageInfo_t* image_info, int32_t recvlen,
     }
     status = LSC_SendtoEse(image_info, status, trans_info);
   } else if ((recvlen > 0x02) && (sw[0] == 0x63) && (sw[1] == 0x20)) {
-    uint8_t aid_array[22];
-    aid_array[0] = recvlen + 3;
-    aid_array[1] = 00;
-    aid_array[2] = 0xA4;
-    aid_array[3] = 0x04;
-    aid_array[4] = 0x00;
-    aid_array[5] = recvlen - 2;
-    memcpy(&aid_array[6], &RecvData[0], recvlen - 2);
-    memcpy(&ArrayOfAIDs[2][0], &aid_array[0], recvlen + 4);
-
-    FILE* fAidMem = fopen(AID_MEM_PATH, "w");
-
-    if (fAidMem == NULL) {
-      ALOGE("%s: Error opening AID data for writing: %s", fn, strerror(errno));
-      return LSCSTATUS_FAILED;
-    }
-
-    /*Updating the AID_MEM with new value into AID file*/
-    uint8_t respLen = 0;
-    int32_t wStatus = 0;
-    while (respLen <= (recvlen + 4)) {
-      wStatus = fprintf(fAidMem, "%2x", aid_array[respLen++]);
-      if (wStatus != 2) {
-        ALOGE("%s: Invalid Response during fprintf; status=0x%x", fn, wStatus);
-        fclose(fAidMem);
-        break;
-      }
-    }
-    if (wStatus == 2) {
-      status = LSCSTATUS_SELF_UPDATE_DONE;
-    } else {
-      status = LSCSTATUS_FAILED;
-    }
+    /*In case of self update, status 0x6320 indicates script execution success
+    and response data has new AID*/
+    status = LSCSTATUS_SELF_UPDATE_DONE;
   } else if ((recvlen >= 0x02) &&
              ((sw[0] != 0x90) && (sw[0] != 0x63) && (sw[0] != 0x61))) {
     Write_Response_To_OutFile(image_info, RecvData, recvlen, tType);
