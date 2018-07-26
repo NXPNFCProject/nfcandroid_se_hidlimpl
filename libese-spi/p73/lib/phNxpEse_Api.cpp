@@ -1065,7 +1065,8 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       numBytesToRead = 1; /*Read only INF LEN*/
       headerIndex = 1;
       break;
-    } else if ((pBuffer[1] == nxpese_ctxt.nadInfo.nadRx) || (pBuffer[1] == RECIEVE_PACKET_SOF)) {
+    } else if (((pBuffer[0] == 0x00 )|| (pBuffer[0] == 0xFF))&&
+      ((pBuffer[1] == nxpese_ctxt.nadInfo.nadRx) || (pBuffer[1] == RECIEVE_PACKET_SOF))) {
       /* Read the HEADR of Two bytes*/
       DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s Read HDR only SOF", __FUNCTION__);
@@ -1073,10 +1074,10 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       numBytesToRead = 2;/*Read PCB + INF LEN*/
       headerIndex = 0;
       break;
-    } else if ((pBuffer[0] == 0x00) || (pBuffer[1] == 0x00) ||
-            (pBuffer[0] == 0xFF) || (pBuffer[1] == 0xFF))  {
+    } else if (((pBuffer[0] == 0x00) && (pBuffer[1] == 0x00)) ||
+            ((pBuffer[0] == 0xFF) && (pBuffer[1] == 0xFF)))  {
       LOG(ERROR) << StringPrintf("_spi_read() Buf[0]: %X Buf[1]: %X", pBuffer[0], pBuffer[1]);
-    } else if(ret > 0) { /* Corruption happened during the receipt from Card, go flush out the data */
+    } else if(ret >= 0) { /* Corruption happened during the receipt from Card, go flush out the data */
         LOG(ERROR) << StringPrintf("_spi_read() Corruption Buf[0]: %X Buf[1]: %X ..len=%d", pBuffer[0], pBuffer[1], ret);
         break;
     }
@@ -1187,6 +1188,9 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       ret = total_frame_size + 2;
       LOG(ERROR) << StringPrintf("_spi_read() SUCCESS  ret : %X LRC fail excpected for this frame", ret);
     }
+    pBuffer[0] = 0x90;
+    pBuffer[1] = RECIEVE_PACKET_SOF;
+    ret = 0x02;
   }
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s Exit ret = %d", __FUNCTION__, ret);
