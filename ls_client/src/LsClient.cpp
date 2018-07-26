@@ -17,11 +17,13 @@
  ******************************************************************************/
 #define LOG_TAG "LSClient"
 #include "LsClient.h"
+#include <cutils/properties.h>
 #include <dirent.h>
 #include <log/log.h>
 #include <openssl/evp.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <string>
 #include "LsLib.h"
 
 uint8_t datahex(char c);
@@ -41,6 +43,28 @@ const uint8_t LS_DOWNLOAD_FAILED = 0x01;
 
 static android::sp<ISecureElementHalCallback> cCallback;
 void* performLSDownload_thread(void* data);
+static void getLSScriptSourcePrefix(std::string& prefix);
+
+void getLSScriptSourcePrefix(std::string& prefix) {
+  char source_path[PROPERTY_VALUE_MAX] = {0};
+  int len = property_get("vendor.ese.loader_script_path", source_path, "");
+  if (len > 0) {
+    FILE* fd = fopen(source_path, "rb");
+    if (fd != NULL) {
+      char c;
+      while (!feof(fd) && fread(&c, 1, 1, fd) == 1) {
+        if (c == ' ' || c == '\n' || c == '\r' || c == 0x00) break;
+        prefix.push_back(c);
+      }
+    } else {
+      ALOGD("%s Cannot open file %s\n", __func__, source_path);
+    }
+  }
+  if (prefix.empty()) {
+    prefix.assign(ls_script_source_prefix);
+  }
+}
+
 /*******************************************************************************
 **
 ** Function:        LSC_Start
@@ -116,13 +140,16 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
   uint8_t resSW[4] = {0x4e, 0x02, 0x69, 0x87};
 
   std::string sourcePath;
+  std::string sourcePrefix;
   std::string outPath;
   int index = 1;
   LSCSTATUS status = LSCSTATUS_SUCCESS;
   Lsc_HashInfo_t lsHashInfo;
+
+  getLSScriptSourcePrefix(sourcePrefix);
   do {
     /*Open the script file from specified location and name*/
-    sourcePath.assign(ls_script_source_prefix);
+    sourcePath.assign(sourcePrefix);
     sourcePath += ('0' + index);
     sourcePath += ls_script_source_suffix;
     FILE* fIn = fopen(sourcePath.c_str(), "rb");
