@@ -42,7 +42,8 @@ static ESESTATUS phNxpEse_setJcopDwnldState(phNxpEse_JcopDwnldState state);
 #ifdef NXP_NFCC_SPI_FW_DOWNLOAD_SYNC
 static ESESTATUS phNxpEse_checkFWDwnldStatus(void);
 #endif
-static void phNxpEse_GetMaxTimer(unsigned long* pMaxTimer);
+extern void phNxpEse_secureTimerStop();
+void phNxpEse_GetMaxTimer(unsigned long *pMaxTimer);
 #ifdef NXP_SECURE_TIMER_SESSION
 static unsigned char* phNxpEse_GgetTimerTlvBuffer(unsigned char* timer_buffer,
                                                   unsigned int value);
@@ -171,6 +172,9 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   spm_state_t current_spm_state = SPM_STATE_INVALID;
 #endif
   ALOGD("%s: Enter", __FUNCTION__);
+
+  phNxpEse_secureTimerStop();
+
   {
     SyncEventGuard guard(gSpiOpenLock);
     ALOGD_IF(ese_debug_enabled, "%s: CurrentState:%d", __FUNCTION__,
@@ -825,26 +829,11 @@ ESESTATUS phNxpEse_chipReset(void) {
  ******************************************************************************/
 ESESTATUS phNxpEse_deInit(void) {
   ESESTATUS status = ESESTATUS_SUCCESS;
-  unsigned long maxTimer = 0;
+  ALOGD_IF(ese_debug_enabled, "%s Enter", __FUNCTION__);
   status = phNxpEseProto7816_Close(
       (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
   if (status == ESESTATUS_FAILED) {
     status = ESESTATUS_FAILED;
-  } else {
-    ALOGD_IF(ese_debug_enabled,
-             "%s secureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
-             __FUNCTION__, nxpese_ctxt.secureTimerParams.secureTimer1,
-             nxpese_ctxt.secureTimerParams.secureTimer2,
-             nxpese_ctxt.secureTimerParams.secureTimer3);
-    phNxpEse_GetMaxTimer(&maxTimer);
-#ifdef SPM_INTEGRATED
-#ifdef NXP_SECURE_TIMER_SESSION
-    status = phNxpEse_SPM_DisablePwrControl(maxTimer);
-    if (status != ESESTATUS_SUCCESS) {
-      ALOGE("%s phNxpEseP61_DisablePwrCntrl: failed", __FUNCTION__);
-    }
-#endif
-#endif
   }
   return status;
 }
@@ -860,7 +849,7 @@ ESESTATUS phNxpEse_deInit(void) {
  ******************************************************************************/
 ESESTATUS phNxpEse_close(void) {
   ESESTATUS status = ESESTATUS_SUCCESS;
-
+  ALOGD_IF(ese_debug_enabled, "%s Enter", __FUNCTION__);
   if ((ESE_STATUS_CLOSE == nxpese_ctxt.EseLibStatus)) {
     ALOGE(" %s ESE Not Initialized \n", __FUNCTION__);
     return ESESTATUS_NOT_INITIALISED;
@@ -1153,7 +1142,8 @@ void phNxpEse_free(void* ptr) {
  * Returns          void.
  *
  ******************************************************************************/
-static void phNxpEse_GetMaxTimer(unsigned long* pMaxTimer) {
+void phNxpEse_GetMaxTimer(unsigned long *pMaxTimer) {
+  ALOGD_IF(ese_debug_enabled, "%s Enter", __FUNCTION__);
   /* Finding the max. of the timer value */
   *pMaxTimer = nxpese_ctxt.secureTimerParams.secureTimer1;
   if (*pMaxTimer < nxpese_ctxt.secureTimerParams.secureTimer2)
@@ -1167,7 +1157,7 @@ static void phNxpEse_GetMaxTimer(unsigned long* pMaxTimer) {
   /* Add extra 5% to the timer */
   *pMaxTimer +=
       CONVERT_TO_PERCENTAGE(*pMaxTimer, ADDITIONAL_SECURE_TIME_PERCENTAGE);
-  ALOGE("%s Max timer value = %lu", __FUNCTION__, *pMaxTimer);
+  ALOGD("%s Exit Max timer value = %lu", __FUNCTION__, *pMaxTimer);
   return;
 }
 

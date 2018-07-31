@@ -18,6 +18,7 @@
 #ifndef _PHNXPSPILIB_H_
 #define _PHNXPSPILIB_H_
 
+#include <IntervalTimer.h>
 #include <phNxpEseFeatures.h>
 #include <phNxpEse_Api.h>
 

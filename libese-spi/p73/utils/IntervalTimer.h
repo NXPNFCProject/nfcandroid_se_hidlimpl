@@ -17,6 +17,7 @@
 /*
  *  Asynchronous interval timer.
  */
+#pragma once
 
 #include <time.h>
 

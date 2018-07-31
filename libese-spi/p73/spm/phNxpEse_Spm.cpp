@@ -35,6 +35,16 @@ extern bool ese_debug_enabled;
 static void* pEseDeviceHandle = NULL;
 #define MAX_ESE_ACCESS_TIME_OUT_MS 2000 /*2 seconds*/
 
+static spm_power_t gsCurIoctlRequest;
+extern phNxpEse_Context_t nxpese_ctxt;
+extern void phNxpEse_GetMaxTimer(unsigned long *pMaxTimer);
+static void phNxpEse_secureTimerExpired(union sigval sv);
+void phNxpEse_secureTimerStop();
+static ESESTATUS phNxpEse_secureTimerStart(unsigned long timeInMilliSec);
+static IntervalTimer &getSecureTimerInstance();
+/* Dummy handle for ioctl call in case secure timer expired*/
+#define SECURE_TIMER_MAGIC_HANDLE 0xFF
+
 /**
  * \addtogroup SPI_Power_Management
  *
@@ -93,10 +103,31 @@ ESESTATUS phNxpEse_SPM_DeInit(void) {
  ******************************************************************************/
 ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg) {
   int32_t ret = -1;
+  unsigned long timeInMilliSec;
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
   spm_state_t current_spm_state = SPM_STATE_INVALID;
 
-  ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle, arg);
+  ALOGD_IF(ese_debug_enabled, "%s Enter", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled,
+           "%ssecureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
+           __FUNCTION__, nxpese_ctxt.secureTimerParams.secureTimer1,
+           nxpese_ctxt.secureTimerParams.secureTimer2,
+           nxpese_ctxt.secureTimerParams.secureTimer3);
+  gsCurIoctlRequest = arg;
+  phNxpEse_GetMaxTimer(&timeInMilliSec);
+  if (timeInMilliSec != 0 &&
+      (arg == SPM_POWER_DISABLE || arg == SPM_POWER_RESET)) {
+    wSpmStatus = phNxpEse_secureTimerStart(timeInMilliSec);
+    if (wSpmStatus != ESESTATUS_SUCCESS) {
+      ALOGE("%s phNxpEse_secureTimerStart: failed", __FUNCTION__);
+    } else {
+      ALOGD("%s Disable Ese power After Secure Timer Expired", __FUNCTION__);
+      wSpmStatus = ESESTATUS_SUCCESS;
+      ret = 0;
+    }
+  } else {
+    ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle, arg);
+  }
   switch (arg) {
     case SPM_POWER_DISABLE: {
       if (ret < 0) {
@@ -339,3 +370,81 @@ ESESTATUS phNxpEse_SPM_SetJcopDwnldState(long arg) {
   return status;
 }
 #endif
+
+/******************************************************************************
+ * Function         getSecureTimerInstance
+ *
+ * Description      This function used to get SecureTimer Instance
+ *
+ * Returns          returns IntervalTimer instance reference
+ *
+ ******************************************************************************/
+static IntervalTimer &getSecureTimerInstance() {
+  static IntervalTimer sTimerInstance;
+  return sTimerInstance;
+}
+
+/******************************************************************************
+ * Function         phNxpEse_secureTimerExpired
+ *
+ * Description      This callback function is triggered during secure timer
+ *                  timeout
+ *
+ * Returns          None
+ *
+ ******************************************************************************/
+static void phNxpEse_secureTimerExpired(union sigval) {
+  int32_t ret = -1;
+  ALOGD_IF(ese_debug_enabled, "phNxpEse_secureTimerExpired callback triggered");
+  if (gsCurIoctlRequest == SPM_POWER_DISABLE) {
+    ret = phPalEse_ioctl(phPalEse_e_ChipRst,
+                         (void *)((intptr_t)SECURE_TIMER_MAGIC_HANDLE),
+                         gsCurIoctlRequest);
+  }
+  getSecureTimerInstance().kill();
+}
+
+/******************************************************************************
+ * Function         phNxpEse_secureTimerStart
+ *
+ * Description      This function is called during response timer values for
+ *                  ese iterface reset and end of APDU  are non zero,To
+ *                  synchronize secure timer between Jcop and MW.
+ *                  Timer argutment in ms.
+ *
+ *
+ * Returns          This function return ESESTATUS_SUCCES (0) in case of success
+ *                  In case of failure returns other failure value.
+ *
+ ******************************************************************************/
+ESESTATUS phNxpEse_secureTimerStart(unsigned long timeInMilliSec) {
+  ESESTATUS wConfigStatus = ESESTATUS_SUCCESS;
+  ALOGD_IF(ese_debug_enabled,
+           "Enter phNxpEse_secureTimerStart time value : %ld ms",
+           timeInMilliSec);
+  if (getSecureTimerInstance().set(timeInMilliSec,
+                                   phNxpEse_secureTimerExpired) == true) {
+    ALOGD_IF(ese_debug_enabled, "secure timer started........");
+  } else {
+    ALOGD_IF(ese_debug_enabled, "failed to set secure timer");
+    wConfigStatus = ESESTATUS_FAILED;
+  }
+
+  return wConfigStatus;
+}
+
+/*******************************************************************************
+**
+** Function         phPalEse_spi_stop_debounce_timer
+**
+** Description      Stops the secure timer.
+**
+** Parameters       none
+**
+** Returns          none
+**
+*******************************************************************************/
+void phNxpEse_secureTimerStop() {
+  ALOGD_IF(ese_debug_enabled, "Stopping Secure timer...");
+  getSecureTimerInstance().kill();
+}
