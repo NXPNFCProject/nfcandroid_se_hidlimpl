@@ -24,13 +24,13 @@
 #include <IChannel.h>
 #include <JcDnld.h>
 #include <unistd.h>
-#include <string.h>
 #include <sys/stat.h>
 #include <phNxpConfig.h>
 #include "phNxpConfig.h"
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
 
+#define TERMINAL_LEN  5
 bool nfc_debug_enabled;
 void* performJCOS_Download_thread(void* data);
 IChannel_t Ch;
@@ -46,6 +46,7 @@ static const char *lsUpdateBackupPath =
 static const char *isFirstTimeLsUpdate =
 "/data/vendor/secure_element/LS_Status.txt";
 se_extns_entry seExtn;
+
 
 /*******************************************************************************
 **
@@ -156,4 +157,42 @@ uint8_t getJcopUpdateIntf()
 uint8_t getLsUpdateIntf()
 {
   return seExtn.sLsUpdateIntferface;
+}
+
+bool geteSETerminalId(char* val)
+{
+  bool ret = false;
+
+  if(GetNxpStrValue(NAME_NXP_SPI_SE_TERMINAL_NUM, val, TERMINAL_LEN))
+  {
+    LOG(ERROR) <<"eSETerminalId found";
+    ALOGE("eSETerminalId found val = %s ", val);
+
+    ret = true;
+  }
+  return ret;
+}
+
+bool geteUICCTerminalId(char* val)
+{
+  bool ret = false;
+
+  if(GetNxpStrValue(NAME_NXP_VISO_SE_TERMINAL_NUM, val, TERMINAL_LEN))
+  {
+    ALOGE("eUICCTerminalId found val = %s ", val);
+    ret = true;
+  }
+  return ret;
+}
+
+bool getNfcSeTerminalId(char* val)
+{
+  bool ret = false;
+
+  if(GetNxpStrValue(NAME_NXP_NFC_SE_TERMINAL_NUM, val, TERMINAL_LEN))
+  {
+    ALOGE("NfcSeTerminalId found val = %s ", val);
+    ret = true;
+  }
+  return ret;
 }
