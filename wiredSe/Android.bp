@@ -13,9 +13,13 @@ cc_binary {
         local_include_dirs: [
         "impl/"
     ],
+        include_dirs: [
+        "hardware/nxp/secure_element_extns/inc",
+    ],
 shared_libs: [
         "android.hardware.secure_element@1.0",
         "ese_spi_nxp",
+        "se_extn_client",
         "libbase",
         "libcutils",
         "libhardware",
