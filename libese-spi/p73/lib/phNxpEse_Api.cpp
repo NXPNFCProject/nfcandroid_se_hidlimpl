@@ -1094,7 +1094,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       phPalEse_sleep(nxpese_ctxt.nadPollingRetryTime * WAKE_UP_DELAY * NAD_POLLING_SCALER);
     }
   } while (sof_counter < max_sof_counter);
-
+ 
   if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) || (pBuffer[0] == RECIEVE_PACKET_SOF)) {
     DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s SOF FOUND", __FUNCTION__);

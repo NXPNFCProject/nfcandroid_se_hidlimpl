@@ -116,7 +116,7 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
     else{
       LOG(INFO)
         << StringPrintf("******************JCOP Download stopped*************************************");
-    }
+    }    
     break;
   }
   return ESESTATUS_SUCCESS;
@@ -392,3 +392,4 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHand
   << StringPrintf("Exit  phPalEse_spi_ioctl : ret = %d", ret);
   return ret;
 }
+

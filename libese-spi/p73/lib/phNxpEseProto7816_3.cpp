@@ -1179,7 +1179,7 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx =
             phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx;
       } else {
-        /* Re-transmission failed completely, Going to exit */
+        /* Re-transmission failed completely, Going to exit */ 
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
         status = ESESTATUS_TRANSCEIVE_FAILED;
