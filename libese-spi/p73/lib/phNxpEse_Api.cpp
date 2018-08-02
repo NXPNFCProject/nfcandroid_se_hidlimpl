@@ -858,7 +858,7 @@ ESESTATUS phNxpEse_close(void) {
 #ifdef SPM_INTEGRATED
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
 #endif
-
+  phPalEse_spi_dwp_sync_close();
 #ifdef SPM_INTEGRATED
   /* Release the Access of  */
   wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_DISABLE);
