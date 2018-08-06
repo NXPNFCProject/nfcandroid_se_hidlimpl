@@ -1050,7 +1050,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("read() max_sof_counter: %X ESE_POLL_TIMEOUT %2X", max_sof_counter, ESE_POLL_TIMEOUT);
   do {
-    sof_counter++;
+
     ret = -1;
     ret = phPalEse_read(pDevHandle, pBuffer, 2);
     if (ret < 0) {
@@ -1093,8 +1093,13 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
         WAKE_UP_DELAY * NAD_POLLING_SCALER);*/
       phPalEse_sleep(nxpese_ctxt.nadPollingRetryTime * WAKE_UP_DELAY * NAD_POLLING_SCALER);
     }
+    sof_counter++;
   } while (sof_counter < max_sof_counter);
- 
+
+  /*SOF Read timeout happened, go for frame retransmission*/
+  if(sof_counter == max_sof_counter)  {
+    ret = -1;
+  }
   if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) || (pBuffer[0] == RECIEVE_PACKET_SOF)) {
     DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s SOF FOUND", __FUNCTION__);
