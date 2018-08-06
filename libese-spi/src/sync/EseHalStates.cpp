@@ -71,7 +71,34 @@ public:
     StateBase *PtrNextState = this;
     switch (event) {
     case EVT_RF_ON:
-      PtrNextState = sListOfStates.find(ST_SPI_RX_PENDING_RF_IDLE)->second;
+      PtrNextState = sListOfStates.find(ST_SPI_RX_PENDING_RF_PENDING)->second;
+      break;
+    case EVT_SPI_RX:
+      PtrNextState = sListOfStates.find(ST_SPI_OPEN_RF_IDLE)->second;
+      break;
+    case EVT_SPI_RX_WTX:
+      PtrNextState = sListOfStates.find(ST_SPI_BUSY_WTX_RF_IDLE)->second;
+      break;
+    default:
+      break;
+    }
+    return PtrNextState;
+  }
+};
+
+class StateSpiBusyWtxRfIdle : public StateBase {
+public:
+  StateSpiBusyWtxRfIdle() {}
+  ~StateSpiBusyWtxRfIdle() {}
+
+  eStates_t GetState() { return ST_SPI_BUSY_WTX_RF_IDLE; }
+
+  StateBase *ProcessEvent(eExtEvent_t event) {
+    StateBase *PtrNextState = this;
+    switch (event) {
+    case EVT_RF_ON:
+      PtrNextState =
+          sListOfStates.find(ST_SPI_RX_PENDING_WTX_RF_PENDING)->second;
       break;
     case EVT_SPI_RX:
       PtrNextState = sListOfStates.find(ST_SPI_OPEN_RF_IDLE)->second;
@@ -93,8 +120,6 @@ public:
   StateBase *ProcessEvent(eExtEvent_t event) {
     StateBase *PtrNextState = this;
     switch (event) {
-    case EVT_RF_ON:
-      break;
     case EVT_RF_OFF:
       PtrNextState = sListOfStates.find(ST_SPI_CLOSED_RF_IDLE)->second;
       break;
@@ -174,8 +199,8 @@ public:
     StateBase *PtrNextState = this;
     switch (event) {
     case EVT_RF_ON:
-      PtrNextState = sListOfStates.find(ST_SPI_OPEN_SUSPENDED_RF_BUSY)->second;
       SendSwpSwitchAllowCmd();
+      PtrNextState = sListOfStates.find(ST_SPI_OPEN_SUSPENDED_RF_BUSY)->second;
       break;
     case EVT_SPI_TX:
       PtrNextState = sListOfStates.find(ST_SPI_BUSY_RF_IDLE)->second;
@@ -221,17 +246,49 @@ public:
   }
 };
 
-class StateSpiRxPendingRfIdle : public StateBase {
+class StateSpiRxPendingRfPending : public StateBase {
 public:
-  StateSpiRxPendingRfIdle() {}
-  ~StateSpiRxPendingRfIdle() {}
+  StateSpiRxPendingRfPending() {}
+  ~StateSpiRxPendingRfPending() {}
 
-  eStates_t GetState() { return ST_SPI_RX_PENDING_RF_IDLE; }
+  eStates_t GetState() { return ST_SPI_RX_PENDING_RF_PENDING; }
 
   StateBase *ProcessEvent(eExtEvent_t event) {
     StateBase *PtrNextState = this;
     switch (event) {
+    case EVT_RF_OFF:
+      PtrNextState = sListOfStates.find(ST_SPI_BUSY_RF_IDLE)->second;
+      break;
     case EVT_SPI_RX:
+      SendSwpSwitchAllowCmd();
+      PtrNextState = sListOfStates.find(ST_SPI_OPEN_SUSPENDED_RF_BUSY)->second;
+      break;
+    case EVT_SPI_RX_WTX:
+      PtrNextState =
+          sListOfStates.find(ST_SPI_RX_PENDING_WTX_RF_PENDING)->second;
+      break;
+    default:
+      break;
+    }
+    return PtrNextState;
+  }
+};
+
+class StateSpiRxPendingWtxRfPending : public StateBase {
+public:
+  StateSpiRxPendingWtxRfPending() {}
+  ~StateSpiRxPendingWtxRfPending() {}
+
+  eStates_t GetState() { return ST_SPI_RX_PENDING_WTX_RF_PENDING; }
+
+  StateBase *ProcessEvent(eExtEvent_t event) {
+    StateBase *PtrNextState = this;
+    switch (event) {
+    case EVT_RF_OFF:
+      PtrNextState = sListOfStates.find(ST_SPI_BUSY_WTX_RF_IDLE)->second;
+      break;
+    case EVT_SPI_RX:
+      SendSwpSwitchAllowCmd();
       PtrNextState = sListOfStates.find(ST_SPI_OPEN_SUSPENDED_RF_BUSY)->second;
       break;
     default:
@@ -253,7 +310,11 @@ StateBase *StateBase::InitializeStates() {
   StateBase::sListOfStates.insert(
       make_pair(ST_SPI_BUSY_RF_IDLE, new StateSpiBusyRfIdle()));
   StateBase::sListOfStates.insert(
-      make_pair(ST_SPI_RX_PENDING_RF_IDLE, new StateSpiRxPendingRfIdle()));
+      make_pair(ST_SPI_BUSY_WTX_RF_IDLE, new StateSpiBusyWtxRfIdle()));
+  StateBase::sListOfStates.insert(make_pair(ST_SPI_RX_PENDING_RF_PENDING,
+                                            new StateSpiRxPendingRfPending()));
+  StateBase::sListOfStates.insert(make_pair(
+      ST_SPI_RX_PENDING_WTX_RF_PENDING, new StateSpiRxPendingWtxRfPending()));
   StateBase::sListOfStates.insert(make_pair(ST_SPI_OPEN_SUSPENDED_RF_BUSY,
                                             new StateSpiOpenSuspendedRfBusy()));
   StateBase::sListOfStates.insert(

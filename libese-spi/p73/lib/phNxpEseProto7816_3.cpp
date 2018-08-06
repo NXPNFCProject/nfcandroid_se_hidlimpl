@@ -586,6 +586,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
   if (0x00 == pcb_bits.msb) /* I-FRAME decoded should come here */
   {
     ALOGD_IF(ese_debug_enabled, "%s I-Frame Received", __FUNCTION__);
+    StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_RX);
     phNxpEseProto7816_3_Var.wtx_counter = 0;
     phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdFrameType = IFRAME;
     if (phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.seqNo !=
@@ -633,6 +634,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
              (0x00 == pcb_bits.bit7)) /* R-FRAME decoded should come here */
   {
     ALOGD_IF(ese_debug_enabled, "%s R-Frame Received", __FUNCTION__);
+    StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_RX);
     phNxpEseProto7816_3_Var.wtx_counter = 0;
     phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdFrameType = RFRAME;
     phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.seqNo =
@@ -761,6 +763,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
     int32_t frameType = (int32_t)(pcb & 0x3F); /*discard upper 2 bits */
     phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdFrameType = SFRAME;
     if (frameType != WTX_REQ) {
+      StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_RX);
       phNxpEseProto7816_3_Var.wtx_counter = 0;
     }
     switch (frameType) {
@@ -803,6 +806,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
                  phNxpEseProto7816_3_Var.wtx_counter);
         ALOGD_IF(ese_debug_enabled, "%s Wtx_counter wtx_counter_limit - %lu",
                  __FUNCTION__, phNxpEseProto7816_3_Var.wtx_counter_limit);
+        StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_RX_WTX);
         /* Previous sent frame is some S-frame but not WTX response S-frame */
         if (phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.sFrameType !=
                 WTX_RSP &&
@@ -1054,7 +1058,6 @@ static ESESTATUS TransceiveProcess(void) {
                       &phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx,
                       sizeof(phNxpEseProto7816_NextTx_Info_t));
       status = phNxpEseProto7816_ProcessResponse();
-      StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_RX);
     } else {
       ALOGD_IF(ese_debug_enabled,
                "%s Transceive send failed, going to recovery!", __FUNCTION__);
