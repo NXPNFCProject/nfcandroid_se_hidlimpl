@@ -1162,6 +1162,13 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       ret = -1;
     }else {
       ret = (total_count +(nNbBytesToRead + 1));
+      /*If I-Frame received with 0 length respond with RNACK*/
+      if((0 == pcb_bits.msb) && (nNbBytesToRead == 0))
+      {
+        pBuffer[0] = 0x90;
+        pBuffer[1] = RECIEVE_PACKET_SOF;
+        ret = 0x02;
+      }
     }
   } else if (ret < 0) {
     /*In case of IO Error*/
@@ -1197,6 +1204,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
     pBuffer[1] = RECIEVE_PACKET_SOF;
     ret = 0x02;
   }
+
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s Exit ret = %d", __FUNCTION__, ret);
   return ret;
