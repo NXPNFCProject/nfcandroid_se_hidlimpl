@@ -341,8 +341,8 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHand
   switch (eControlCode) {
     // Nfc Driver communication part
     case phPalEse_e_ChipRst:
-      //ret = pNfcAdapt.HalIoctl(HAL_NFC_SET_SPM_PWR, &inpOutData);
-      ret = ESESTATUS_SUCCESS;
+      ret = pNfcAdapt.HalIoctl(HAL_NFC_SET_SPM_PWR, &inpOutData);
+      //ret = ESESTATUS_SUCCESS;
       break;
 
     case phPalEse_e_SetPowerScheme:
