@@ -132,9 +132,19 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
     ALOGD_IF(
         ese_debug_enabled,
         "*******************RF ACT NTF*************************************");
-    if (inpOutData->inp.data.nxpCmd.p_cmd[0] == 0xC0 &&
-        inpOutData->inp.data.nxpCmd.p_cmd[3] == 0x02) {
+    /* Parsing NFCEE Action Notification to detect type of routing either SCBR
+     * or Technology F for ESE to resume SPI session for ESE-UICC concurrency */
+    if ((inpOutData->inp.data.nxpCmd.p_cmd[0] == 0xC0) &&
+        ((inpOutData->inp.data.nxpCmd.p_cmd[1] == 0x03) ||
+         ((inpOutData->inp.data.nxpCmd.p_cmd[1] == 0x02) &&
+          (inpOutData->inp.data.nxpCmd.p_cmd[3] == 0x02)))) {
       StateMachine::GetInstance().ProcessExtEvent(EVT_RF_ACT_NTF_ESE_F);
+      {
+        SyncEventGuard guard(gSpiTxLock);
+        ALOGD_IF(ese_debug_enabled, "%s: Notifying SPI_TX Wait if waiting...",
+                 __FUNCTION__);
+        gSpiTxLock.notifyOne();
+      }
     }
   } break;
   default:
