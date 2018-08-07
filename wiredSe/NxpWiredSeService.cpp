@@ -18,6 +18,7 @@
 #define LOG_TAG "wired_se@1.0-service"
 #include "NxpWiredSe.h"
 #include "WiredSe.h"
+#include "phNxpConfig.h"
 #include <android/hardware/secure_element/1.0/ISecureElement.h>
 #include <hidl/LegacySupport.h>
 #include <log/log.h>
@@ -39,7 +40,11 @@ int main() {
   pWiredSe = new WiredSe();
   sp<ISecureElement> ese_wired_service(pWiredSe);
   configureRpcThreadpool(1, true /*callerWillJoin*/);
-  status_t status = ese_wired_service->registerAsService("eSE2");
+  char wiredServiceName[10] = "eSE2";
+  GetNxpStrValue(NAME_NXP_WIREDSE_TERMINAL_NAME, (char *)wiredServiceName,
+                 sizeof(wiredServiceName));
+  ALOGD("Registering Wired Interface as %s", wiredServiceName);
+  status_t status = ese_wired_service->registerAsService(wiredServiceName);
   if (status != OK) {
     LOG_ALWAYS_FATAL("Could not register service for Ese Wired HAL Iface (%d).",
                      status);

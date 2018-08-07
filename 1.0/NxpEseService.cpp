@@ -24,6 +24,7 @@
 #include "NxpEse.h"
 #include "SecureElement.h"
 #include "StateMachine.h"
+#include "ese_config.h"
 
 // Generated HIDL files
 using android::hardware::secure_element::V1_0::ISecureElement;
@@ -43,7 +44,10 @@ int main() {
   ALOGD("Registering SecureElement HALIMPL Service v1.0...");
   sp<ISecureElement> se_service = new SecureElement();
   configureRpcThreadpool(2, true /*callerWillJoin*/);
-  status_t status = se_service->registerAsService("eSE1");
+  std::string spiTermName;
+  spiTermName = EseConfig::getString(NAME_NXP_SPI_TERMINAL_NAME, "eSE1");
+  ALOGD("Registering SPI interface as %s", spiTermName.c_str());
+  status_t status = se_service->registerAsService(spiTermName.c_str());
   if (status != OK) {
     LOG_ALWAYS_FATAL(
         "Could not register service for Secure Element HAL Iface (%d).",

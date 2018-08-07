@@ -25,7 +25,6 @@ cc_library_shared {
     local_include_dirs: [
         "libese-spi/p73/lib",
         "libese-spi/p73/pal/spi",
-        "libese-spi/p73/utils",
         "libese-spi/src/include",
         "libese-spi/src/sync",
     ],
@@ -35,6 +34,7 @@ cc_library_shared {
         "libese-spi/p73/common",
         "libese-spi/p73/inc",
         "libese-spi/p73/pal",
+        "libese-spi/p73/utils",
     ],
 
     cflags: [
@@ -136,6 +136,7 @@ cc_binary {
 shared_libs: [
         "android.hardware.secure_element@1.0",
         "ese_spi_nxp",
+        "nfc_nci_nxp",
         "libbase",
         "libcutils",
         "libhardware",
