@@ -692,7 +692,7 @@ ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp) {
                       __FUNCTION__);
       if(ESESTATUS_TRANSCEIVE_FAILED == status) {
         //phPalEse_ioctl(phPalEse_e_ChipPwrRst, nxpese_ctxt.pDevHandle, SPM_POWER_RESET);
-        phNxpEse_SPM_ConfigPwr(SPM_POWER_RESET);
+        phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
       }
     }
     nxpese_ctxt.EseLibStatus = ESE_STATUS_IDLE;

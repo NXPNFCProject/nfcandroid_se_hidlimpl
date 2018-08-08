@@ -106,6 +106,11 @@ ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg) {
       return ESESTATUS_BUSY;
     }
   }
+  /**/
+  if(arg != SPM_RECOVERY_RESET)
+  {
+    return ESESTATUS_SUCCESS;
+  }
   ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle, arg);
   switch (arg) {
     case SPM_POWER_DISABLE: {
@@ -200,6 +205,10 @@ ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg) {
         wSpmStatus = ESESTATUS_FAILED;
       }
     } break;
+    case SPM_RECOVERY_RESET : {
+
+    }
+    break;
   }
   return wSpmStatus;
 }

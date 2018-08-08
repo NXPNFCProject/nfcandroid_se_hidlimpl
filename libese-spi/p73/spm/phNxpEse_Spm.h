@@ -32,7 +32,8 @@ typedef enum spm_power {
   SPM_POWER_DISABLE,     /*!< SPM power disable */
   SPM_POWER_RESET,       /*!< SPM Reset pwer */
   SPM_POWER_PRIO_ENABLE, /*!< SPM prio mode enable */
-  SPM_POWER_PRIO_DISABLE /*!< SPM prio mode disable */
+  SPM_POWER_PRIO_DISABLE, /*!< SPM prio mode disable */
+  SPM_RECOVERY_RESET
 } spm_power_t;
 
 typedef enum spm_state {

@@ -93,6 +93,10 @@ bool SE_Close(int16_t mHandle)
     else
       return false;
 }
+uint8_t SE_getInterfaceInfo()
+{
+  return INTF_SE;
+}
 
 /***************************************************************************
 **
@@ -162,6 +166,7 @@ SESTATUS ESE_ChannelInit(IChannel *ch)
     ch->transceive = SE_Transmit;
     ch->doeSE_Reset = SE_Reset;
     ch->doeSE_JcopDownLoadReset = SE_JcopDownLoadReset;
+    ch->getInterfaceInfo = SE_getInterfaceInfo;
     return SESTATUS_SUCCESS;
 }
 
@@ -388,6 +393,7 @@ SESTATUS eSEUpdate_SeqHandler()
         ALOGE("%s: ESE_LS_UPDATE_COMPLETED", __FUNCTION__);
       case ESE_UPDATE_COMPLETED:
         seteSEClientState(ESE_UPDATE_COMPLETED);
+        sendeSEUpdateState(ESE_UPDATE_COMPLETED);
         NxpEse::initSEService();
         NxpEse::initVIrtualISOService();
         ALOGE("%s: ESE_UPDATE_COMPLETED", __FUNCTION__);
