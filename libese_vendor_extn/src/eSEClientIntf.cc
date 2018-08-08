@@ -34,15 +34,15 @@
 bool nfc_debug_enabled;
 void* performJCOS_Download_thread(void* data);
 IChannel_t Ch;
-static const char *path[3] = {"/data/vendor/nfc/JcopOs_Update1.apdu",
-                             "/data/vendor/nfc/JcopOs_Update2.apdu",
-                             "/data/vendor/nfc/JcopOs_Update3.apdu"};
+static const char *path[3] = {"/vendor/etc/JcopOs_Update1.apdu",
+                             "/vendor/etc/JcopOs_Update2.apdu",
+                             "/vendor/etc/JcopOs_Update3.apdu"};
 
-static const char *uai_path[2] = {"/data/vendor/nfc/cci.jcsh",
-                                  "/data/vendor/nfc/jci.jcsh"};
+static const char *uai_path[2] = {"/vendor/etc/cci.jcsh",
+                                  "/vendor/etc/jci.jcsh"};
 static const char *isSystemImgInfo = "/data/vendor/nfc/jcop_info.txt";
 static const char *lsUpdateBackupPath =
-"/data/vendor/secure_element/loaderservice_updater.txt";
+"/vendor/etc/loaderservice_updater.txt";
 static const char *isFirstTimeLsUpdate =
 "/data/vendor/secure_element/LS_Status.txt";
 se_extns_entry seExtn;
