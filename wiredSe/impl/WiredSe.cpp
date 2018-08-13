@@ -186,7 +186,7 @@ Return<void> WiredSe::openLogicalChannel(const hidl_vec<uint8_t> &aid,
   selectCommand.at(2) = 0x04;
   selectCommand.at(3) = p2;
   selectCommand.at(4) = (uint8_t)aid.size();
-  std::copy(aid.begin(), aid.end(), &selectCommand.at(5));
+  if (aid.size() != 0) std::copy(aid.begin(), aid.end(), &selectCommand.at(5));
 
   /* Deep copy of the reponse buffer after transmit */
   std::vector<uint8_t> rspSelectApdu;
@@ -268,7 +268,7 @@ Return<void> WiredSe::openBasicChannel(const hidl_vec<uint8_t> &aid, uint8_t p2,
   selectCommand.at(2) = 0x04;
   selectCommand.at(3) = p2;
   selectCommand.at(4) = (uint8_t)aid.size();
-  std::copy(aid.begin(), aid.end(), &selectCommand.at(5));
+  if (aid.size() != 0) std::copy(aid.begin(), aid.end(), &selectCommand.at(5));
 
   /* Deep copy of the reponse buffer after transmit */
   std::vector<uint8_t> rspSelectApdu;
