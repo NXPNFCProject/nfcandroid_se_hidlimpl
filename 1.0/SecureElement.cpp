@@ -16,6 +16,7 @@
  *
  ******************************************************************************/
 #define LOG_TAG "NxpEseHal"
+#define MAX_INIT_RETRY_CNT 5
 #include <log/log.h>
 
 #include "LsClient.h"
@@ -55,7 +56,20 @@ Return<void> SecureElement::init(
     return Void();
   }
 
-  status = seHalInit();
+  int initRetryCount = 0;
+
+  do {
+    status = seHalInit();
+    if (status != ESESTATUS_SUCCESS) {
+      initRetryCount ++;
+      if (phNxpEse_close() != ESESTATUS_SUCCESS)
+        ALOGE("%s: phNxpEse_close failed!!!", __func__);
+      usleep(2* 1000 * 1000);
+    }else {
+      break;
+    }
+  } while( initRetryCount < MAX_INIT_RETRY_CNT);
+
   if (status != ESESTATUS_SUCCESS) {
     clientCallback->onStateChange(false);
     return Void();

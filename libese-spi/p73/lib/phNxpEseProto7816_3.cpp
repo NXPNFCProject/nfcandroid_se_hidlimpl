@@ -1284,8 +1284,12 @@ ESESTATUS phNxpEseProto7816_Close(
   phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState = SEND_S_EOS;
   status = TransceiveProcess();
   if (ESESTATUS_FAILED == status) {
+    uint32_t data_len = 0;
+    uint8_t* p_data = NULL;
     /* reset all the structures */
-    ALOGE("%s TransceiveProcess failed ", __FUNCTION__);
+    ALOGE("%s TransceiveProcess failed , hard reset to proceed", __FUNCTION__);
+    /*Clear response buffer data if transceive failed*/
+    phNxpEse_GetData(&data_len, &p_data);
   }
   phNxpEse_memcpy(pSecureTimerParams,
                   &phNxpEseProto7816_3_Var.secureTimerParams,
@@ -1316,8 +1320,12 @@ ESESTATUS phNxpEseProto7816_IntfReset(
       SEND_S_INTF_RST;
   status = TransceiveProcess();
   if (ESESTATUS_FAILED == status) {
+    uint32_t data_len = 0;
+    uint8_t* p_data = NULL;
     /* reset all the structures */
-    ALOGE("%s TransceiveProcess failed ", __FUNCTION__);
+    ALOGE("%s TransceiveProcess failed , hard reset to proceed", __FUNCTION__);
+    /*Clear response buffer data if transceive failed*/
+    phNxpEse_GetData(&data_len, &p_data);
   }
   phNxpEse_memcpy(pSecureTimerParam, &phNxpEseProto7816_3_Var.secureTimerParams,
                   sizeof(phNxpEseProto7816SecureTimer_t));
