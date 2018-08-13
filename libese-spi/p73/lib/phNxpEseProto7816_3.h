@@ -127,9 +127,17 @@ typedef struct iFrameInfo {
   bool isChained; /*!< I-frame: Indicates if more frames to follow in the same
                        data packet or not */
   uint8_t* p_data;  /*!< I-frame: Actual data (Information field (INF)) */
+
   uint8_t seqNo;    /*!< I-frame: Sequence number of the I-frame */
+
   uint32_t maxDataLenIFSC;   /*!< I-frame: Maximum data length to be allowed in a
                             single I-frame */
+  uint32_t defaultDataLenIFSC;   /*!< I-frame: Maximum data length to be allowed in a
+                            single I-frame */
+  uint32_t currentDataLenIFS;   /*!< I-frame: Current data length agreed
+                            between PCD and Card to be allowed in a
+                            single I-frame */
+
   uint32_t dataOffset;   /*!< I-frame: Offset to the actual data(INF) for the
                             current frame of the packet */
   uint32_t totalDataLen; /*!< I-frame: Total data left in the packet, used to
@@ -395,8 +403,12 @@ static phNxpEseProto7816_t phNxpEseProto7816_3_Var;
 /*
  * APIs exposed from the 7816-3 protocol layer
  */
-
 #define RESET_TYPE_NONE   0x00
+/*
+ * APIs exposed from the 7816-3 protocol layer
+ */
+#define EXTENDED_FRAME_MARKER 0xFF
+
 /**
  * \ingroup ISO7816-3_protocol_lib
  * \brief This function is used to reset just the current interface

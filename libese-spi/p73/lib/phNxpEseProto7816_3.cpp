@@ -209,7 +209,7 @@ static ESESTATUS phNxpEseProto7816_SendSFrame(sFrameInfo_t sFrameData) {
       p_framebuff[2] = lenIFS;
       if(2 == lenIFS) {
         p_framebuff[3] = (phNxpEseProto7816_3_Var.currentIFSDSize >> 8);
-        p_framebuff[4] = (phNxpEseProto7816_3_Var.currentIFSDSize & 0xFF);
+        p_framebuff[4] = (phNxpEseProto7816_3_Var.currentIFSDSize & EXTENDED_FRAME_MARKER);
       } else {
         p_framebuff[3] = phNxpEseProto7816_3_Var.currentIFSDSize;
       }
@@ -379,10 +379,10 @@ static ESESTATUS phNxpEseProto7816_SendIframe(iFrameInfo_t iFrameData) {
   /* store the pcb byte */
   p_framebuff[1] = pcb_byte;
   if( iFrameData.sendDataLen > IFSC_SIZE_SEND) { /* Case for frame size > 254 bytes */
-    p_framebuff[2] = 0;
-    uint8_t mask = (iFrameData.sendDataLen) & 0xFF;
+    p_framebuff[2] = EXTENDED_FRAME_MARKER;
+    uint8_t mask = (iFrameData.sendDataLen) & EXTENDED_FRAME_MARKER;
     p_framebuff[4] = mask;
-    mask = ((iFrameData.sendDataLen) >> 8) & 0xFF;
+    mask = ((iFrameData.sendDataLen) >> 8) & EXTENDED_FRAME_MARKER;
     p_framebuff[3] = mask;
     /* store I frame */
     phNxpEse_memcpy(&(p_framebuff[5]), iFrameData.p_data + iFrameData.dataOffset,
@@ -426,13 +426,13 @@ static ESESTATUS phNxpEseProto7816_SetFirstIframeContxt(void) {
       phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.seqNo ^ 1;
   phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState = SEND_IFRAME;
   if (phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.totalDataLen >
-      phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC) {
+      phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS) {
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.isChained = true;
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.sendDataLen =
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC;
+        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS;
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.totalDataLen =
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.totalDataLen -
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC;
+        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS;
   } else {
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.sendDataLen =
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.totalDataLen;
@@ -470,23 +470,23 @@ static ESESTATUS phNxpEseProto7816_SetNextIframeContxt(void) {
       phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.seqNo ^ 1;
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.dataOffset =
       phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.dataOffset +
-      phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLenIFSC;
+      phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.currentDataLenIFS;
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.p_data =
       phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.p_data;
-  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC =
-      phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLenIFSC;
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS =
+      phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.currentDataLenIFS;
 
   // if  chained
   if (phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.totalDataLen >
-      phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLenIFSC) {
+      phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.currentDataLenIFS) {
     DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("Process Chained Frame");
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.isChained = true;
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.sendDataLen =
-        phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLenIFSC;
+        phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.currentDataLenIFS;
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.totalDataLen =
         phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.totalDataLen -
-        phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLenIFSC;
+        phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.currentDataLenIFS;
   } else {
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.isChained = false;
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.sendDataLen =
@@ -613,15 +613,15 @@ static void phNxpEseProto7816_DecodeSFrameIFSData(uint8_t* p_data) {
     ifsd_data |= p_data[4];
   }
   if(ifsd_data == phNxpEseProto7816_3_Var.currentIFSDSize) {
-    phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC =
+    phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS =
       phNxpEseProto7816_3_Var.currentIFSDSize;
     DLOG_IF(INFO, ese_debug_enabled)
           << StringPrintf("%s IFS adjustment: Max DataLen=%d \n", __FUNCTION__,
-            phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC);
+            phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS);
   } else {
     DLOG_IF(ERROR, ese_debug_enabled)
           << StringPrintf("%s ERROR IFS adjustment: Max DataLen=%d \n", __FUNCTION__,
-            phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC);
+            phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS);
   }
 }
 
@@ -633,17 +633,25 @@ static void phNxpEseProto7816_DecodeSFrameIFSData(uint8_t* p_data) {
  *
  ******************************************************************************/
 static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
-  /* IFSC size */
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = 0;
+  /* Default IFSC size */
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.defaultDataLenIFSC = p_data[16];
   //phNxpEse_memcpy(phNxpEseProto7816_3_Var.pAtrData, &p_data[3], p_data[2]);
-  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = (p_data[10] << 8);
-  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC |= (p_data[11]);
-  if(!((p_data[11] << 8) | (p_data[12])))
+  /* Max IFSC size */
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = (p_data[18] << 8);
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC |= (p_data[19]);
+  if(!p_data[2])
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = IFSC_SIZE_SEND;
 
+  /* By default current IFS is set to Default */
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS =
+                phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.defaultDataLenIFSC;
+
   DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s Max DataLen=%d \n", __FUNCTION__,
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC);
+      << StringPrintf("%s Max DataLen=%d Current DataLen=%d Default DataLen=%d \n", __FUNCTION__,
+        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC,
+        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS,
+        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.defaultDataLenIFSC);
 }
 
 /******************************************************************************
@@ -754,7 +762,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = RFRAME;
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.RframeInfo.errCode =
             NO_ERROR;
-        if(0x00 == p_data[2]) /* Checking for extended frame prologue */
+        if(EXTENDED_FRAME_MARKER == p_data[2]) /* Checking for extended frame prologue */
         {
           status = phNxpEseProro7816_SaveIframeData(&p_data[5], data_len - 6);
         } else {
@@ -767,7 +775,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
             false;
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
-        if(0x00 == p_data[2]) /* Checking for extended frame prologue */
+        if(EXTENDED_FRAME_MARKER == p_data[2]) /* Checking for extended frame prologue */
         {
           status = phNxpEseProro7816_SaveIframeData(&p_data[5], data_len - 6);
         } else {
@@ -1423,6 +1431,10 @@ static ESESTATUS phNxpEseProto7816_ResetProtoParams(void) {
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.p_data = NULL;
   phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.FrameType = INVALID;
   phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLenIFSC =
+      IFSC_SIZE_SEND;
+  phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.defaultDataLenIFSC =
+      IFSC_SIZE_SEND;
+  phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.currentDataLenIFS =
       IFSC_SIZE_SEND;
   phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.p_data = NULL;
   /* Initialized with sequence number of the last I-frame sent */

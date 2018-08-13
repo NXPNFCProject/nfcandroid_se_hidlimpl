@@ -1131,7 +1131,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
 
     /*For I-Frame Only*/
     if(0 == pcb_bits.msb) {
-      if(pBuffer[2])
+      if(pBuffer[2] != EXTENDED_FRAME_MARKER)
       {
         nNbBytesToRead = pBuffer[2];
         headerIndex = 3;
