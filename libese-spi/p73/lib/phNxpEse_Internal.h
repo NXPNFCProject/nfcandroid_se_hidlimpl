@@ -111,6 +111,8 @@ typedef struct phNxpEse_Context {
   phNxpEse_SecureTimer_t secureTimerParams;
   phNxpEseNadInfo_t nadInfo;
   long nadPollingRetryTime;
+  long invalidFrame_Rnack_Delay;
+  bool rnack_sent;
 } phNxpEse_Context_t;
 
 /* Timeout value to wait for response from

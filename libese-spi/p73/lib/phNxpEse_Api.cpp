@@ -49,6 +49,7 @@ static void phNxpEse_GetMaxTimer(unsigned long* pMaxTimer);
 static unsigned char* phNxpEse_GgetTimerTlvBuffer(unsigned char* timer_buffer,
                                                   unsigned int value);
 static int poll_sof_chained_delay = 0;
+
 /*********************** Global Variables *************************************/
 
 /* ESE Context structure */
@@ -151,6 +152,14 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
   } else {
     protoInitParam.wtx_counter_limit = PH_PROTO_WTX_DEFAULT_COUNT;
   }
+  if (EseConfig::hasKey(NAME_RNACK_RETRY_DELAY)) {
+    num = EseConfig::getUnsigned(NAME_RNACK_RETRY_DELAY);
+    nxpese_ctxt.invalidFrame_Rnack_Delay = num;
+    DLOG_IF(INFO, ese_debug_enabled)
+      << StringPrintf("Rnack retry_delay read from config file - %lu", num);
+  } else {
+    nxpese_ctxt.invalidFrame_Rnack_Delay = 7000;
+  }
   if (EseConfig::hasKey(NAME_NXP_MAX_RNACK_RETRY)) {
     protoInitParam.rnack_retry_limit = EseConfig::getUnsigned(NAME_NXP_MAX_RNACK_RETRY);
   } else {
@@ -202,6 +211,7 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
     LOG(ERROR) << StringPrintf("phNxpEseProto7816_Open failed");
   }
 
+  LOG(ERROR) << StringPrintf("phNxpEseProto7816_Open completed >>>>>");
   /* Retrieving the IFS-D value configured in the config file and applying to Card */
   if (EseConfig::hasKey(NAME_NXP_IFSD_VALUE)) {
     ifsd_value = EseConfig::getUnsigned(NAME_NXP_IFSD_VALUE);
@@ -696,7 +706,7 @@ ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp) {
       }
     }
     nxpese_ctxt.EseLibStatus = ESE_STATUS_IDLE;
-
+    nxpese_ctxt.rnack_sent = false;
     DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf(" %s Exit status 0x%x \n", __FUNCTION__, status);
     return status;
@@ -1047,6 +1057,10 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
     /*(nadPollingRetryTime * WAKE_UP_DELAY * NAD_POLLING_SCALER)*/
     max_sof_counter = (ESE_POLL_TIMEOUT / nxpese_ctxt.nadPollingRetryTime);
   }
+  if(nxpese_ctxt.rnack_sent)
+  {
+    phPalEse_sleep(nxpese_ctxt.invalidFrame_Rnack_Delay);
+  }
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("read() max_sof_counter: %X ESE_POLL_TIMEOUT %2X", max_sof_counter, ESE_POLL_TIMEOUT);
   do {
@@ -1076,7 +1090,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       break;
     } else if (((pBuffer[0] == 0x00) && (pBuffer[1] == 0x00)) ||
             ((pBuffer[0] == 0xFF) && (pBuffer[1] == 0xFF)))  {
-      LOG(ERROR) << StringPrintf("_spi_read() Buf[0]: %X Buf[1]: %X", pBuffer[0], pBuffer[1]);
+      //LOG(ERROR) << StringPrintf("_spi_read() Buf[0]: %X Buf[1]: %X", pBuffer[0], pBuffer[1]);
     } else if(ret >= 0) { /* Corruption happened during the receipt from Card, go flush out the data */
         LOG(ERROR) << StringPrintf("_spi_read() Corruption Buf[0]: %X Buf[1]: %X ..len=%d", pBuffer[0], pBuffer[1], ret);
         break;
@@ -1165,11 +1179,13 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       /*If I-Frame received with 0 length respond with RNACK*/
       if((0 == pcb_bits.msb) && (nNbBytesToRead == 0))
       {
+        LOG(ERROR) << StringPrintf("I-Frame with length == 0");
         pBuffer[0] = 0x90;
         pBuffer[1] = RECIEVE_PACKET_SOF;
         ret = 0x02;
       }
     }
+    nxpese_ctxt.rnack_sent = false;
   } else if (ret < 0) {
     /*In case of IO Error*/
     ret = -2;
@@ -1193,6 +1209,8 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
     } else {
       total_frame_size = ifsd_size + 2;
     }
+    nxpese_ctxt.rnack_sent = true;
+    phPalEse_sleep(nxpese_ctxt.invalidFrame_Rnack_Delay);
     ret = phPalEse_read(pDevHandle, &pBuffer[2], total_frame_size);
     if (ret < 0) {
       LOG(ERROR) << StringPrintf("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
@@ -1203,6 +1221,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
     pBuffer[0] = 0x90;
     pBuffer[1] = RECIEVE_PACKET_SOF;
     ret = 0x02;
+    phPalEse_sleep(nxpese_ctxt.invalidFrame_Rnack_Delay);
   }
 
   DLOG_IF(INFO, ese_debug_enabled)
