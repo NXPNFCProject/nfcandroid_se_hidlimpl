@@ -1428,6 +1428,10 @@ static ESESTATUS phNxpEseProto7816_ResetProtoParams(void) {
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = INVALID;
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC =
       IFSC_SIZE_SEND;
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.defaultDataLenIFSC =
+        IFSC_SIZE_SEND;
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS =
+        IFSC_SIZE_SEND;
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.p_data = NULL;
   phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.FrameType = INVALID;
   phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.maxDataLenIFSC =
