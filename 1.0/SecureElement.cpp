@@ -185,6 +185,13 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   phNxpEse_free(rspApdu.p_data);
 
   if (sestatus != SecureElementStatus::SUCCESS) {
+    /*If first logical channel open fails, DeInit SE*/
+    if (isSeInitialized() && (mOpenedchannelCount == 0)) {
+      SecureElementStatus deInitStatus = seHalDeInit();
+      if (deInitStatus != SecureElementStatus::SUCCESS) {
+        ALOGE("%s: seDeInit Failed", __func__);
+      }
+    }
     /*If manageChanle is failed in any of above cases
     send the callback and return*/
     _hidl_cb(resApduBuff, sestatus);
