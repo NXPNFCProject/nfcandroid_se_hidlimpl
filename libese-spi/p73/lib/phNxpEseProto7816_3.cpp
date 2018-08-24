@@ -824,14 +824,22 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
     } /* Error handling 1 : Parity error */
     else if (((pcb_bits.lsb == 0x01) && (pcb_bits.bit2 == 0x00)) ||
              /* Error handling 2: Other indicated error */
-             ((pcb_bits.lsb == 0x00) && (pcb_bits.bit2 == 0x01))) {
+             ((pcb_bits.lsb == 0x00) && (pcb_bits.bit2 == 0x01)) ||
+             /* Error handling 3 : Frame Missing error */
+             ((pcb_bits.lsb == 0x01) && (pcb_bits.bit2 == 0x01))) {
       phNxpEse_Sleep(DELAY_ERROR_RECOVERY);
-      if ((pcb_bits.lsb == 0x00) && (pcb_bits.bit2 == 0x01))
+      if ((pcb_bits.lsb == 0x00) && (pcb_bits.bit2 == 0x01)) {
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.errCode =
             OTHER_ERROR;
-      else
+      }
+      else if((pcb_bits.lsb == 0x01) && (pcb_bits.bit2 == 0x00)) {
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.errCode =
             PARITY_ERROR;
+      }
+      else {
+        phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.errCode =
+            SOF_MISSED_ERROR;
+      }
       if (phNxpEseProto7816_3_Var.recoveryCounter <
           PH_PROTO_7816_FRAME_RETRY_COUNT) {
         if (phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.FrameType == IFRAME) {
@@ -896,6 +904,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
       }
       // resend previously send I frame
     }
+#ifdef PROP_FRAME_MISSING_ERROR
     /* Error handling 3 */
     else if ((pcb_bits.lsb == 0x01) && (pcb_bits.bit2 == 0x01)) {
       phNxpEse_Sleep(DELAY_ERROR_RECOVERY);
@@ -910,7 +919,9 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         phNxpEseProto7816_RecoverySteps();
         phNxpEseProto7816_3_Var.recoveryCounter++;
       }
-    } else /* Error handling 4 */
+    }
+#endif
+    else /* Error handling 4 */
     {
       phNxpEse_Sleep(DELAY_ERROR_RECOVERY);
       if (phNxpEseProto7816_3_Var.recoveryCounter <
