@@ -1646,7 +1646,10 @@ ESESTATUS phNxpEseProto7816_SetIfs(uint16_t IFS_Size) {
  *
  ******************************************************************************/
 uint16_t phNxpEseProto7816_GetIfs(void) {
-    return phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC;
+  DLOG_IF(INFO, ese_debug_enabled)
+    << StringPrintf("Enter %s current IFSC = %d", __FUNCTION__,
+      phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS);
+    return phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS;
 }
 
 /******************************************************************************

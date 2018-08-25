@@ -1176,10 +1176,10 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       ret = -1;
     }else {
       ret = (total_count +(nNbBytesToRead + 1));
-      /*If I-Frame received with 0 length respond with RNACK*/
-      if((0 == pcb_bits.msb) && (nNbBytesToRead == 0))
+      /*If I-Frame received with invalid length respond with RNACK*/
+      if((0 == pcb_bits.msb) && ((nNbBytesToRead == 0) || (nNbBytesToRead > phNxpEseProto7816_GetIfs())))
       {
-        LOG(ERROR) << StringPrintf("I-Frame with length == 0");
+        LOG(ERROR) << StringPrintf("I-Frame with invalid len == %d", nNbBytesToRead);
         pBuffer[0] = 0x90;
         pBuffer[1] = RECIEVE_PACKET_SOF;
         ret = 0x02;
