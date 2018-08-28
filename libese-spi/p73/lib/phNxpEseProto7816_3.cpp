@@ -1094,8 +1094,11 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
             ATR_RSP;
         if (p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] > 0)
+        {
+          phNxpEseProto7816_DecodeSFrameATRData(p_data);
           phNxpEse_StoreDatainList(p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET],
             &p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET + 1]);
+        }
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = UNKNOWN;
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
@@ -1489,6 +1492,11 @@ ESESTATUS phNxpEseProto7816_Reset(void) {
   /* Resynchronising ESE protocol instance */
   status = phNxpEseProto7816_RSync();
 #endif
+
+  /* Updating the ATR information(IFS,..) to 7816 stack */
+  phNxpEse_data atrRsp;
+  phNxpEseProto7816_getAtr(&atrRsp);
+  phNxpEse_free(atrRsp.p_data);
   return status;
 }
 
@@ -1517,13 +1525,17 @@ ESESTATUS phNxpEseProto7816_Open(phNxpEseProto7816InitParam_t initParam) {
                       &phNxpEseProto7816_3_Var.secureTimerParams,
                       sizeof(phNxpEseProto7816SecureTimer_t));
     }
-  } else /* Do R-Sync */
+  } else /* Initialisation condition to achieve usecases like JCOP download */
   {
 #if(TRUE == TRUE)
     status = phNxpEseProto7816_HardReset();
 #else
     status = phNxpEseProto7816_RSync();
 #endif
+    /* Updating the ATR information (Eg: IFS,..) to 7816 stack */
+    phNxpEse_data atrRsp;
+    phNxpEseProto7816_getAtr(&atrRsp);
+    phNxpEse_free(atrRsp.p_data);
   }
   return status;
 }

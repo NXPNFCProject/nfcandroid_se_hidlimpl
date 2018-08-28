@@ -794,7 +794,18 @@ ESESTATUS phNxpEse_resetJcopUpdate(void) {
   /* Reset interface after every reset irrespective of
   whether JCOP did a full power cycle or not. */
   status = phNxpEseProto7816_Reset();
-
+  /* Retrieving the IFS-D value configured in the config file and applying to Card */
+  if (EseConfig::hasKey(NAME_NXP_IFSD_VALUE)) {
+    unsigned long int ifsd_value = 0;
+    ifsd_value = EseConfig::getUnsigned(NAME_NXP_IFSD_VALUE);
+    if((0xFFFF > ifsd_value) &&
+      (ifsd_value > 0)) {
+      LOG(INFO) << StringPrintf("phNxpEseProto7816_SetIFS IFS adjustment requested with %ld", ifsd_value);
+      phNxpEse_setIfs(ifsd_value);
+    } else {
+      LOG(ERROR) << StringPrintf("phNxpEseProto7816_SetIFS IFS adjustment argument invalid");
+    }
+  }
 #ifdef SPM_INTEGRATED
 #if (NXP_POWER_SCHEME_SUPPORT == true)
   if (EseConfig::hasKey(NAME_NXP_POWER_SCHEME)) {
