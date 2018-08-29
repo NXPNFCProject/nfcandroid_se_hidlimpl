@@ -310,7 +310,7 @@ static phNxpEseProto7816_t phNxpEseProto7816_3_Var;
  * \brief Delay to be used before sending the next frame, after error reported
  * by ESE
  */
-#define DELAY_ERROR_RECOVERY 3500
+#define DELAY_ERROR_RECOVERY 10000
 /*!
  * \brief 7816-3 protocol frame header length
  */

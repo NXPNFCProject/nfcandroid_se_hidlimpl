@@ -1157,6 +1157,7 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             SEND_R_NACK;
         phNxpEseProto7816_3_Var.rnack_retry_counter++;
+        phNxpEse_Sleep(DELAY_ERROR_RECOVERY);
       } else {
         phNxpEseProto7816_3_Var.rnack_retry_counter = PH_PROTO_7816_VALUE_ZERO;
         /* Re-transmission failed completely, Going to exit */
@@ -1250,6 +1251,7 @@ static ESESTATUS TransceiveProcess(void) {
         break;
       case SEND_R_NACK:
         status = phNxpEseProto7816_sendRframe(RNACK);
+        phNxpEse_Sleep(DELAY_ERROR_RECOVERY);
         break;
       case SEND_S_RSYNC:
         sFrameInfo.sFrameType = RESYNCH_REQ;
