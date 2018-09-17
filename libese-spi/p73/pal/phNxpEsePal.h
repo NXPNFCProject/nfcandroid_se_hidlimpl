@@ -34,7 +34,13 @@
  * \brief Value indicates to reset device
  */
 #define PH_PALESE_RESETDEVICE (0x00008001)
-
+/*!
+ * \brief SPI Request NFCC to enable p61 power, only in param
+ *         Only for SPI
+ *         level 1 = Enable power
+ *         level 0 = Disable power
+ */
+#define P61_SET_SPM_PWR _IOW(P61_MAGIC, 0x04, long)
 /*!
  * \ingroup eSe_PAL
  *

@@ -56,6 +56,11 @@
  */
 #define NAD_POLLING_SCALER 10
 
+/*!
+ * \brief Magic type specific to the ESE device driver
+ */
+#define P61_MAGIC 0xEA
+
 /* Function declarations */
 /**
  * \ingroup eSe_PAL_Spi
