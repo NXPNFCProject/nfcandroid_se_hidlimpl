@@ -31,7 +31,7 @@ void checkEseClientUpdate();
 
 SESTATUS perform_eSEClientUpdate();
 
-void eSEClientUpdate_Thread();
+void eSEClientUpdate_SE_Thread();
 
 void seteSEClientState(uint8_t state);
 typedef enum {

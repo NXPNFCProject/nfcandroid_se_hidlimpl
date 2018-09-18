@@ -120,12 +120,14 @@ Return<void> NxpEse::ioctlHandler(uint64_t ioctlType,
   switch(ioctlType)
   {
     case HAL_ESE_IOCTL_NFC_JCOP_DWNLD:
-    //nfc_nci_IoctlInOutData_t* inpOutData = (nfc_nci_IoctlInOutData_t*)inpOutData;
-    int update_state = inpOutData.inp.data.nxpCmd.p_cmd[0];
-    if(update_state == ESE_JCOP_UPDATE_COMPLETED ||
-      update_state == ESE_LS_UPDATE_COMPLETED) {
-      seteSEClientState(update_state);
-      eSEClientUpdate_Thread();
+    {
+      //nfc_nci_IoctlInOutData_t* inpOutData = (nfc_nci_IoctlInOutData_t*)inpOutData;
+      int update_state = inpOutData.inp.data.nxpCmd.p_cmd[0];
+      if(update_state == ESE_JCOP_UPDATE_COMPLETED ||
+        update_state == ESE_LS_UPDATE_COMPLETED) {
+        seteSEClientState(update_state);
+        eSEClientUpdate_SE_Thread();
+      }
     }
     break;
   }
@@ -149,9 +151,14 @@ Return<void> NxpEse::ioctl(uint64_t ioctlType,
   inpOutData.out.ioctlType = ioctlType;
   inpOutData.out.context = pInOutData->inp.context;
   inpOutData.out.result = status;
+  if(ioctlType == HAL_ESE_IOCTL_GET_ESE_UPDATE_STATE)
+  {
+    inpOutData.out.data.status = (getJcopUpdateRequired() | (getLsUpdateRequired() << 8));
+  }
   EseData outputData;
   outputData.setToExternal((uint8_t*)&inpOutData.out,
                            sizeof(ese_nxp_ExtnOutputData_t));
+  LOG(ERROR) << "GET ESE update state2 = "<< inpOutData.out.data.status;
   _hidl_cb(outputData);
   return Void();
 }

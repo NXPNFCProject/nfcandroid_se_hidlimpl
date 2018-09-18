@@ -30,7 +30,9 @@ cc_binary {
         "vendor.nxp.nxpnfc@1.0",
         "se_extn_client",
         "ls_client",
-        "jcos_client"
+        "jcos_client",
+        "android.hardware.nfc@1.0",
+        "android.hardware.nfc@1.1",
     ],
 
     local_include_dirs: [
@@ -42,6 +44,7 @@ cc_binary {
         "libese-spi/p73/pal/spi",
         "libese-spi/p73/utils",
         "libese-spi/p73/spm",
+        "libese-spi/src/include",
         "ese-clients/inc"
     ],
 
@@ -51,6 +54,13 @@ cc_binary {
         "hardware/nxp/secure_element/extns/impl",
         "hardware/nxp/secure_element_extns/jcos_client/inc",
         "hardware/nxp/secure_element_extns/ls_client/inc",
+    ],
+    cflags: [
+        "-DANDROID",
+        "-DBUILDCFG=1",
+        "-DNXP_EXTNS=TRUE",
+        "-Wall",
+        "-Werror",
     ],
 
 }

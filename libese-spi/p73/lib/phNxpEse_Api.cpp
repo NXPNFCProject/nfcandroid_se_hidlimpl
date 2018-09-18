@@ -1230,6 +1230,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
     } else { /* LRC fail expected for this frame to send R-NACK*/
       ret = total_frame_size + 2;
       LOG(ERROR) << StringPrintf("_spi_read() SUCCESS  ret : %X LRC fail excpected for this frame", ret);
+      PH_PAL_ESE_PRINT_PACKET_RX(pBuffer, ret);
     }
     pBuffer[0] = 0x90;
     pBuffer[1] = RECIEVE_PACKET_SOF;
