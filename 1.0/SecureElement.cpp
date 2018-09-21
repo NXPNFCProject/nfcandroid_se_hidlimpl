@@ -562,6 +562,7 @@ SecureElement::closeChannel(uint8_t channelNumber) {
 }
 void SecureElement::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
     LOG(ERROR) << " SecureElement serviceDied!!!";
+    mIsEseInitialized = false;
     phNxpEse_deInit();
     phNxpEse_close();
   }
