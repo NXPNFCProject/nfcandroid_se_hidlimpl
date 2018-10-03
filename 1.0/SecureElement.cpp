@@ -67,12 +67,12 @@ Return<void> SecureElement::init(
   } else {
     clientCallback->linkToDeath(this, 0 /*cookie*/);
   }
-      LOG(ERROR) << "SecureElement::init called here";
+  LOG(INFO) << "SecureElement::init called here";
   if(ese_update != ESE_UPDATE_COMPLETED) {
     mIsEseInitialized = true;
     cCallback = clientCallback;
     clientCallback->onStateChange(false);
-    LOG(ERROR) << "ESE JCOP Download in progress";
+    LOG(INFO) << "ESE JCOP Download in progress";
     NxpEse::setSeCallBack(clientCallback);
     return Void();
     //Register
@@ -101,7 +101,7 @@ Return<void> SecureElement::init(
     goto exit;
   }
   mIsEseInitialized = true;
-  LOG(ERROR) << "Mr Robot says ESE SPI init complete !!!";
+  LOG(INFO) << "ESE SPI init complete!!!";
 
   exit:
   if (status == ESESTATUS_SUCCESS)
@@ -118,17 +118,19 @@ Return<void> SecureElement::init(
 }
 
 Return<void> SecureElement::getAtr(getAtr_cb _hidl_cb) {
-  LOG(INFO) << "Mr Robot got a call for ATR";
+  LOG(ERROR) << "Processing ATR.....";
   phNxpEse_data atrData;
+  hidl_vec<uint8_t> response;
   ESESTATUS status = ESESTATUS_FAILED;
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
     LOG(ERROR) << "Endpoint set failed";
   }
   status = phNxpEse_getAtr(&atrData);
-  hidl_vec<uint8_t> response;
   if (status != ESESTATUS_SUCCESS) {
-    //return Void(); TODO
+    LOG(ERROR) << "phNxpEse_getAtr failed";
+    _hidl_cb(response);/*Return with empty Vector*/
+    return Void();
   } else {
     response.resize(atrData.len);
     memcpy(&response[0], atrData.p_data, atrData.len);
@@ -139,12 +141,16 @@ Return<void> SecureElement::getAtr(getAtr_cb _hidl_cb) {
     LOG(ERROR) << "Endpoint set failed";
   }
 
-  LOG(INFO) << StringPrintf("ATR Data[BytebyByte]=Look below for %d bytes", atrData.len);
-  for (auto i = response.begin(); i != response.end(); ++i)
-    LOG(INFO) << StringPrintf("0x%x\t", *i);
+  if (status != ESESTATUS_SUCCESS) {
+    LOG(INFO) << StringPrintf("ATR Data[BytebyByte]=Look below for %d bytes", atrData.len);
+    for (auto i = response.begin(); i != response.end(); ++i)
+      LOG(INFO) << StringPrintf("0x%x\t", *i);
+  }
 
   _hidl_cb(response);
-  phNxpEse_free(atrData.p_data);
+  if(atrData.p_data != NULL){
+    phNxpEse_free(atrData.p_data);
+  }
   return Void();
 }
 
@@ -153,22 +159,27 @@ Return<bool> SecureElement::isCardPresent() { return true; }
 Return<void> SecureElement::transmit(const hidl_vec<uint8_t>& data,
                                      transmit_cb _hidl_cb) {
   ESESTATUS status = ESESTATUS_FAILED;
+  hidl_vec<uint8_t> result;
   phNxpEse_memset(&gsTxRxBuffer.cmdData, 0x00, sizeof(phNxpEse_data));
   phNxpEse_memset(&gsTxRxBuffer.rspData, 0x00, sizeof(phNxpEse_data));
   gsTxRxBuffer.cmdData.len = data.size();
   gsTxRxBuffer.cmdData.p_data =
       (uint8_t*)phNxpEse_memalloc(data.size() * sizeof(uint8_t));
-
+  if(NULL == gsTxRxBuffer.cmdData.p_data){
+    LOG(ERROR) << "transmit failed to allocate the Memory!!!";
+    /*Return empty hidl_vec*/
+    _hidl_cb(result);
+    return Void();
+  }
   memcpy(gsTxRxBuffer.cmdData.p_data, data.data(), gsTxRxBuffer.cmdData.len);
-  LOG(ERROR) << "Mr Robot acquired lock for SPI";
+  LOG(INFO) << "Acquired lock for SPI";
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void(); TODO
+    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
   }
   status =
       phNxpEse_Transceive(&gsTxRxBuffer.cmdData, &gsTxRxBuffer.rspData);
 
-  hidl_vec<uint8_t> result;
   if (status != ESESTATUS_SUCCESS) {
     LOG(ERROR) << "transmit failed!!!";
   } else {
@@ -177,12 +188,18 @@ Return<void> SecureElement::transmit(const hidl_vec<uint8_t>& data,
   }
   status = phNxpEse_ResetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void(); TODO
+    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
   }
 
-
   _hidl_cb(result);
-  phNxpEse_free(gsTxRxBuffer.cmdData.p_data);
+  if(NULL != gsTxRxBuffer.cmdData.p_data){
+    phNxpEse_free(gsTxRxBuffer.cmdData.p_data);
+    gsTxRxBuffer.cmdData.p_data = NULL;
+  }
+  if(NULL != gsTxRxBuffer.rspData.p_data){
+    phNxpEse_free(gsTxRxBuffer.rspData.p_data);
+    gsTxRxBuffer.rspData.p_data = NULL;
+  }
 
   return Void();
 }
@@ -196,7 +213,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   resApduBuff.channelNumber = 0xff;
   memset(&resApduBuff, 0x00, sizeof(resApduBuff));
 
-  LOG(ERROR) << "Robot acquired the lock from SPI openLogicalChannel";
+  LOG(INFO) << "Acquired the lock from SPI openLogicalChannel";
 
   if (!mIsEseInitialized) {
     ESESTATUS status = seHalInit();
@@ -224,7 +241,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
 
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void(); TODO
+    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
   }
   status = phNxpEse_Transceive(&cmdApdu, &rspApdu);
   if (status != ESESTATUS_SUCCESS) {
@@ -261,7 +278,10 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
       }
     /*If manageChanle is failed in any of above cases
     send the callback and return*/
-    phNxpEse_ResetEndPoint_Cntxt(0);
+    status = phNxpEse_ResetEndPoint_Cntxt(0);
+    if (status != ESESTATUS_SUCCESS) {
+      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+    }
     _hidl_cb(resApduBuff, sestatus);
     return Void();
   }
@@ -333,7 +353,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   }
   status = phNxpEse_ResetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void(); TODO
+    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
   }
   _hidl_cb(resApduBuff, sestatus);
   phNxpEse_free(cpdu.pdata);
@@ -352,7 +372,7 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
   hidl_vec<uint8_t> ls_aid = {0xA0, 0x00, 0x00, 0x03, 0x96, 0x41, 0x4C,
               0x41, 0x01, 0x43, 0x4F, 0x52, 0x01};
 
-  LOG(ERROR) << "Robot acquired the lock in SPI openBasicChannel";
+  LOG(ERROR) << "Acquired the lock in SPI openBasicChannel";
 
   if (!mIsEseInitialized) {
     ESESTATUS status = seHalInit();
@@ -380,7 +400,7 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
 
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void(); TODO
+    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
   }
   status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
   SecureElementStatus sestatus;
@@ -425,7 +445,7 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
   }
   status = phNxpEse_ResetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void(); TODO
+    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
   }
   if (sestatus != SecureElementStatus::SUCCESS) {
     SecureElementStatus closeChannelStatus =
@@ -447,7 +467,7 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
   phNxpEse_7816_cpdu_t cpdu;
   phNxpEse_7816_rpdu_t rpdu;
 
-  LOG(ERROR) << "Robot acquired the lock in SPI internalCloseChannel";
+  LOG(ERROR) << "Acquired the lock in SPI internalCloseChannel";
   if (channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d for %d",channelNumber,mOpenedChannels[channelNumber]);
@@ -463,7 +483,7 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
     cpdu.le = 0x9000;
     status = phNxpEse_SetEndPoint_Cntxt(0);
     if (status != ESESTATUS_SUCCESS) {
-      //return Void(); TODO
+      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     }
     status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
     if (status != ESESTATUS_SUCCESS) {
@@ -481,7 +501,7 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
     }
     status = phNxpEse_ResetEndPoint_Cntxt(0);
     if (status != ESESTATUS_SUCCESS) {
-      //return Void(); TODO
+      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     }
   }
   if ((channelNumber == DEFAULT_BASIC_CHANNEL) ||
@@ -508,7 +528,7 @@ SecureElement::closeChannel(uint8_t channelNumber) {
   phNxpEse_7816_cpdu_t cpdu;
   phNxpEse_7816_rpdu_t rpdu;
 
-  LOG(ERROR) << "Robot acquired the lock in SPI closeChannel";
+  LOG(ERROR) << "Acquired the lock in SPI closeChannel";
   if (channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d for %d",channelNumber,mOpenedChannels[channelNumber]);
@@ -524,7 +544,7 @@ SecureElement::closeChannel(uint8_t channelNumber) {
     cpdu.le = 0x9000;
     status = phNxpEse_SetEndPoint_Cntxt(0);
     if (status != ESESTATUS_SUCCESS) {
-      //return Void(); TODO
+      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     }
     status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
     if (status != ESESTATUS_SUCCESS) {
@@ -542,7 +562,7 @@ SecureElement::closeChannel(uint8_t channelNumber) {
     }
     status = phNxpEse_ResetEndPoint_Cntxt(0);
     if (status != ESESTATUS_SUCCESS) {
-      //return Void(); TODO
+      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     }
   }
   if ((channelNumber == DEFAULT_BASIC_CHANNEL) ||
@@ -578,7 +598,7 @@ ESESTATUS SecureElement::seHalInit() {
   } else {
     status = phNxpEse_SetEndPoint_Cntxt(0);
      if (status != ESESTATUS_SUCCESS) {
-       //return Void(); TODO
+       LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
      }
     status = phNxpEse_init(initParams);
     if (status != ESESTATUS_SUCCESS) {
@@ -586,7 +606,7 @@ ESESTATUS SecureElement::seHalInit() {
     } else {
         status = phNxpEse_ResetEndPoint_Cntxt(0);
        if (status != ESESTATUS_SUCCESS) {
-       //return Void(); TODO
+         LOG(ERROR) << "Endpoint set failed";
       }
       mIsEseInitialized = true;
     }
@@ -600,12 +620,12 @@ SecureElement::seHalDeInit() {
   SecureElementStatus sestatus = SecureElementStatus::FAILED;
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void(); TODO
+    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
   }
   status = phNxpEse_deInit();
   status = phNxpEse_ResetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void(); TODO
+    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
   }
   if (status != ESESTATUS_SUCCESS) {
     sestatus = SecureElementStatus::FAILED;

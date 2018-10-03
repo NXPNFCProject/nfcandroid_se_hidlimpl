@@ -66,7 +66,7 @@ static android::sp<ISecureElementHalCallback> virtualISOCallback;
       goto exit;
     }
 
-    LOG(ERROR) << "Mr Robot says ESE SPI init complete !!!";
+    LOG(INFO) << "ESE SPI init complete !!!";
 
     exit:
     if (status == ESESTATUS_SUCCESS)
@@ -102,7 +102,7 @@ static android::sp<ISecureElementHalCallback> virtualISOCallback;
       goto exit;
     }
 
-    LOG(ERROR) << "Mr Robot says ESE SPI init complete !!!";
+    LOG(INFO) << "ESE SPI init complete !!!";
 
     exit:
     if (status == ESESTATUS_SUCCESS)

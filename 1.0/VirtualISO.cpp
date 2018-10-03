@@ -66,12 +66,11 @@ Return<void> VirtualISO::init(
   } else {
     clientCallback->linkToDeath(this, 0 /*cookie*/);
   }
-  LOG(ERROR) << "Mr Robot in VISO !!!";
   if(ese_update != ESE_UPDATE_COMPLETED)  {
     mIsEseInitialized = true;
     cCallback = clientCallback;
     clientCallback->onStateChange(false);
-    LOG(ERROR) << "ESE JCOP Download in progress";
+    LOG(INFO) << "ESE JCOP Download in progress";
     NxpEse::setVirtualISOCallBack(clientCallback);
     return Void();
     //Register
@@ -92,7 +91,7 @@ Return<void> VirtualISO::init(
   }
   status = phNxpEse_ResetEndPoint_Cntxt(1);
   mIsEseInitialized = true;
-  LOG(ERROR) << "Mr Robot VVV !!!";
+  LOG(INFO) << "VirtualISO::init Exit";
 exit:
   if (status == ESESTATUS_SUCCESS)
   {
@@ -117,22 +116,27 @@ Return<bool> VirtualISO::isCardPresent() { return true; }
 Return<void> VirtualISO::transmit(const hidl_vec<uint8_t>& data,
                                      transmit_cb _hidl_cb) {
   ESESTATUS status = ESESTATUS_FAILED;
+  hidl_vec<uint8_t> result;
   phNxpEse_memset(&gsTxRxBuffer.cmdData, 0x00, sizeof(phNxpEse_data));
   phNxpEse_memset(&gsTxRxBuffer.rspData, 0x00, sizeof(phNxpEse_data));
   gsTxRxBuffer.cmdData.len = data.size();
   gsTxRxBuffer.cmdData.p_data =
       (uint8_t*)phNxpEse_memalloc(data.size() * sizeof(uint8_t));
-
+  if(NULL == gsTxRxBuffer.cmdData.p_data){
+    LOG(ERROR) << "transmit failed to allocate the Memory!!!";
+    /*Return empty hidl_vec*/
+    _hidl_cb(result);
+    return Void();
+  }
   memcpy(gsTxRxBuffer.cmdData.p_data, data.data(), gsTxRxBuffer.cmdData.len);
-  LOG(ERROR) << "Robot acquired the lock in VISO ";
+  LOG(ERROR) << "Acquired the lock in VISO ";
   status = phNxpEse_SetEndPoint_Cntxt(1);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void();
+    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
   }
   status =
       phNxpEse_Transceive(&gsTxRxBuffer.cmdData, &gsTxRxBuffer.rspData);
 
-  hidl_vec<uint8_t> result;
   if (status != ESESTATUS_SUCCESS) {
     LOG(ERROR) << "transmit failed!!!";
   } else {
@@ -141,11 +145,18 @@ Return<void> VirtualISO::transmit(const hidl_vec<uint8_t>& data,
   }
   status = phNxpEse_ResetEndPoint_Cntxt(1);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void();
+    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
   }
 
   _hidl_cb(result);
-  phNxpEse_free(gsTxRxBuffer.cmdData.p_data);
+  if(NULL != gsTxRxBuffer.cmdData.p_data){
+    phNxpEse_free(gsTxRxBuffer.cmdData.p_data);
+    gsTxRxBuffer.cmdData.p_data = NULL;
+  }
+  if(NULL != gsTxRxBuffer.rspData.p_data){
+    phNxpEse_free(gsTxRxBuffer.rspData.p_data);
+    gsTxRxBuffer.rspData.p_data = NULL;
+  }
 
   return Void();
 }
@@ -157,7 +168,7 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
 
   LogicalChannelResponse resApduBuff;
 
-  LOG(ERROR) << "Robot acquired the lock in VISO openLogicalChannel";
+  LOG(INFO) << "Acquired the lock in VISO openLogicalChannel";
 
   resApduBuff.channelNumber = 0xff;
   memset(&resApduBuff, 0x00, sizeof(resApduBuff));
@@ -187,7 +198,7 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
 
   status = phNxpEse_SetEndPoint_Cntxt(1);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void(); TODO
+    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
   }
   status = phNxpEse_Transceive(&cmdApdu, &rspApdu);
   if (status != ESESTATUS_SUCCESS) {
@@ -293,7 +304,7 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   }
   status = phNxpEse_ResetEndPoint_Cntxt(1);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void(); TODO
+    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
   }
   _hidl_cb(resApduBuff, sestatus);
   phNxpEse_free(cpdu.pdata);
@@ -310,7 +321,7 @@ Return<void> VirtualISO::openBasicChannel(const hidl_vec<uint8_t>& aid,
   phNxpEse_7816_rpdu_t rpdu;
   hidl_vec<uint8_t> result;
 
-  LOG(ERROR) << "Robot acquired the lock in VISO openBasicChannel";
+  LOG(INFO) << "Acquired the lock in VISO openBasicChannel";
 
   if (!mIsEseInitialized) {
     ESESTATUS status = seHalInit();
@@ -382,7 +393,7 @@ Return<void> VirtualISO::openBasicChannel(const hidl_vec<uint8_t>& aid,
   }
   status = phNxpEse_ResetEndPoint_Cntxt(1);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void(); TODO
+    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
   }
   if (sestatus != SecureElementStatus::SUCCESS) {
     SecureElementStatus closeChannelStatus =
@@ -421,7 +432,7 @@ VirtualISO::internalCloseChannel(uint8_t channelNumber)
     cpdu.le = 0x9000;
     status = phNxpEse_SetEndPoint_Cntxt(1);
     if (status != ESESTATUS_SUCCESS) {
-      //return Void(); TODO
+      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     }
     status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
 
@@ -440,7 +451,7 @@ VirtualISO::internalCloseChannel(uint8_t channelNumber)
     }
     status = phNxpEse_ResetEndPoint_Cntxt(1);
     if (status != ESESTATUS_SUCCESS) {
-      //return Void(); TODO
+      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     }
   }
   if ((channelNumber == DEFAULT_BASIC_CHANNEL) ||
@@ -466,7 +477,7 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
   phNxpEse_7816_cpdu_t cpdu;
   phNxpEse_7816_rpdu_t rpdu;
 
-  LOG(ERROR) << "Robot acquired the lock in VISO closeChannel";
+  LOG(INFO) << "Acquired the lock in VISO closeChannel";
   if (channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d for %d",channelNumber,mOpenedChannels[channelNumber]);
@@ -482,7 +493,7 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
     cpdu.le = 0x9000;
     status = phNxpEse_SetEndPoint_Cntxt(1);
     if (status != ESESTATUS_SUCCESS) {
-      //return Void(); TODO
+      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     }
     status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
 
@@ -501,7 +512,7 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
     }
     status = phNxpEse_ResetEndPoint_Cntxt(1);
     if (status != ESESTATUS_SUCCESS) {
-      //return Void(); TODO
+      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     }
   }
   if ((channelNumber == DEFAULT_BASIC_CHANNEL) ||
@@ -531,7 +542,7 @@ ESESTATUS VirtualISO::seHalInit() {
   } else {
     status = phNxpEse_SetEndPoint_Cntxt(1);
      if (status != ESESTATUS_SUCCESS) {
-       //return Void(); TODO
+       LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
      }
     status = phNxpEse_init(initParams);
     if (status != ESESTATUS_SUCCESS) {
@@ -539,7 +550,7 @@ ESESTATUS VirtualISO::seHalInit() {
     } else {
         status = phNxpEse_ResetEndPoint_Cntxt(1);
        if (status != ESESTATUS_SUCCESS) {
-       //return Void(); TODO
+         LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
       }
       mIsEseInitialized = true;
     }
@@ -553,12 +564,12 @@ VirtualISO::seHalDeInit() {
   SecureElementStatus sestatus = SecureElementStatus::FAILED;
   status = phNxpEse_SetEndPoint_Cntxt(1);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void(); TODO
+    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
   }
   status = phNxpEse_deInit();
   status = phNxpEse_ResetEndPoint_Cntxt(1);
   if (status != ESESTATUS_SUCCESS) {
-    //return Void(); TODO
+    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
   }
   if (status != ESESTATUS_SUCCESS) {
     sestatus = SecureElementStatus::FAILED;

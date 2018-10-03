@@ -75,7 +75,7 @@ ESESTATUS phNxpEse_SetEndPoint_Cntxt(uint8_t uEndPoint)
       nxpese_ctxt.endPointInfo = uEndPoint;
     }
     DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s Mr Robot in control, you are not !: fSociety: Enpoint=%d", __FUNCTION__, uEndPoint);
+      << StringPrintf("%s: Enpoint=%d", __FUNCTION__, uEndPoint);
     return status;
 }
 
@@ -90,9 +90,6 @@ ESESTATUS phNxpEse_SetEndPoint_Cntxt(uint8_t uEndPoint)
 ESESTATUS phNxpEse_ResetEndPoint_Cntxt(uint8_t uEndPoint)
 {
     ESESTATUS status = phNxpEseProto7816_ResetEndPoint(uEndPoint);
-    if(status == ESESTATUS_SUCCESS)
-    {
-    }
     return status;
 }
 /******************************************************************************
