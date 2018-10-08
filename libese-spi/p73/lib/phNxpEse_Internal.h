@@ -98,21 +98,20 @@ typedef enum jcop_dwnld_state {
 
 /* SPI Control structure */
 typedef struct phNxpEse_Context {
-  phNxpEse_LibStatus EseLibStatus; /* Indicate if Ese Lib is open or closed */
   void* pDevHandle;
-
-  uint8_t p_read_buff[MAX_DATA_LEN];
-  uint16_t cmd_len;
-  uint8_t p_cmd_data[MAX_DATA_LEN];
-
-  bool spm_power_state;
-  uint8_t pwr_scheme;
+  long nadPollingRetryTime;
+  long invalidFrame_Rnack_Delay;
+  phNxpEse_LibStatus EseLibStatus; /* Indicate if Ese Lib is open or closed */
   phNxpEse_initParams initParams;
   phNxpEse_SecureTimer_t secureTimerParams;
   phNxpEseNadInfo_t nadInfo;
-  long nadPollingRetryTime;
-  long invalidFrame_Rnack_Delay;
+  uint8_t p_read_buff[MAX_DATA_LEN];
+  uint8_t p_cmd_data[MAX_DATA_LEN];
+  uint16_t cmd_len;
+  uint8_t pwr_scheme;
+  uint8_t endPointInfo;
   bool rnack_sent;
+  bool spm_power_state;
 } phNxpEse_Context_t;
 
 /* Timeout value to wait for response from

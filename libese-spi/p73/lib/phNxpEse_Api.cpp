@@ -70,8 +70,9 @@ ESESTATUS phNxpEse_SetEndPoint_Cntxt(uint8_t uEndPoint)
     ESESTATUS status = phNxpEseProto7816_SetEndPoint(uEndPoint);
     if(status == ESESTATUS_SUCCESS)
     {
-	  nxpese_ctxt.nadInfo.nadRx = nadInfoRx_ptr[uEndPoint];
-	  nxpese_ctxt.nadInfo.nadTx = nadInfoTx_ptr[uEndPoint];
+      nxpese_ctxt.nadInfo.nadRx = nadInfoRx_ptr[uEndPoint];
+      nxpese_ctxt.nadInfo.nadTx = nadInfoTx_ptr[uEndPoint];
+      nxpese_ctxt.endPointInfo = uEndPoint;
     }
     DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s Mr Robot in control, you are not !: fSociety: Enpoint=%d", __FUNCTION__, uEndPoint);
@@ -213,8 +214,18 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
 
   LOG(ERROR) << StringPrintf("phNxpEseProto7816_Open completed >>>>>");
   /* Retrieving the IFS-D value configured in the config file and applying to Card */
-  if (EseConfig::hasKey(NAME_NXP_IFSD_VALUE)) {
-    ifsd_value = EseConfig::getUnsigned(NAME_NXP_IFSD_VALUE);
+  if ((nxpese_ctxt.endPointInfo == END_POINT_ESE) && (EseConfig::hasKey(NAME_NXP_ESE_IFSD_VALUE))) {
+    ifsd_value = EseConfig::getUnsigned(NAME_NXP_ESE_IFSD_VALUE);
+    if((0xFFFF > ifsd_value) &&
+      (ifsd_value > 0)) {
+      LOG(INFO) << StringPrintf("phNxpEseProto7816_SetIFS IFS adjustment requested with %ld", ifsd_value);
+      phNxpEse_setIfs(ifsd_value);
+    } else {
+      LOG(ERROR) << StringPrintf("phNxpEseProto7816_SetIFS IFS adjustment argument invalid");
+    }
+  }
+  else if ((nxpese_ctxt.endPointInfo == END_POINT_EUICC) && (EseConfig::hasKey(NAME_NXP_EUICC_IFSD_VALUE))) {
+    ifsd_value = EseConfig::getUnsigned(NAME_NXP_EUICC_IFSD_VALUE);
     if((0xFFFF > ifsd_value) &&
       (ifsd_value > 0)) {
       LOG(INFO) << StringPrintf("phNxpEseProto7816_SetIFS IFS adjustment requested with %ld", ifsd_value);
@@ -797,9 +808,9 @@ ESESTATUS phNxpEse_resetJcopUpdate(void) {
   whether JCOP did a full power cycle or not. */
   status = phNxpEseProto7816_Reset();
   /* Retrieving the IFS-D value configured in the config file and applying to Card */
-  if (EseConfig::hasKey(NAME_NXP_IFSD_VALUE)) {
+  if (EseConfig::hasKey(NAME_NXP_ESE_IFSD_VALUE)) {
     unsigned long int ifsd_value = 0;
-    ifsd_value = EseConfig::getUnsigned(NAME_NXP_IFSD_VALUE);
+    ifsd_value = EseConfig::getUnsigned(NAME_NXP_ESE_IFSD_VALUE);
     if((0xFFFF > ifsd_value) &&
       (ifsd_value > 0)) {
       LOG(INFO) << StringPrintf("phNxpEseProto7816_SetIFS IFS adjustment requested with %ld", ifsd_value);
