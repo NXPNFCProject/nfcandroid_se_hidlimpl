@@ -384,24 +384,47 @@ SESTATUS handleJcopOsDownload()
 *******************************************************************************/
 uint8_t performLSUpdate()
 {
+  const char* SEterminal = "eSEx";
+  bool ret = false;
+  char terminalID[5];
   uint8_t status = SESTATUS_FAILED;
-  status = initializeEse(ESE_MODE_NORMAL, ESE);
-  ALOGE("%s:On eSE domain ", __FUNCTION__);
-  if(status == SESTATUS_SUCCESS)
+  bool isSEPresent = false;
+  bool isVISOPresent = false;
+  ret = geteSETerminalId(terminalID);
+  ALOGI("performLSUpdate Terminal val = %s", terminalID);
+  if((ret) && (strncmp(SEterminal, terminalID, 3) == 0))
   {
-    seteSEClientState(ESE_UPDATE_STARTED);
-    status = performLSDownload(&Ch);
-    phNxpEse_ResetEndPoint_Cntxt(ESE);
+    isSEPresent = true;
   }
-  phNxpEse_close();
-  ALOGE("%s:On eUICC domain ", __FUNCTION__);
-  status = initializeEse(ESE_MODE_NORMAL, EUICC);
-  if(status == SESTATUS_SUCCESS)
+  ret = geteUICCTerminalId(terminalID);
+  if((ret) && (strncmp(SEterminal, terminalID, 3) == 0))
   {
-    status = performLSDownload(&Ch);
-    phNxpEse_ResetEndPoint_Cntxt(EUICC);
+    isVISOPresent = true;
   }
-  phNxpEse_close();
+  seteSEClientState(ESE_UPDATE_STARTED);
+  if(isSEPresent)
+  {
+    ALOGE("%s:On eSE domain ", __FUNCTION__);
+    status = initializeEse(ESE_MODE_NORMAL, ESE);
+    ALOGE("%s:On eSE domain ", __FUNCTION__);
+    if(status == SESTATUS_SUCCESS)
+    {
+      status = performLSDownload(&Ch);
+      phNxpEse_ResetEndPoint_Cntxt(ESE);
+    }
+    phNxpEse_close();
+  }
+  if(isVISOPresent)
+  {
+    ALOGE("%s:On eUICC domain ", __FUNCTION__);
+    status = initializeEse(ESE_MODE_NORMAL, EUICC);
+    if(status == SESTATUS_SUCCESS)
+    {
+      status = performLSDownload(&Ch);
+      phNxpEse_ResetEndPoint_Cntxt(EUICC);
+    }
+    phNxpEse_close();
+  }
   return status;
 }
 
