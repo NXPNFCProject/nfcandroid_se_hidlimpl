@@ -49,8 +49,8 @@ cc_binary {
     ],
 
     include_dirs: [
+        "hardware/nxp/nfc/SN100x/extns/impl",
         "hardware/nxp/secure_element_extns/inc",
-        "hardware/nxp/nfc/extns/impl",
         "hardware/nxp/secure_element/extns/impl",
         "hardware/nxp/secure_element_extns/jcos_client/inc",
         "hardware/nxp/secure_element_extns/ls_client/inc",
