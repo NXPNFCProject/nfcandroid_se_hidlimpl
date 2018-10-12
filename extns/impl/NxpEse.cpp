@@ -33,12 +33,15 @@ Return<void> NxpEse::ioctl(uint64_t ioctlType,
                            ioctl_cb _hidl_cb) {
   ALOGD("NxpEse::ioctl(): enter");
   ese_nxp_IoctlInOutData_t inpOutData;
+  memset(&inpOutData, 0, sizeof(inpOutData));
   ese_nxp_IoctlInOutData_t* pInOutData =
       (ese_nxp_IoctlInOutData_t*)&inOutData[0];
 
   /*data from proxy->stub is copied to local data which can be updated by
    * underlying HAL implementation since its an inout argument*/
-  memcpy(&inpOutData, pInOutData, sizeof(ese_nxp_IoctlInOutData_t));
+  inpOutData.inp.data.nxpCmd.cmd_len = inOutData.size();
+  memcpy(&inpOutData.inp.data.nxpCmd.p_cmd, pInOutData,
+         inpOutData.inp.data.nxpCmd.cmd_len);
   ESESTATUS status = phNxpEse_spiIoctl(ioctlType, &inpOutData);
 
   /*copy data and additional fields indicating status of ioctl operation

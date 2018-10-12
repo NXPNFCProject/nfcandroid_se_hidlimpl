@@ -193,5 +193,19 @@ void phPalEse_spi_start_debounce_timer(unsigned long millisecs);
  *
  */
 void phPalEse_spi_rf_off_timer_expired_cb(union sigval);
+
+/*******************************************************************************
+**
+** Function         phPalEse_spi_match_app_signatures
+**
+** Description
+**
+** Parameters       none
+**
+** Returns          true/false
+**
+*******************************************************************************/
+ESESTATUS phPalEse_spi_match_app_signatures(std::vector<uint8_t> signature);
+
 /** @} */
 #endif /*  _PHNXPESE_PAL_SPI_H    */

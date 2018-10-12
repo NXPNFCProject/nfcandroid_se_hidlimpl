@@ -46,6 +46,7 @@
 #define MAX_RETRY_CNT 10
 #define HAL_NFC_SPI_DWP_SYNC 21
 #define RF_ON 1
+#define SHA1_LEN 20
 
 extern int omapi_status;
 extern bool ese_debug_enabled;
@@ -53,10 +54,18 @@ extern SyncEvent gSpiTxLock;
 extern SyncEvent gSpiOpenLock;
 
 static int rf_status;
-unsigned long int configNum1, configNum2;
+unsigned long configNum1, configNum2, gFelicaAppTimeout;
 
 static const uint8_t MAX_SPI_WRITE_RETRY_COUNT_HW_ERR = 3;
 static IntervalTimer sTimerInstance;
+
+uint8_t gMfcAppSessionCount = 0;
+static std::vector<uint8_t> gOmapiAppSignature1(20, 0xFF);
+static std::vector<uint8_t> gOmapiAppSignature2(20, 0xFF);
+static std::vector<uint8_t> gOmapiAppSignature3(20, 0xFF);
+static std::vector<uint8_t> gOmapiAppSignature4(20, 0xFF);
+static std::vector<uint8_t> gOmapiAppSignature5(20, 0xFF);
+
 /*******************************************************************************
 **
 ** Function         phPalEse_spi_close
@@ -106,6 +115,7 @@ void phPalEse_spi_dwp_sync_close() {
 }
 
 ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
+  ESESTATUS status = ESESTATUS_SUCCESS;
   ese_nxp_IoctlInOutData_t *inpOutData;
   if (p_data != NULL) {
     inpOutData = (ese_nxp_IoctlInOutData_t *)p_data;
@@ -120,7 +130,11 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
           ese_debug_enabled,
           "*******************RF IS ON*************************************");
       phPalEse_spi_stop_debounce_timer();
-      StateMachine::GetInstance().ProcessExtEvent(EVT_RF_ON);
+      if (gMfcAppSessionCount) {
+        StateMachine::GetInstance().ProcessExtEvent(EVT_RF_ON_FELICA_APP);
+      } else {
+        StateMachine::GetInstance().ProcessExtEvent(EVT_RF_ON);
+      }
     } else {
       ALOGD_IF(
           ese_debug_enabled,
@@ -134,11 +148,8 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
         "*******************RF ACT NTF*************************************");
     /* Parsing NFCEE Action Notification to detect type of routing either SCBR
      * or Technology F for ESE to resume SPI session for ESE-UICC concurrency */
-    if ((inpOutData->inp.data.nxpCmd.p_cmd[0] == 0xC0) &&
-        ((inpOutData->inp.data.nxpCmd.p_cmd[1] == 0x03) ||
-         ((inpOutData->inp.data.nxpCmd.p_cmd[1] == 0x02) &&
-          (inpOutData->inp.data.nxpCmd.p_cmd[3] == 0x02)))) {
-      StateMachine::GetInstance().ProcessExtEvent(EVT_RF_ACT_NTF_ESE_F);
+    if (inpOutData->inp.data.nxpCmd.p_cmd[0] == 0xC0) {
+      StateMachine::GetInstance().ProcessExtEvent(EVT_RF_ACT_NTF_ESE);
       {
         SyncEventGuard guard(gSpiTxLock);
         ALOGD_IF(ese_debug_enabled, "%s: Notifying SPI_TX Wait if waiting...",
@@ -147,10 +158,37 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
       }
     }
   } break;
+  case HAL_ESE_IOCTL_OMAPI_RELEASE_ESE_SESSION: {
+    std::vector<uint8_t> signature(inpOutData->inp.data.nxpCmd.p_cmd,
+                                   inpOutData->inp.data.nxpCmd.p_cmd +
+                                       inpOutData->inp.data.nxpCmd.cmd_len);
+    if (!phPalEse_spi_match_app_signatures(signature)) {
+      ALOGD_IF(ese_debug_enabled, "****RELEASE SESSION:SIGNATURE MATCHED****");
+      if (gMfcAppSessionCount)
+        gMfcAppSessionCount--;
+    } else {
+      ALOGD_IF(ese_debug_enabled, "**RELEASE SESSION:SIGNATURE NOT MATCHED**");
+    }
+  } break;
+  case HAL_ESE_IOCTL_OMAPI_TRY_GET_ESE_SESSION: {
+    std::vector<uint8_t> signature(inpOutData->inp.data.nxpCmd.p_cmd,
+                                   inpOutData->inp.data.nxpCmd.p_cmd +
+                                       inpOutData->inp.data.nxpCmd.cmd_len);
+    if (!phPalEse_spi_match_app_signatures(signature)) {
+      ALOGD_IF(ese_debug_enabled, "******GET SESSION:SIGNATURE MATCHED******");
+      gMfcAppSessionCount++;
+      if (rf_status) {
+        ALOGD_IF(ese_debug_enabled, "**GET SESSION:SIGNATURE MATCHED RF ON**");
+        status = ESESTATUS_NOT_ALLOWED;
+      }
+    } else {
+      ALOGD_IF(ese_debug_enabled, "****GET SESSION:SIGNATURE NOT MATCHED****");
+    }
+  } break;
   default:
     break;
   }
-  return ESESTATUS_SUCCESS;
+  return status;
 }
 
 /*******************************************************************************
@@ -188,6 +226,28 @@ ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig) {
     ALOGD_IF(ese_debug_enabled,
              "NXP_SPI_WRITE_TIMEOUT value from config file = %ld", configNum2);
   }
+  if (EseConfig::hasKey(NAME_NXP_OMAPI_APP_TIMEOUT)) {
+    gFelicaAppTimeout = EseConfig::getUnsigned(NAME_NXP_OMAPI_APP_TIMEOUT);
+    ALOGD_IF(ese_debug_enabled,
+             "NXP_OMAPI_APP_TIMEOUT value from config file = %ld",
+             gFelicaAppTimeout);
+  }
+  if (EseConfig::hasKey(NAME_NXP_OMAPI_APP_SIGNATURE_1)) {
+    gOmapiAppSignature1 = EseConfig::getBytes(NAME_NXP_OMAPI_APP_SIGNATURE_1);
+  }
+  if (EseConfig::hasKey(NAME_NXP_OMAPI_APP_SIGNATURE_2)) {
+    gOmapiAppSignature2 = EseConfig::getBytes(NAME_NXP_OMAPI_APP_SIGNATURE_2);
+  }
+  if (EseConfig::hasKey(NAME_NXP_OMAPI_APP_SIGNATURE_3)) {
+    gOmapiAppSignature3 = EseConfig::getBytes(NAME_NXP_OMAPI_APP_SIGNATURE_3);
+  }
+  if (EseConfig::hasKey(NAME_NXP_OMAPI_APP_SIGNATURE_4)) {
+    gOmapiAppSignature4 = EseConfig::getBytes(NAME_NXP_OMAPI_APP_SIGNATURE_4);
+  }
+  if (EseConfig::hasKey(NAME_NXP_OMAPI_APP_SIGNATURE_5)) {
+    gOmapiAppSignature5 = EseConfig::getBytes(NAME_NXP_OMAPI_APP_SIGNATURE_5);
+  }
+
   ALOGD_IF(ese_debug_enabled, "halimpl open enter.");
   memset(&inpOutData, 0x00, sizeof(ese_nxp_IoctlInOutData_t));
   inpOutData.inp.data.nxpCmd.cmd_len = sizeof(cmd_omapi_concurrent);
@@ -203,6 +263,8 @@ retry_nfc_access:
     nfc_access_retryCnt++;
     phPalEse_sleep(2000000);
     if (nfc_access_retryCnt < 5) goto retry_nfc_access;
+    ALOGD_IF(ese_debug_enabled, "%s: Return Exception NFC in USE...",
+             __FUNCTION__);
     return ESESTATUS_FAILED;
   }
   ALOGD_IF(ese_debug_enabled, "halimpl open exit");
@@ -416,7 +478,7 @@ void phPalEse_spi_start_debounce_timer(unsigned long millisecs) {
       true) {
     ALOGD_IF(true, "Starting RF debounce timer...");
   } else {
-    ALOGE_IF(true, "Error, Starting timer...");
+    ALOGE_IF(true, "Error, Starting RF debounce timer...");
   }
 }
 
@@ -434,4 +496,30 @@ void phPalEse_spi_start_debounce_timer(unsigned long millisecs) {
 void phPalEse_spi_stop_debounce_timer() {
   ALOGD_IF(true, "Stopping RF debounce timer...");
   sTimerInstance.kill();
+}
+
+/*******************************************************************************
+**
+** Function         phPalEse_spi_match_app_signatures
+**
+** Description      Utility function to match the app signatures
+**
+** Parameters       none
+**
+** Returns          none
+**
+*******************************************************************************/
+ESESTATUS phPalEse_spi_match_app_signatures(std::vector<uint8_t> signature) {
+  if (gOmapiAppSignature1 == signature)
+    return ESESTATUS_SUCCESS;
+  else if (gOmapiAppSignature2 == signature)
+    return ESESTATUS_SUCCESS;
+  else if (gOmapiAppSignature3 == signature)
+    return ESESTATUS_SUCCESS;
+  else if (gOmapiAppSignature4 == signature)
+    return ESESTATUS_SUCCESS;
+  else if (gOmapiAppSignature5 == signature)
+    return ESESTATUS_SUCCESS;
+  else
+    return ESESTATUS_FAILED;
 }

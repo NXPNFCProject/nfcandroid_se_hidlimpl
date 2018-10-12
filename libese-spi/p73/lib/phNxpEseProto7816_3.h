@@ -371,9 +371,13 @@ static phNxpEseProto7816_t phNxpEseProto7816_3_Var;
  */
 #define MAX_RNACK_RETRY_LIMIT 0x02
 /*!
- * \brief 7816-3 for rf off debounce timer
+ * \brief 7816-3 for max rf off wait timer
  */
 #define MAX_WAIT_TIME_FOR_RF_OFF 10000
+/*!
+ * \brief 7816-3 for min rf off wait timer
+ */
+#define GUARD_WAIT_TIME_FOR_RF_OFF 2000
 /*
  * APIs exposed from the 7816-3 protocol layer
  */

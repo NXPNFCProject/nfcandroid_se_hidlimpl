@@ -181,9 +181,8 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
              StateMachine::GetInstance().GetCurrentState());
     if ((eStates_t)ST_SPI_CLOSED_RF_BUSY ==
         (eStates_t)StateMachine::GetInstance().GetCurrentState()) {
-      ALOGD_IF(ese_debug_enabled,
-               "%s: Waiting for either 10seconds or RF-OFF...", __FUNCTION__);
-      gSpiOpenLock.wait(MAX_WAIT_TIME_FOR_RF_OFF);
+      ALOGD_IF(ese_debug_enabled, "%s: NFC in Use", __FUNCTION__);
+      return ESESTATUS_FAILED;
     }
   }
   ALOGD("%s: Proceed with open...", __FUNCTION__);

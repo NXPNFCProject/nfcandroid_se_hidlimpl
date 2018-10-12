@@ -19,6 +19,7 @@
 #ifndef LIBESE_SPI_SRC_SYNC_ESEHALSTATES_H_
 #define LIBESE_SPI_SRC_SYNC_ESEHALSTATES_H_
 
+#include <IntervalTimer.h>
 #include <StateMachineInfo.h>
 #include <map>
 #include <string>
@@ -35,10 +36,14 @@ public:
 
 protected:
   static map<eStates_t, StateBase *> sListOfStates;
+  static IntervalTimer sTimerInstance;
   eStatus_t SendOMAPISessionOpenCmd();
   eStatus_t SendOMAPISessionCloseCmd();
   eStatus_t SendSwpSwitchAllowCmd();
   eStatus_t SendOMAPICommand(uint8_t cmd[], uint8_t cmd_len);
+  static void TimerStart(unsigned long millisecs);
+  static void TimerStop();
+  static void TimerTimeoutCallback(union sigval);
 };
 
 #endif /* LIBESE_SPI_SRC_SYNC_ESEHALSTATES_H_ */

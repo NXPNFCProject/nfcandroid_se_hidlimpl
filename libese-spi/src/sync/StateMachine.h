@@ -34,6 +34,7 @@ private:
 public:
   ~StateMachine();
   static StateMachine &GetInstance();
+  bool isSpiTxRxAllowed();
   eStates_t GetCurrentState();
   eStatus_t ProcessExtEvent(eExtEvent_t);
 };

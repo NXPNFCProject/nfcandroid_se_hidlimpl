@@ -116,11 +116,16 @@ Return<void> SecureElement::transmit(const hidl_vec<uint8_t>& data,
   }
 
   hidl_vec<uint8_t> result;
-  if (status != ESESTATUS_SUCCESS) {
-    ALOGE("%s: transmit failed!!!", __func__);
-  } else {
+  if (status == ESESTATUS_WRITE_FAILED) {
+    ALOGE("%s: transmit failed, nfc in use!!!", __func__);
+    result.resize(2);
+    result[0] = 0x65;
+    result[1] = ESESTATUS_WRITE_FAILED;
+  } else if (status == ESESTATUS_SUCCESS) {
     result.resize(rspApdu.len);
     memcpy(&result[0], rspApdu.p_data, rspApdu.len);
+  } else {
+    ALOGE("%s: transmit failed!!!", __func__);
   }
   _hidl_cb(result);
   phNxpEse_free(cmdApdu.p_data);

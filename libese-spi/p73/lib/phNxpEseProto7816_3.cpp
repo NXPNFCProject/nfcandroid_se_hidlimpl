@@ -25,6 +25,7 @@
 SyncEvent gSpiTxLock;
 
 extern bool ese_debug_enabled;
+extern bool gMfcAppSessionCount;
 
 /******************************************************************************
 \section Introduction Introduction
@@ -212,6 +213,7 @@ static ESESTATUS phNxpEseProto7816_SendSFrame(sFrameInfo_t sFrameData) {
 
       pcb_byte |= PH_PROTO_7816_S_BLOCK_RSP;
       pcb_byte |= PH_PROTO_7816_S_WTX;
+      StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_TX_WTX_RSP);
       break;
     default:
       ALOGE("Invalid S-block");
@@ -806,7 +808,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
                  phNxpEseProto7816_3_Var.wtx_counter);
         ALOGD_IF(ese_debug_enabled, "%s Wtx_counter wtx_counter_limit - %lu",
                  __FUNCTION__, phNxpEseProto7816_3_Var.wtx_counter_limit);
-        StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_RX_WTX);
+        StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_RX_WTX_REQ);
         /* Previous sent frame is some S-frame but not WTX response S-frame */
         if (phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.sFrameType !=
                 WTX_RSP &&
@@ -1003,19 +1005,30 @@ static ESESTATUS TransceiveProcess(void) {
   ESESTATUS status = ESESTATUS_FAILED;
   sFrameInfo_t sFrameInfo;
   ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
+
   {
     SyncEventGuard guard(gSpiTxLock);
     ALOGD_IF(ese_debug_enabled, "%s: CurrentState:%d", __FUNCTION__,
              StateMachine::GetInstance().GetCurrentState());
-    if (!((eStates_t)ST_SPI_OPEN_RF_IDLE ==
-              (eStates_t)StateMachine::GetInstance().GetCurrentState() ||
-          (eStates_t)ST_SPI_OPEN_RESUMED_RF_BUSY ==
-              (eStates_t)StateMachine::GetInstance().GetCurrentState())) {
-      ALOGD_IF(ese_debug_enabled,
-               "%s: Waiting for either 10seconds or RF-OFF...", __FUNCTION__);
-      gSpiTxLock.wait(MAX_WAIT_TIME_FOR_RF_OFF);
+    if (!StateMachine::GetInstance().isSpiTxRxAllowed()) {
+      if (gMfcAppSessionCount) {
+        ALOGD_IF(ese_debug_enabled,
+                 "%s: Waiting for either 2seconds or RF-OFF...", __FUNCTION__);
+        gSpiTxLock.wait(GUARD_WAIT_TIME_FOR_RF_OFF);
+        if (!StateMachine::GetInstance().isSpiTxRxAllowed()) {
+          return ESESTATUS_WRITE_FAILED;
+        }
+      } else {
+        ALOGD_IF(ese_debug_enabled,
+                 "%s: Waiting for either 10seconds or RF-OFF...", __FUNCTION__);
+        gSpiTxLock.wait(MAX_WAIT_TIME_FOR_RF_OFF);
+        if (!StateMachine::GetInstance().isSpiTxRxAllowed()) {
+          return ESESTATUS_WRITE_FAILED;
+        }
+      }
     }
   }
+
   while (phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState !=
          IDLE_STATE) {
     ALOGD_IF(ese_debug_enabled, "%s nextTransceiveState %x", __FUNCTION__,
@@ -1117,6 +1130,8 @@ ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd,
       pRsp->len = pRes.len;
       pRsp->p_data = pRes.p_data;
     }
+  } else if (ESESTATUS_WRITE_FAILED == status) {
+    return status;
   } else {
     // fetch the data info and report to upper layer.
     wStatus = phNxpEse_GetData(&pRes.len, &pRes.p_data);

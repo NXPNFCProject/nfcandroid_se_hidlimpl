@@ -30,9 +30,11 @@
 #define HAL_NFC_SPI_DWP_SYNC 21
 
 extern int omapi_status;
+extern unsigned long gFelicaAppTimeout;
 bool state_machine_debug = true;
 
 map<eStates_t, StateBase *> StateBase::sListOfStates;
+IntervalTimer StateBase::sTimerInstance;
 
 class StateSpiBusyRfBusy : public StateBase {
 public:
@@ -44,14 +46,45 @@ public:
   StateBase *ProcessEvent(eExtEvent_t event) {
     StateBase *PtrNextState = this;
     switch (event) {
-    case EVT_RF_ON:
-      break;
     case EVT_RF_OFF:
-      SendOMAPISessionOpenCmd();
+      TimerStop();
       PtrNextState = sListOfStates.find(ST_SPI_BUSY_RF_IDLE)->second;
       break;
     case EVT_SPI_RX:
       PtrNextState = sListOfStates.find(ST_SPI_OPEN_RESUMED_RF_BUSY)->second;
+      break;
+    case EVT_SPI_TIMER_EXPIRED:
+      PtrNextState =
+          sListOfStates.find(ST_SPI_BUSY_RF_BUSY_TIMER_EXPIRED)->second;
+      break;
+    case EVT_SPI_RX_WTX_REQ:
+      break;
+    case EVT_SPI_TX_WTX_RSP:
+      break;
+    default:
+      break;
+    }
+    return PtrNextState;
+  }
+};
+
+class StateSpiBusyRfBusyTimerExpired : public StateBase {
+public:
+  StateSpiBusyRfBusyTimerExpired() {}
+  ~StateSpiBusyRfBusyTimerExpired() {}
+
+  eStates_t GetState() { return ST_SPI_BUSY_RF_BUSY_TIMER_EXPIRED; }
+
+  StateBase *ProcessEvent(eExtEvent_t event) {
+    StateBase *PtrNextState = this;
+    switch (event) {
+    case EVT_SPI_RX:
+      PtrNextState = sListOfStates.find(ST_SPI_OPEN_SUSPENDED_RF_BUSY)->second;
+      SendSwpSwitchAllowCmd();
+      break;
+    case EVT_SPI_RX_WTX_REQ:
+      break;
+    case EVT_SPI_TX_WTX_RSP:
       break;
     default:
       break;
@@ -73,35 +106,16 @@ public:
     case EVT_RF_ON:
       PtrNextState = sListOfStates.find(ST_SPI_RX_PENDING_RF_PENDING)->second;
       break;
-    case EVT_SPI_RX:
-      PtrNextState = sListOfStates.find(ST_SPI_OPEN_RF_IDLE)->second;
-      break;
-    case EVT_SPI_RX_WTX:
-      PtrNextState = sListOfStates.find(ST_SPI_BUSY_WTX_RF_IDLE)->second;
-      break;
-    default:
-      break;
-    }
-    return PtrNextState;
-  }
-};
-
-class StateSpiBusyWtxRfIdle : public StateBase {
-public:
-  StateSpiBusyWtxRfIdle() {}
-  ~StateSpiBusyWtxRfIdle() {}
-
-  eStates_t GetState() { return ST_SPI_BUSY_WTX_RF_IDLE; }
-
-  StateBase *ProcessEvent(eExtEvent_t event) {
-    StateBase *PtrNextState = this;
-    switch (event) {
-    case EVT_RF_ON:
+    case EVT_RF_ON_FELICA_APP:
       PtrNextState =
-          sListOfStates.find(ST_SPI_RX_PENDING_WTX_RF_PENDING)->second;
+          sListOfStates.find(ST_SPI_RX_PENDING_RF_PENDING_FELICA)->second;
       break;
     case EVT_SPI_RX:
       PtrNextState = sListOfStates.find(ST_SPI_OPEN_RF_IDLE)->second;
+      break;
+    case EVT_SPI_RX_WTX_REQ:
+      break;
+    case EVT_SPI_TX_WTX_RSP:
       break;
     default:
       break;
@@ -124,7 +138,6 @@ public:
       PtrNextState = sListOfStates.find(ST_SPI_CLOSED_RF_IDLE)->second;
       break;
     case EVT_SPI_OPEN:
-    case EVT_SPI_CLOSE:
       break;
     default:
       break;
@@ -169,10 +182,8 @@ public:
   StateBase *ProcessEvent(eExtEvent_t event) {
     StateBase *PtrNextState = this;
     switch (event) {
-    case EVT_RF_ON:
-      break;
     case EVT_RF_OFF:
-      SendOMAPISessionOpenCmd();
+      TimerStop();
       PtrNextState = sListOfStates.find(ST_SPI_OPEN_RF_IDLE)->second;
       break;
     case EVT_SPI_TX:
@@ -180,6 +191,10 @@ public:
       break;
     case EVT_SPI_CLOSE:
       PtrNextState = sListOfStates.find(ST_SPI_CLOSED_RF_BUSY)->second;
+      break;
+    case EVT_SPI_TIMER_EXPIRED:
+      PtrNextState = sListOfStates.find(ST_SPI_OPEN_SUSPENDED_RF_BUSY)->second;
+      SendSwpSwitchAllowCmd();
       break;
     default:
       break;
@@ -199,8 +214,12 @@ public:
     StateBase *PtrNextState = this;
     switch (event) {
     case EVT_RF_ON:
-      SendSwpSwitchAllowCmd();
       PtrNextState = sListOfStates.find(ST_SPI_OPEN_SUSPENDED_RF_BUSY)->second;
+      SendSwpSwitchAllowCmd();
+      break;
+    case EVT_RF_ON_FELICA_APP:
+      PtrNextState = sListOfStates.find(ST_SPI_OPEN_RESUMED_RF_BUSY)->second;
+      TimerStart(gFelicaAppTimeout);
       break;
     case EVT_SPI_TX:
       PtrNextState = sListOfStates.find(ST_SPI_BUSY_RF_IDLE)->second;
@@ -225,13 +244,11 @@ public:
   StateBase *ProcessEvent(eExtEvent_t event) {
     StateBase *PtrNextState = this;
     switch (event) {
-    case EVT_RF_ON:
-      break;
     case EVT_RF_OFF:
       SendOMAPISessionOpenCmd();
       PtrNextState = sListOfStates.find(ST_SPI_OPEN_RF_IDLE)->second;
       break;
-    case EVT_RF_ACT_NTF_ESE_F:
+    case EVT_RF_ACT_NTF_ESE:
       PtrNextState = sListOfStates.find(ST_SPI_OPEN_RESUMED_RF_BUSY)->second;
       break;
     case EVT_SPI_TX:
@@ -260,12 +277,12 @@ public:
       PtrNextState = sListOfStates.find(ST_SPI_BUSY_RF_IDLE)->second;
       break;
     case EVT_SPI_RX:
-      SendSwpSwitchAllowCmd();
       PtrNextState = sListOfStates.find(ST_SPI_OPEN_SUSPENDED_RF_BUSY)->second;
+      SendSwpSwitchAllowCmd();
       break;
-    case EVT_SPI_RX_WTX:
-      PtrNextState =
-          sListOfStates.find(ST_SPI_RX_PENDING_WTX_RF_PENDING)->second;
+    case EVT_SPI_RX_WTX_REQ:
+      break;
+    case EVT_SPI_TX_WTX_RSP:
       break;
     default:
       break;
@@ -274,22 +291,26 @@ public:
   }
 };
 
-class StateSpiRxPendingWtxRfPending : public StateBase {
+class StateSpiRxPendingRfPendingFelica : public StateBase {
 public:
-  StateSpiRxPendingWtxRfPending() {}
-  ~StateSpiRxPendingWtxRfPending() {}
+  StateSpiRxPendingRfPendingFelica() {}
+  ~StateSpiRxPendingRfPendingFelica() {}
 
-  eStates_t GetState() { return ST_SPI_RX_PENDING_WTX_RF_PENDING; }
+  eStates_t GetState() { return ST_SPI_RX_PENDING_RF_PENDING_FELICA; }
 
   StateBase *ProcessEvent(eExtEvent_t event) {
     StateBase *PtrNextState = this;
     switch (event) {
     case EVT_RF_OFF:
-      PtrNextState = sListOfStates.find(ST_SPI_BUSY_WTX_RF_IDLE)->second;
+      PtrNextState = sListOfStates.find(ST_SPI_BUSY_RF_IDLE)->second;
       break;
     case EVT_SPI_RX:
-      SendSwpSwitchAllowCmd();
-      PtrNextState = sListOfStates.find(ST_SPI_OPEN_SUSPENDED_RF_BUSY)->second;
+      PtrNextState = sListOfStates.find(ST_SPI_OPEN_RESUMED_RF_BUSY)->second;
+      TimerStart(gFelicaAppTimeout);
+      break;
+    case EVT_SPI_RX_WTX_REQ:
+      break;
+    case EVT_SPI_TX_WTX_RSP:
       break;
     default:
       break;
@@ -309,21 +330,22 @@ StateBase *StateBase::InitializeStates() {
       make_pair(ST_SPI_OPEN_RF_IDLE, new StateSpiOpenRfIdle()));
   StateBase::sListOfStates.insert(
       make_pair(ST_SPI_BUSY_RF_IDLE, new StateSpiBusyRfIdle()));
-  StateBase::sListOfStates.insert(
-      make_pair(ST_SPI_BUSY_WTX_RF_IDLE, new StateSpiBusyWtxRfIdle()));
   StateBase::sListOfStates.insert(make_pair(ST_SPI_RX_PENDING_RF_PENDING,
                                             new StateSpiRxPendingRfPending()));
-  StateBase::sListOfStates.insert(make_pair(
-      ST_SPI_RX_PENDING_WTX_RF_PENDING, new StateSpiRxPendingWtxRfPending()));
+  StateBase::sListOfStates.insert(
+      make_pair(ST_SPI_RX_PENDING_RF_PENDING_FELICA,
+                new StateSpiRxPendingRfPendingFelica()));
   StateBase::sListOfStates.insert(make_pair(ST_SPI_OPEN_SUSPENDED_RF_BUSY,
                                             new StateSpiOpenSuspendedRfBusy()));
   StateBase::sListOfStates.insert(
       make_pair(ST_SPI_OPEN_RESUMED_RF_BUSY, new StateSpiOpenResumedRfBusy()));
   StateBase::sListOfStates.insert(
       make_pair(ST_SPI_BUSY_RF_BUSY, new StateSpiBusyRfBusy()));
+  StateBase::sListOfStates.insert(make_pair(
+      ST_SPI_BUSY_RF_BUSY_TIMER_EXPIRED, new StateSpiBusyRfBusyTimerExpired()));
 
   StateBase *PtrCurrentState =
-      sListOfStates.find(ST_SPI_CLOSED_RF_IDLE)->second;
+      StateBase::sListOfStates.find(ST_SPI_CLOSED_RF_IDLE)->second;
   return PtrCurrentState;
 }
 
@@ -365,4 +387,24 @@ eStatus_t StateBase::SendOMAPISessionCloseCmd() {
 eStatus_t StateBase::SendSwpSwitchAllowCmd() {
   uint8_t cmd_clt_session_allow[] = {0x2F, 0x01, 0x01, 0x02};
   return SendOMAPICommand(cmd_clt_session_allow, sizeof(cmd_clt_session_allow));
+}
+
+void StateBase::TimerTimeoutCallback(union sigval) {
+  ALOGD_IF(state_machine_debug, "Timer expired...");
+  StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_TIMER_EXPIRED);
+}
+
+void StateBase::TimerStart(unsigned long sec) {
+  if (StateBase::sTimerInstance.set(sec * 1000,
+                                    StateBase::TimerTimeoutCallback) == true) {
+    ALOGD_IF(state_machine_debug, "Starting %ld milliseconds timer",
+             sec * 1000);
+  } else {
+    ALOGE_IF(state_machine_debug, "Error, Starting timer...");
+  }
+}
+
+void StateBase::TimerStop() {
+  ALOGD_IF(state_machine_debug, "Stopping timer...");
+  StateBase::sTimerInstance.kill();
 }

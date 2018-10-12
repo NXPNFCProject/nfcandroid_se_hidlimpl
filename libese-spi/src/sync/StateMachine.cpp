@@ -46,3 +46,14 @@ eStatus_t StateMachine::ProcessExtEvent(eExtEvent_t event) {
            mPtrCurrentState->GetState());
   return SM_STATUS_SUCCESS;
 }
+
+bool StateMachine::isSpiTxRxAllowed() {
+  if (!((eStates_t)ST_SPI_OPEN_RF_IDLE ==
+            (eStates_t)StateMachine::GetInstance().GetCurrentState() ||
+        (eStates_t)ST_SPI_OPEN_RESUMED_RF_BUSY ==
+            (eStates_t)StateMachine::GetInstance().GetCurrentState())) {
+    return false;
+  } else {
+    return true;
+  }
+}
