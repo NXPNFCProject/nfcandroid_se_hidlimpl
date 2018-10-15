@@ -163,6 +163,16 @@ uint8_t getLsUpdateIntf()
   return seExtn.sLsUpdateIntferface;
 }
 
+void setJcopUpdateRequired(uint8_t state)
+{
+  seExtn.isJcopUpdateRequired = state;
+}
+
+void setLsUpdateRequired(uint8_t  state)
+{
+  seExtn.isLSUpdateRequired = state;
+}
+
 bool geteSETerminalId(char* val)
 {
   bool ret = false;

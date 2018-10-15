@@ -68,4 +68,6 @@ uint8_t getLsUpdateIntf();
 bool geteSETerminalId(char*);
 bool geteUICCTerminalId(char*);
 bool getNfcSeTerminalId(char*);
+void setJcopUpdateRequired(uint8_t state);
+void setLsUpdateRequired(uint8_t  state);
 #endif /* CLIENT_INTF_H_ */
