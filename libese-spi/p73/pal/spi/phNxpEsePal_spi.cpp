@@ -338,7 +338,7 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
     case phPalEse_e_ChipRst:
       ret = pNfcAdapt.HalIoctl(HAL_NFC_SET_SPM_PWR, &inpOutData);
       if (ret == ESESTATUS_FEATURE_NOT_SUPPORTED) {
-        ioctl((intptr_t)pDevHandle, P61_SET_SPM_PWR, level);
+        ret = (ESESTATUS)ioctl((intptr_t)pDevHandle, P61_SET_SPM_PWR, level);
       }
       break;
 
