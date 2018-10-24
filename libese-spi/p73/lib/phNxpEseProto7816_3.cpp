@@ -1016,6 +1016,8 @@ static ESESTATUS TransceiveProcess(void) {
                  "%s: Waiting for either 2seconds or RF-OFF...", __FUNCTION__);
         gSpiTxLock.wait(GUARD_WAIT_TIME_FOR_RF_OFF);
         if (!StateMachine::GetInstance().isSpiTxRxAllowed()) {
+          phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
+               PH_NXP_ESE_PROTO_7816_IDLE;
           return ESESTATUS_WRITE_FAILED;
         }
       } else {
@@ -1023,6 +1025,8 @@ static ESESTATUS TransceiveProcess(void) {
                  "%s: Waiting for either 10seconds or RF-OFF...", __FUNCTION__);
         gSpiTxLock.wait(MAX_WAIT_TIME_FOR_RF_OFF);
         if (!StateMachine::GetInstance().isSpiTxRxAllowed()) {
+          phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
+               PH_NXP_ESE_PROTO_7816_IDLE;
           return ESESTATUS_WRITE_FAILED;
         }
       }
