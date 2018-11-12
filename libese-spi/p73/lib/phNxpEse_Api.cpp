@@ -271,8 +271,9 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
     wConfigStatus = ESESTATUS_FAILED;
     goto clean_and_return_1;
   } else {
-    if ((current_spm_state & SPM_STATE_SPI) |
-        (current_spm_state & SPM_STATE_SPI_PRIO)) {
+    if (((current_spm_state & SPM_STATE_SPI) |
+        (current_spm_state & SPM_STATE_SPI_PRIO)) &&
+        !(current_spm_state & SPM_STATE_SPI_FAILED)) {
       ALOGE(" %s : SPI is already opened...second instance not allowed",
             __FUNCTION__);
       wConfigStatus = ESESTATUS_FAILED;
