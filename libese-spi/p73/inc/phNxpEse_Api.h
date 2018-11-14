@@ -351,5 +351,21 @@ ESESTATUS phNxpEse_DisablePwrCntrl(void);
  *
  */
 ESESTATUS phNxpEse_GetEseStatus(phNxpEse_data* timer_buffer);
+
+/**
+ * \ingroup spi_libese
+ * \brief This function power recycles the ESE
+ *        (using prop. FW command) by talking to NFC HAL
+ *
+ *        Note:
+ *        After cold reset, phNxpEse_init need to be called to
+ *        reset the host AP T=1 stack parameters
+ *
+ * \param[in]       void
+ *
+ * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
+ *
+ */
+ESESTATUS phNxpEse_coldReset(void);
 /** @} */
 #endif /* _PHNXPSPILIB_API_H_ */

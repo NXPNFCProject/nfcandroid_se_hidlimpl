@@ -720,6 +720,30 @@ ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp) {
     return status;
   }
 }
+/******************************************************************************
+ * Function         phNxpEse_coldReset
+ *
+ * Description      This function power cycles the ESE
+ *                  (cold reset by prop. FW command) interface by
+ *                  talking to NFC HAL
+ *
+ *                  Note:
+ *                  After cold reset, phNxpEse_init need to be called to
+ *                  reset the host AP T=1 stack parameters
+ *
+ * Returns          It returns ESESTATUS_SUCCESS (0) if the operation is
+ *successful else
+ *                  ESESTATUS_FAILED(1)
+ ******************************************************************************/
+ESESTATUS phNxpEse_coldReset(void) {
+    ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
+    DLOG_IF(INFO, ese_debug_enabled)
+      << StringPrintf(" %s Enter \n", __FUNCTION__);
+    wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
+    DLOG_IF(INFO, ese_debug_enabled)
+      << StringPrintf(" %s Exit status 0x%x \n", __FUNCTION__, wSpmStatus);
+    return wSpmStatus;
+}
 
 /******************************************************************************
  * Function         phNxpEse_reset
