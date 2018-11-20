@@ -50,6 +50,7 @@ static const char *isFirstTimeLsUpdate[2] =
 se_extns_entry seExtn;
 
 static bool scriptUpdateRequired(ESE_CLIENT_INTF intf);
+static bool jcopOsUpdateRequired(ESE_CLIENT_INTF intf);
 /*******************************************************************************
 **
 ** Function:        checkeSEClientUpdateRequired
@@ -90,17 +91,15 @@ uint8_t checkeSEClientRequired(ESE_CLIENT_INTF intf ) {
       }
     }
   }
-  /*Check if system image is updated*/
-  if(stat(isSystemImgInfo[intf-1], &st))
-  {
-    isSystemImgUpdated = true;
-  }
+  /*Check if OS udpate required*/
+  isSystemImgUpdated = jcopOsUpdateRequired(intf);
+
   /*Check if LS script present*/
   if(stat(lsUpdateBackupPath, &st))
   {
     isLsScriptPresent = false;
   }
-  /*Check if it is first time LS update*/
+  /*Check if LS update required*/
   isFirstLsUpdate = scriptUpdateRequired(intf);
 
   if(GetNxpNumValue(NAME_NXP_P61_JCOP_DEFAULT_INTERFACE, &num, sizeof(num))) {
@@ -180,6 +179,45 @@ bool scriptUpdateRequired(ESE_CLIENT_INTF intf)
     fclose(fLS_STATUS);
   }
   return mScriptUpdateRequired;
+}
+/*******************************************************************************
+**
+** Function:        jcopOsUpdateRequired
+**
+** Description:     Get JCOP update required
+**
+** Returns:         TRUE/FALSE
+**
+*******************************************************************************/
+bool jcopOsUpdateRequired(ESE_CLIENT_INTF intf)
+{
+  bool isUpdateRequired = false;
+  uint32_t status = 0;
+  FILE* fp = fopen(isSystemImgInfo[intf-1], "r");
+
+  if (fp == NULL) {
+    LOG(ERROR) <<"jcopOsUpdateRequired : file not exits for reading";
+    isUpdateRequired = true;
+  }
+  else {
+    if (fscanf(fp, "%u", &status) == 0) {
+      LOG(ERROR) <<"jcop status read fail";
+      isUpdateRequired = true;
+    }
+    else {
+      LOG(ERROR) << "JcopOsState: "<< status;
+      if (status == JCOP_UPDATE_3STEP_DONE) {
+        isUpdateRequired = false;
+        LOG(ERROR) <<"jcopOsUpdateRequired : Jcop update completed";
+      }
+      else {
+        LOG(ERROR) << "jcopOsUpdateRequired : Jcop update required";
+        isUpdateRequired = true;
+      }
+    }
+    fclose(fp);
+  }
+  return isUpdateRequired;
 }
 
 uint8_t getJcopUpdateRequired()
