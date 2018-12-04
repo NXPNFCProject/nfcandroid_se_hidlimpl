@@ -207,9 +207,9 @@ Return<void> WiredSe::openLogicalChannel(const hidl_vec<uint8_t> &aid,
     /*Transceive failed*/
     if (rspSelectApdu.size() > 0 && (*(rspSelectApdu.end() - 2) == 0x64 &&
                                      *(rspSelectApdu.end() - 1) == 0xFF)) {
-      _hidl_cb(resApduBuff, SecureElementStatus::IOERROR);
+      sestatus = SecureElementStatus::IOERROR;
     } else {
-      _hidl_cb(resApduBuff, SecureElementStatus::FAILED);
+      sestatus = SecureElementStatus::FAILED;
     }
   } else {
     /*Status is success*/
@@ -289,9 +289,9 @@ Return<void> WiredSe::openBasicChannel(const hidl_vec<uint8_t> &aid, uint8_t p2,
     /*Transceive failed*/
     if (rspSelectApdu.size() > 0 && (*(rspSelectApdu.end() - 2) == 0x64 &&
                                      *(rspSelectApdu.end() - 1) == 0xFF)) {
-      _hidl_cb(result, SecureElementStatus::IOERROR);
+      sestatus = SecureElementStatus::IOERROR;
     } else {
-      _hidl_cb(result, SecureElementStatus::FAILED);
+      sestatus = SecureElementStatus::FAILED;
     }
   } else {
     /*Status is success*/
