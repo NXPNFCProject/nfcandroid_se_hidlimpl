@@ -23,6 +23,8 @@
 #include "LsClient.h"
 #include "phNxpEse_Api.h"
 
+extern const size_t HASH_DATA_LENGTH;
+
 typedef struct Lsc_ChannelInfo {
   uint8_t channel_id;
   bool isOpend;

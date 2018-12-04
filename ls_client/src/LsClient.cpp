@@ -203,7 +203,7 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
     if ((lsHashStatus == LSCSTATUS_SUCCESS) &&
         (lsHashInfo.readHashLen == HASH_DATA_LENGTH) &&
         (0 == memcmp(lsHashInfo.lsScriptHash, lsHashInfo.readBuffHash,
-                     HASH_DATA_LENGTH)) &&
+                     HASH_DATA_LENGTH - 1)) &&
         (lsHashInfo.readBuffHash[HASH_STATUS_INDEX] == LS_DOWNLOAD_SUCCESS)) {
       ALOGD_IF(ese_debug_enabled, "%s LS Loader sript is already installed \n",
                __func__);

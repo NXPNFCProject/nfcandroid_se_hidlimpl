@@ -2049,9 +2049,13 @@ LSCSTATUS LSC_ReadLsHash(uint8_t* hash, uint16_t* readHashLen, uint8_t slotId) {
       ALOGD_IF(ese_debug_enabled, "%s: rspApdu.len : %u", __func__,
                rspApdu.len);
       *readHashLen = rspApdu.len - 2;
-      memcpy(hash, rspApdu.p_data, rspApdu.len);
-
-      lsStatus = LSCSTATUS_SUCCESS;
+      if (*readHashLen <= HASH_DATA_LENGTH) {
+        memcpy(hash, rspApdu.p_data, *readHashLen);
+        lsStatus = LSCSTATUS_SUCCESS;
+      } else {
+        ALOGE("%s:Invalid LS HASH data received", __func__);
+        lsStatus = LSCSTATUS_FAILED;
+      }
     } else {
       if ((rspApdu.p_data[rspApdu.len - 2] == 0x6A) &&
           (rspApdu.p_data[rspApdu.len - 1] == 0x86)) {
