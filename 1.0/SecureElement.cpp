@@ -61,6 +61,7 @@ Return<void> SecureElement::init(
   gsTxRxBuffer.pRspDataBuff = &gsRspDataBuff;
   memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
   initParams.initMode = ESE_MODE_NORMAL;
+  initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
 
   if (clientCallback == nullptr) {
     return Void();
@@ -89,21 +90,24 @@ Return<void> SecureElement::init(
 
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    goto exit;
+    goto exit1;
   }
   status = phNxpEse_init(initParams);
   if (status != ESESTATUS_SUCCESS) {
-    goto exit;
+    goto exit1;
   }
   status = phNxpEse_ResetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    phNxpEse_deInit();
-    goto exit;
+    goto exit2;
   }
   mIsEseInitialized = true;
   LOG(INFO) << "ESE SPI init complete!!!";
-
-  exit:
+exit2:
+    phNxpEse_deInit();
+exit1:
+  status = phNxpEse_close();
+  mIsEseInitialized = false;
+exit:
   if (status == ESESTATUS_SUCCESS)
   {
     clientCallback->onStateChange(true);
@@ -122,6 +126,18 @@ Return<void> SecureElement::getAtr(getAtr_cb _hidl_cb) {
   phNxpEse_data atrData;
   hidl_vec<uint8_t> response;
   ESESTATUS status = ESESTATUS_FAILED;
+  bool mIsSeHalInitDone = false;
+
+  if (!mIsEseInitialized) {
+    ESESTATUS status = seHalInit();
+    if (status != ESESTATUS_SUCCESS) {
+      LOG(ERROR) << "%s: seHalInit Failed!!!"<< __func__;
+      _hidl_cb(response);/*Return with empty Vector*/
+      return Void();
+    }else{
+      mIsSeHalInitDone=true;
+    }
+  }
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
     LOG(ERROR) << "Endpoint set failed";
@@ -150,6 +166,11 @@ Return<void> SecureElement::getAtr(getAtr_cb _hidl_cb) {
   _hidl_cb(response);
   if(atrData.p_data != NULL){
     phNxpEse_free(atrData.p_data);
+  }
+  if(mIsSeHalInitDone){
+    status = phNxpEse_close();
+    mIsEseInitialized = false;
+    mIsSeHalInitDone = false;
   }
   return Void();
 }
@@ -237,7 +258,6 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   cmdApdu.p_data = (uint8_t*)phNxpEse_memalloc(manageChannelCommand.size() *
                                                sizeof(uint8_t));
   memcpy(cmdApdu.p_data, manageChannelCommand.data(), cmdApdu.len);
-
 
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
@@ -591,26 +611,33 @@ ESESTATUS SecureElement::seHalInit() {
   phNxpEse_initParams initParams;
   memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
   initParams.initMode = ESE_MODE_NORMAL;
+  initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
 
-  //status = phNxpEse_open(initParams);
-  if (status != ESESTATUS_SUCCESS) {
-    LOG(ERROR) << "%s: SecureElement open failed!!!"<<__func__;
-  } else {
-    status = phNxpEse_SetEndPoint_Cntxt(0);
-     if (status != ESESTATUS_SUCCESS) {
-       LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
-     }
-    status = phNxpEse_init(initParams);
-    if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << "%s: SecureElement init failed!!!"<< __func__;
-    } else {
-        status = phNxpEse_ResetEndPoint_Cntxt(0);
-       if (status != ESESTATUS_SUCCESS) {
-         LOG(ERROR) << "Endpoint set failed";
-      }
-      mIsEseInitialized = true;
-    }
+  status = phNxpEse_open(initParams);
+  if (status != ESESTATUS_SUCCESS && ESESTATUS_BUSY != status) {
+    goto exit;
   }
+  status = phNxpEse_SetEndPoint_Cntxt(0);
+  if (status != ESESTATUS_SUCCESS) {
+    goto exit1;
+  }
+  status = phNxpEse_init(initParams);
+  if (status != ESESTATUS_SUCCESS) {
+    goto exit1;
+  }
+  status = phNxpEse_ResetEndPoint_Cntxt(0);
+  if (status != ESESTATUS_SUCCESS) {
+    goto exit2;
+  }
+  mIsEseInitialized = true;
+  LOG(INFO) << "ESE SPI init complete!!!";
+  return status;
+exit2:
+    phNxpEse_deInit();
+exit1:
+  status = phNxpEse_close();
+  mIsEseInitialized = false;
+exit:
   return status;
 }
 
@@ -630,7 +657,7 @@ SecureElement::seHalDeInit() {
   if (status != ESESTATUS_SUCCESS) {
     sestatus = SecureElementStatus::FAILED;
   } else {
-    //status = phNxpEse_close();
+    status = phNxpEse_close();
     if (status != ESESTATUS_SUCCESS) {
       sestatus = SecureElementStatus::FAILED;
     } else {

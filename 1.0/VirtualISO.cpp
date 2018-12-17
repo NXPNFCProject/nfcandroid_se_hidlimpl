@@ -60,6 +60,7 @@ Return<void> VirtualISO::init(
   gsTxRxBuffer.pRspDataBuff = &gsRspDataBuff;
   memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
   initParams.initMode = ESE_MODE_NORMAL;
+  initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
 
   if (clientCallback == nullptr) {
     return Void();
@@ -81,17 +82,28 @@ Return<void> VirtualISO::init(
   }
   status = phNxpEse_open(initParams);
   if (status != ESESTATUS_SUCCESS && ESESTATUS_BUSY != status) {
-    return Void();
+    goto exit;
   }
 
   status = phNxpEse_SetEndPoint_Cntxt(1);
+  if (status != ESESTATUS_SUCCESS) {
+    goto exit1;
+  }
   status = phNxpEse_init(initParams);
   if (status != ESESTATUS_SUCCESS) {
-    goto exit;
+    goto exit1;
   }
   status = phNxpEse_ResetEndPoint_Cntxt(1);
+  if (status != ESESTATUS_SUCCESS) {
+    goto exit2;
+  }
   mIsEseInitialized = true;
   LOG(INFO) << "VirtualISO::init Exit";
+exit2:
+    phNxpEse_deInit();
+exit1:
+  status = phNxpEse_close();
+  mIsEseInitialized = false;
 exit:
   if (status == ESESTATUS_SUCCESS)
   {
@@ -232,10 +244,16 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   if (sestatus != SecureElementStatus::SUCCESS) {
       if (mOpenedchannelCount == 0) {
           sestatus = seHalDeInit();
+          if (sestatus != SecureElementStatus::SUCCESS) {
+              LOG(INFO) << "seDeInit Failed";
+          }
       }
       /*If manageChanle is failed in any of above cases
       send the callback and return*/
-      phNxpEse_ResetEndPoint_Cntxt(1);
+      status = phNxpEse_ResetEndPoint_Cntxt(1);
+    if (status != ESESTATUS_SUCCESS) {
+      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+    }
       _hidl_cb(resApduBuff, sestatus);
       return Void();
   }
@@ -535,26 +553,33 @@ ESESTATUS VirtualISO::seHalInit() {
   phNxpEse_initParams initParams;
   memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
   initParams.initMode = ESE_MODE_NORMAL;
+  initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
 
-  //status = phNxpEse_open(initParams);
-  if (status != ESESTATUS_SUCCESS) {
-    LOG(ERROR) << "%s: SecureElement open failed!!!"<<__func__;
-  } else {
-    status = phNxpEse_SetEndPoint_Cntxt(1);
-     if (status != ESESTATUS_SUCCESS) {
-       LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
-     }
-    status = phNxpEse_init(initParams);
-    if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << "%s: SecureElement init failed!!!"<< __func__;
-    } else {
-        status = phNxpEse_ResetEndPoint_Cntxt(1);
-       if (status != ESESTATUS_SUCCESS) {
-         LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
-      }
-      mIsEseInitialized = true;
-    }
+  status = phNxpEse_open(initParams);
+  if (status != ESESTATUS_SUCCESS && ESESTATUS_BUSY != status) {
+    goto exit;
   }
+  status = phNxpEse_SetEndPoint_Cntxt(1);
+  if (status != ESESTATUS_SUCCESS) {
+    goto exit1;
+  }
+  status = phNxpEse_init(initParams);
+  if (status != ESESTATUS_SUCCESS) {
+    goto exit1;
+  }
+  status = phNxpEse_ResetEndPoint_Cntxt(1);
+  if (status != ESESTATUS_SUCCESS) {
+    goto exit2;
+  }
+  mIsEseInitialized = true;
+  LOG(INFO) << "VISO init complete!!!";
+  return status;
+exit2:
+    phNxpEse_deInit();
+exit1:
+  status = phNxpEse_close();
+  mIsEseInitialized = false;
+exit:
   return status;
 }
 
@@ -574,7 +599,7 @@ VirtualISO::seHalDeInit() {
   if (status != ESESTATUS_SUCCESS) {
     sestatus = SecureElementStatus::FAILED;
   } else {
-    //status = phNxpEse_close();
+    status = phNxpEse_close();
     if (status != ESESTATUS_SUCCESS) {
       sestatus = SecureElementStatus::FAILED;
     } else {

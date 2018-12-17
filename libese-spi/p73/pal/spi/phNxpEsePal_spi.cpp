@@ -80,11 +80,9 @@ void phPalEse_spi_close(void* pDevHandle) {
   // retval = sendIoctlData(p, HAL_NFC_SPI_DWP_SYNC, &inpOutData);
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("halimpl close exit................");
-
   if (NULL != pDevHandle) {
     close((intptr_t)pDevHandle);
   }
-
   return;
 }
 ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
@@ -139,7 +137,11 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
 *******************************************************************************/
 ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig) {
   int nHandle;
+/*
   int retryCnt = 0, nfc_access_retryCnt = 0;
+*/
+  int nfc_access_retryCnt = 0;
+
   ese_nxp_IoctlInOutData_t inpOutData;
   NfcAdaptation& pNfcAdapt = NfcAdaptation::GetInstance();
   pNfcAdapt.Initialize();
@@ -183,10 +185,11 @@ retry_nfc_access:
       << StringPrintf("Opening port=%s\n", pConfig->pDevName);
 /* open port */
 
-retry:
+/*retry:*/
   nHandle = open((char const*)pConfig->pDevName, O_RDWR);
   if (nHandle < 0) {
     LOG(ERROR) << StringPrintf("%s : failed errno = 0x%x", __FUNCTION__, errno);
+/*
     if (errno == -EBUSY || errno == EBUSY) {
       retryCnt++;
       LOG(ERROR) << StringPrintf("Retry open eSE driver, retry cnt : %d", retryCnt);
@@ -195,9 +198,11 @@ retry:
         goto retry;
       }
     }
+*/
     LOG(ERROR) << StringPrintf("_spi_open() Failed: retval %x", nHandle);
     pConfig->pDevHandle = NULL;
-    return ESESTATUS_INVALID_DEVICE;
+
+    return ((errno == -EBUSY)||(errno == EBUSY)? ESESTATUS_DRIVER_BUSY : ESESTATUS_INVALID_DEVICE);
   }
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("eSE driver opened :: fd = [%d]", nHandle);
@@ -251,6 +256,7 @@ int phPalEse_spi_write(void* pDevHandle, uint8_t* pBuffer,
   int numWrote = 0;
   unsigned long int retryCount = 0;
   if (NULL == pDevHandle) {
+    LOG(ERROR) << StringPrintf("phPalEse_spi_write: received pDevHandle=NULL");
     return -1;
   }
 #if 0
@@ -329,6 +335,7 @@ int phPalEse_spi_write(void* pDevHandle, uint8_t* pBuffer,
 ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
                        long level) {
   ESESTATUS ret = ESESTATUS_IOCTL_FAILED;
+  int retioctl = 0x00;
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("phPalEse_spi_ioctl(), ioctl %x , level %lx", eControlCode,
                level);
@@ -339,6 +346,12 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHand
     //return ESESTATUS_IOCTL_FAILED; No dependency on dev handle
   }
   switch (eControlCode) {
+  case phPalEse_e_SetSecureMode:
+      retioctl = (ESESTATUS)ioctl((intptr_t)pDevHandle, ESE_SET_TRUSTED_ACCESS, level);
+      if(!retioctl){
+          ret= ESESTATUS_SUCCESS;
+      }
+    break;
     // Nfc Driver communication part
     case phPalEse_e_ChipRst:
         if(level == 5)
@@ -392,7 +405,8 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHand
       break;
   }
   DLOG_IF(INFO, ese_debug_enabled)
-  << StringPrintf("Exit  phPalEse_spi_ioctl : ret = %d", ret);
+  << StringPrintf("Exit  phPalEse_spi_ioctl : ret = %d errno = %d",
+                         ret, errno);
   return ret;
 }
 

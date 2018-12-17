@@ -98,7 +98,6 @@
  *
  */
 #define P61_SET_POWER_SCHEME _IOW(P61_MAGIC, 0x08, long)
-
 /*!
  * \brief This function is used to set the ESE jcop
  *  download state.
@@ -110,7 +109,11 @@
  *  state On&Off
  */
 #define P61_INHIBIT_PWR_CNTRL _IOW(P61_MAGIC, 0x0A, long)
-
+/*!
+ * \brief IOCTL to set the GPIO for the eSE to distinguish
+ *        the logical interface
+ */
+#define ESE_SET_TRUSTED_ACCESS  _IOW(P61_MAGIC, 0x0B, long)
 /* Function declarations */
 /**
  * \ingroup eSe_PAL_Spi

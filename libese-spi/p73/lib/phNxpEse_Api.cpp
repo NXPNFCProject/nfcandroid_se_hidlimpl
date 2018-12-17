@@ -322,11 +322,17 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   wConfigStatus = phPalEse_open_and_configure(&tPalConfig);
   if (wConfigStatus != ESESTATUS_SUCCESS) {
     LOG(ERROR) << StringPrintf("phPalEse_Init Failed");
+    if(ESESTATUS_DRIVER_BUSY == wConfigStatus)
+      LOG(ERROR) << StringPrintf("Ese Driver is Busy!!!");
     goto clean_and_return;
   }
   /* Copying device handle to ESE Lib context*/
   nxpese_ctxt.pDevHandle = tPalConfig.pDevHandle;
-
+  if(ESE_PROTOCOL_MEDIA_SPI == initParams.mediaType){
+    LOG(INFO) << StringPrintf("Inform eSE about the starting of trusted Mode");
+    wConfigStatus = phPalEse_ioctl(phPalEse_e_SetSecureMode,
+                                     tPalConfig.pDevHandle,0x01);
+  }
 #ifdef SPM_INTEGRATED
   /* Get the Access of ESE*/
   wSpmStatus = phNxpEse_SPM_Init(nxpese_ctxt.pDevHandle);
@@ -994,7 +1000,7 @@ ESESTATUS phNxpEse_deInit(void) {
  ******************************************************************************/
 ESESTATUS phNxpEse_close(void) {
   ESESTATUS status = ESESTATUS_SUCCESS;
-
+  LOG(INFO) << StringPrintf("phNxpEse_close Enter");
   if ((ESE_STATUS_CLOSE == nxpese_ctxt.EseLibStatus)) {
     LOG(ERROR) << StringPrintf(" %s ESE Not Initialized \n", __FUNCTION__);
     return ESESTATUS_NOT_INITIALISED;
@@ -1019,6 +1025,11 @@ ESESTATUS phNxpEse_close(void) {
 
 #endif
   if (NULL != nxpese_ctxt.pDevHandle) {
+    if(ESE_PROTOCOL_MEDIA_SPI == nxpese_ctxt.initParams.mediaType){
+    LOG(INFO) << StringPrintf("Inform eSE that trusted Mode is over");
+    status = phPalEse_ioctl(phPalEse_e_SetSecureMode,
+                                  nxpese_ctxt.pDevHandle,0x00);
+  }
     phPalEse_close(nxpese_ctxt.pDevHandle);
     phNxpEse_memset(&nxpese_ctxt, 0x00, sizeof(nxpese_ctxt));
     DLOG_IF(INFO, ese_debug_enabled)
@@ -1299,7 +1310,7 @@ ESESTATUS phNxpEse_WriteFrame(uint32_t data_len, uint8_t* p_data) {
   dwNoBytesWrRd = phPalEse_write(nxpese_ctxt.pDevHandle, nxpese_ctxt.p_cmd_data,
                                  nxpese_ctxt.cmd_len);
   if (-1 == dwNoBytesWrRd) {
-    LOG(ERROR) << StringPrintf(" - Error in SPI Write.....\n");
+    LOG(ERROR) << StringPrintf(" - Error in SPI Write.....%d\n",errno);
     status = ESESTATUS_FAILED;
   } else {
     status = ESESTATUS_SUCCESS;

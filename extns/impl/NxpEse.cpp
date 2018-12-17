@@ -45,6 +45,8 @@ static android::sp<ISecureElementHalCallback> virtualISOCallback;
     phNxpEse_initParams initParams;
     memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
     initParams.initMode = ESE_MODE_NORMAL;
+    initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
+
     if(!seCallback)
       return;
 
@@ -55,20 +57,22 @@ static android::sp<ISecureElementHalCallback> virtualISOCallback;
 
     status = phNxpEse_SetEndPoint_Cntxt(0);
     if (status != ESESTATUS_SUCCESS) {
-      goto exit;
+        goto exit1;
     }
     status = phNxpEse_init(initParams);
     if (status != ESESTATUS_SUCCESS) {
-      goto exit;
+      goto exit1;
     }
     status = phNxpEse_ResetEndPoint_Cntxt(0);
     if (status != ESESTATUS_SUCCESS) {
-      phNxpEse_deInit();
-      goto exit;
+      goto exit2;
     }
 
     LOG(INFO) << "ESE SPI init complete !!!";
-
+exit2:
+    phNxpEse_deInit();
+exit1:
+    status = phNxpEse_close();
     exit:
     if (status == ESESTATUS_SUCCESS)
     {
@@ -86,26 +90,30 @@ static android::sp<ISecureElementHalCallback> virtualISOCallback;
     phNxpEse_initParams initParams;
     memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
     initParams.initMode = ESE_MODE_NORMAL;
+    initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
+
     if(!virtualISOCallback)
       return;
 
     status = phNxpEse_SetEndPoint_Cntxt(1);
     if (status != ESESTATUS_SUCCESS) {
-      goto exit;
+      goto exit1;
     }
     status = phNxpEse_init(initParams);
     if (status != ESESTATUS_SUCCESS) {
-      goto exit;
+      goto exit1;
     }
     status = phNxpEse_ResetEndPoint_Cntxt(1);
     if (status != ESESTATUS_SUCCESS) {
-      phNxpEse_deInit();
-      goto exit;
+      goto exit2;
     }
 
     LOG(INFO) << "ESE SPI init complete !!!";
+exit2:
+    phNxpEse_deInit();
+exit1:
+    status = phNxpEse_close();
 
-    exit:
     if (status == ESESTATUS_SUCCESS)
     {
       virtualISOCallback->onStateChange(true);
