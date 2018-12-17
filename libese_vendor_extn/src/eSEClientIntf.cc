@@ -261,6 +261,20 @@ bool geteSETerminalId(char* val)
   return ret;
 }
 
+bool getTruestedSETerminalId(char* val)
+{
+  bool ret = false;
+
+  if(GetNxpStrValue(NAME_NXP_TRUSTED_SE_TERMINAL_NUM, val, TERMINAL_LEN))
+  {
+    LOG(INFO) <<"TrustedSE TerminalId found";
+    ALOGD("TrustedSE TerminalId found val = %s ", val);
+
+    ret = true;
+  }
+  return ret;
+}
+
 bool geteUICCTerminalId(char* val)
 {
   bool ret = false;
