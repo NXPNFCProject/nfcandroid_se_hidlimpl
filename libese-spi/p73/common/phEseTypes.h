@@ -15,31 +15,15 @@
  *  limitations under the License.
  *
  ******************************************************************************/
-#pragma once
-#include <pthread.h>
 
-#include "SyncEvent.h"
-#include "hal_nxpnfc.h"
-#include "hal_nxpese.h"
-#include <android/hardware/nfc/1.0/types.h>
+#ifndef PHESETYPES_H
+#define PHESETYPES_H
+#include <phNxpEseFeatures.h>
 #include <phEseStatus.h>
-#include <utils/RefBase.h>
-#include <vendor/nxp/nxpnfc/1.0/INxpNfc.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-using vendor::nxp::nxpnfc::V1_0::INxpNfc;
-
-class NfcAdaptation {
- public:
-   ~NfcAdaptation();
-   void Initialize();
-   static NfcAdaptation &GetInstance();
-   static ESESTATUS HalIoctl(long data_len, void *p_data);
-   ese_nxp_IoctlInOutData_t *mCurrentIoctlData;
-
- private:
-  NfcAdaptation();
-  static Mutex sLock;
-  static Mutex sIoctlLock;
-  static NfcAdaptation* mpInstance;
-  static android::sp<INxpNfc> mHalNxpNfc;
-};
+#endif /* PHESETYPES_H */

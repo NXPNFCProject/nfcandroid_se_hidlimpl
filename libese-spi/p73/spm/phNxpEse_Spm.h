@@ -64,6 +64,7 @@ ESESTATUS phNxpEse_SPM_GetState(spm_state_t* current_state);
 
 #ifdef NXP_ESE_JCOP_DWNLD_PROTECTION
 ESESTATUS phNxpEse_SPM_SetState(long arg);
+ESESTATUS phNxpEse_SPM_SetEseClientUpdateState(long arg);
 #endif
 
 ESESTATUS phNxpEse_SPM_RelAccess(void);

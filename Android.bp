@@ -7,6 +7,7 @@ cc_library_shared {
     srcs: [
         "libese-spi/p73/lib/phNxpEseDataMgr.cpp",
         "libese-spi/p73/lib/phNxpEseProto7816_3.cpp",
+        "libese-spi/p73/lib/phNxpEse_Apdu_Api.cpp",
         "libese-spi/p73/lib/phNxpEse_Api.cpp",
         "libese-spi/p73/pal/phNxpEsePal.cpp",
         "libese-spi/p73/pal/spi/phNxpEsePal_spi.cpp",
@@ -27,6 +28,11 @@ cc_library_shared {
         "libese-spi/p73/pal/spi",
         "libese-spi/src/include",
         "libese-spi/src/sync",
+    ],
+    include_dirs: [
+        "hardware/nxp/nfc/extns/impl",
+        "hardware/nxp/secure_element/extns/impl",
+        "hardware/nxp/secure_element/ese-clients/inc"
     ],
     export_include_dirs: [
         "extns/impl",
@@ -96,11 +102,27 @@ cc_binary {
         "1.0/NxpEseService.cpp",
         "1.0/SecureElement.cpp",
         "extns/impl/NxpEse.cpp",
+        "ese-clients/src/eSEClient.cpp",
     ],
     local_include_dirs: [
+        "libese-spi/common/include",
         "libese-spi/src/include",
         "libese-spi/src/sync",
         "libese-spi/p73/utils",
+        "libese-spi/p73/common",
+        "libese-spi/p73/inc",
+        "libese-spi/p73/lib",
+        "libese-spi/p73/pal",
+        "libese-spi/p73/pal/spi",
+        "libese-spi/p73/spm",
+        "libese-spi/src/include",
+        "ese-clients/inc",
+    ],
+    include_dirs: [
+        "hardware/nxp/nfc/extns/impl",
+        "hardware/nxp/secure_element_extns/inc",
+        "hardware/nxp/secure_element/extns/impl",
+        "hardware/nxp/secure_element_extns/jcos_client/inc",
     ],
     shared_libs: [
         "android.hardware.secure_element@1.0",
@@ -116,6 +138,10 @@ cc_binary {
         "libutils",
         "vendor.nxp.nxpese@1.0",
         "vendor.nxp.nxpnfc@1.0",
+        "se_extn_client",
+        "jcos_client",
+        "android.hardware.nfc@1.0",
+        "android.hardware.nfc@1.1",
     ],
 }
 

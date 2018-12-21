@@ -1147,8 +1147,11 @@ ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd,
       /* Copy the data to be read by the upper layer via transceive api */
       pRsp->len = pRes.len;
       pRsp->p_data = pRes.p_data;
-    } else
+    } else {
+      pRsp->len = 0;
+      pRsp->p_data = NULL;
       status = ESESTATUS_FAILED;
+    }
   }
   phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
       PH_NXP_ESE_PROTO_7816_IDLE;

@@ -62,6 +62,7 @@ typedef enum {
 #ifdef NXP_ESE_JCOP_DWNLD_PROTECTION
   ,
   phPalEse_e_SetJcopDwnldState, /*!< Set Jcop Download state */
+  phPalEse_e_SetClientUpdateState, /*!< Set Jcop Download state */
 #endif
 } phPalEse_ControlCode_t; /*!< Control code for IOCTL call */
 

@@ -25,6 +25,7 @@
 #include "SecureElement.h"
 #include "StateMachine.h"
 #include "ese_config.h"
+#include "eSEClient.h"
 
 // Generated HIDL files
 using android::hardware::secure_element::V1_0::ISecureElement;
@@ -44,6 +45,7 @@ int main() {
   ALOGD("Registering SecureElement HALIMPL Service v1.0...");
   sp<ISecureElement> se_service = new SecureElement();
   configureRpcThreadpool(2, true /*callerWillJoin*/);
+  checkEseClientUpdate();
   std::string spiTermName;
   spiTermName = EseConfig::getString(NAME_NXP_SPI_TERMINAL_NAME, "eSE1");
   ALOGD("Registering SPI interface as %s", spiTermName.c_str());
@@ -65,6 +67,7 @@ int main() {
     return -1;
   }
   ALOGD("Secure Element HAL Service is ready");
+  perform_eSEClientUpdate();
   joinRpcThreadpool();
   return 1;
 }

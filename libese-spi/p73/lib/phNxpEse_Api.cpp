@@ -725,7 +725,7 @@ ESESTATUS phNxpEse_resetJcopUpdate(void) {
 
   /* Reset interface after every reset irrespective of
   whether JCOP did a full power cycle or not. */
-  status = phNxpEseProto7816_Reset();
+  //status = phNxpEseProto7816_Reset();
 
 #ifdef SPM_INTEGRATED
 #ifdef NXP_POWER_SCHEME_SUPPORT
@@ -767,6 +767,7 @@ ESESTATUS phNxpEse_resetJcopUpdate(void) {
     ALOGE("phNxpEse_resetJcopUpdate Failed");
   }
 #endif
+  status = phNxpEseProto7816_Reset();
 
   ALOGD_IF(ese_debug_enabled, " %s Exit \n", __FUNCTION__);
   return status;

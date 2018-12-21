@@ -419,6 +419,21 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
       ret = ESESTATUS_SUCCESS;
       break;
 #ifdef NXP_ESE_JCOP_DWNLD_PROTECTION
+    case phPalEse_e_SetClientUpdateState:
+    {
+      ALOGD_IF(ese_debug_enabled, "phPalEse_spi_ioctl state = phPalEse_e_SetJcopDwnldState");
+      ese_nxp_IoctlInOutData_t inpOutData;
+      memset(&inpOutData, 0x00, sizeof(ese_nxp_IoctlInOutData_t));
+      inpOutData.inp.data.nxpCmd.cmd_len = 1;
+      inpOutData.inp.data_source = 1;
+      uint8_t data = (uint8_t)level;
+      memcpy(inpOutData.inp.data.nxpCmd.p_cmd, &data,
+             sizeof(data));
+      ALOGD_IF(ese_debug_enabled, "Before phPalEse_e_SetClientUpdateState");
+      ret = pNfcAdapt.HalIoctl(HAL_NFC_IOCTL_ESE_JCOP_DWNLD, &inpOutData);
+      ALOGD_IF(ese_debug_enabled, "After phPalEse_e_SetClientUpdateState");
+    }
+      break;
     case phPalEse_e_SetJcopDwnldState:
       // ret = sendIoctlData(p, HAL_NFC_SET_DWNLD_STATUS, &inpOutData);
       ret = ESESTATUS_SUCCESS;
