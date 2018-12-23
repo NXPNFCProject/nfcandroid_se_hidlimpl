@@ -20,6 +20,7 @@
 #include <android-base/stringprintf.h>
 #include <android-base/logging.h>
 #include "eSEClient.h"
+#include <LsClient.h>
 
 namespace vendor {
 namespace nxp {
@@ -154,6 +155,30 @@ Return<void> NxpEse::ioctl(uint64_t ioctlType,
   if(ioctlType == HAL_ESE_IOCTL_GET_ESE_UPDATE_STATE)
   {
     inpOutData.out.data.status = (getJcopUpdateRequired() | (getLsUpdateRequired() << 8));
+  }
+  else if(ioctlType == HAL_ESE_IOCTL_GET_SEMS_OUTPUT_LEN)
+  {
+    inpOutData.out.data.semsRsp.rsp_len = phSems_getOutputfileLen();
+  }
+  else if(ioctlType == HAL_ESE_IOCTL_READ_SEMS_OUTPUT) {
+    uint16_t len = inpOutData.inp.data.semsCmd.semsLen;
+    if(!phSems_readOutputFile(&inpOutData.out.data.semsRsp.semsOutResp[0], len)) {
+      inpOutData.out.data.status = 0xFF;
+    }else {
+      inpOutData.out.data.status = 0x00;
+    }
+  }
+  else if(ioctlType == HAL_ESE_IOCTL_GET_SEMS_STATUS) {
+     uint8_t status[] = {0x63, 0x40};
+     if(phSems_getSemsStatus(&status[0]))
+       inpOutData.out.data.status = 0xFF;
+     else {
+       if(status[0] == 0x90 && status[1] == 0) {
+         inpOutData.out.data.status = 0x00;
+       } else {
+         inpOutData.out.data.status = 0xFF;
+       }
+     }
   }
   EseData outputData;
   outputData.setToExternal((uint8_t*)&inpOutData.out,

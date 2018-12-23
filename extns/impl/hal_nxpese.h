@@ -22,6 +22,7 @@
 #define MAX_IOCTL_TRANSCEIVE_CMD_LEN 256
 #define MAX_IOCTL_TRANSCEIVE_RESP_LEN 256
 #define MAX_ATR_INFO_LEN 128
+#define MAX_SEMS_OUTPUT_READ_LEN    1024
 #define HAL_NFC_IOCTL_FIRST_EVT 0xA0
 enum {
   HAL_ESE_IOCTL_P61_IDLE_MODE = 0,
@@ -49,6 +50,9 @@ enum {
   HAL_ESE_IOCTL_NFC_JCOP_DWNLD,
 #if (NXP_EXTNS == TRUE)
   HAL_ESE_IOCTL_GET_ESE_UPDATE_STATE,
+  HAL_ESE_IOCTL_GET_SEMS_OUTPUT_LEN,
+  HAL_ESE_IOCTL_READ_SEMS_OUTPUT,
+  HAL_ESE_IOCTL_GET_SEMS_STATUS,
 #endif
 };
 enum {
@@ -100,6 +104,26 @@ typedef struct {
   uint8_t p_cmd[MAX_IOCTL_TRANSCEIVE_CMD_LEN];
 } ese_nxp_ExtnCmd_t;
 
+#if (NXP_EXTNS == TRUE)
+/*
+ * Read the SEMS ouput response file length
+ * vendor se hal directory
+ */
+typedef struct {
+  uint32_t semsLen;
+} ese_nxp_SemsCmd_t;
+
+/*
+ * Read the SEMS ouput response file data from se hal to nfc
+ * vendor se hal directory to nfc folder
+ */
+typedef struct {
+  uint8_t status;
+  uint32_t rsp_len;
+  char semsOutResp[MAX_SEMS_OUTPUT_READ_LEN];
+} ese_nxp_SemsRsp_t;
+#endif
+
 /*
  * ese_nxp_ExtnRsp_t shall contain response for command sent in transceive
  * command
@@ -118,6 +142,10 @@ typedef union {
   ese_nxp_ExtnCmd_t nxpCmd;
   uint32_t timeoutMilliSec;
   long eseServicePid;
+#if (NXP_EXTNS == TRUE)
+  ese_nxp_SemsCmd_t semsCmd;
+#endif
+
 } eseInputData_t;
 /*
  * ese_nxp_ExtnInputData_t :Apart from InputData_t, there are context data
@@ -149,6 +177,9 @@ typedef union {
   uint16_t fwDwnldStatus;
   uint16_t fwMwVerStatus;
   uint8_t chipType;
+#if (NXP_EXTNS == TRUE)
+  ese_nxp_SemsRsp_t semsRsp;
+#endif
 } eseOutputData_t;
 
 typedef union {
