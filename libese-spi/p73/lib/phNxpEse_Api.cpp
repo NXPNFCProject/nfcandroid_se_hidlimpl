@@ -332,6 +332,8 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
     LOG(INFO) << StringPrintf("Inform eSE about the starting of trusted Mode");
     wConfigStatus = phPalEse_ioctl(phPalEse_e_SetSecureMode,
                                      tPalConfig.pDevHandle,0x01);
+    if (ESESTATUS_SUCCESS != wConfigStatus)
+      goto clean_and_return_2;
   }
 #ifdef SPM_INTEGRATED
   /* Get the Access of ESE*/
@@ -967,9 +969,7 @@ ESESTATUS phNxpEse_deInit(void) {
   {
       status = phNxpEseProto7816_Close(
           (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
-      if (status == ESESTATUS_FAILED) {
-          status = ESESTATUS_FAILED;
-      } else {
+      if (status != ESESTATUS_FAILED) {
           DLOG_IF(INFO, ese_debug_enabled)
           << StringPrintf("%s secureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
                __FUNCTION__, nxpese_ctxt.secureTimerParams.secureTimer1,

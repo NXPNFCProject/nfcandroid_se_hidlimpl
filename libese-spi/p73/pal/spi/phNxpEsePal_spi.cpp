@@ -137,11 +137,6 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
 *******************************************************************************/
 ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig) {
   int nHandle;
-/*
-  int retryCnt = 0, nfc_access_retryCnt = 0;
-*/
-  int nfc_access_retryCnt = 0;
-
   ese_nxp_IoctlInOutData_t inpOutData;
   NfcAdaptation& pNfcAdapt = NfcAdaptation::GetInstance();
   pNfcAdapt.Initialize();
@@ -168,40 +163,14 @@ ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig) {
   memcpy(inpOutData.inp.data.nxpCmd.p_cmd, cmd_omapi_concurrent,
          sizeof(cmd_omapi_concurrent));
 
-retry_nfc_access:
-  omapi_status = ESESTATUS_FAILED;
-  omapi_status = ESESTATUS_SUCCESS;
-  //retval = pNfcAdapt.HalIoctl(HAL_NFC_SPI_DWP_SYNC, &inpOutData);
-  if (omapi_status != 0) {
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("omapi_status return failed................ ");
-    nfc_access_retryCnt++;
-    phPalEse_sleep(2000000);
-    if (nfc_access_retryCnt < 5) goto retry_nfc_access;
-    return ESESTATUS_FAILED;
-  }
-
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("Opening port=%s\n", pConfig->pDevName);
 /* open port */
-
-/*retry:*/
   nHandle = open((char const*)pConfig->pDevName, O_RDWR);
   if (nHandle < 0) {
-    LOG(ERROR) << StringPrintf("%s : failed errno = 0x%x", __FUNCTION__, errno);
-/*
-    if (errno == -EBUSY || errno == EBUSY) {
-      retryCnt++;
-      LOG(ERROR) << StringPrintf("Retry open eSE driver, retry cnt : %d", retryCnt);
-      if (retryCnt < MAX_RETRY_CNT) {
-        phPalEse_sleep(1000000);
-        goto retry;
-      }
-    }
-*/
-    LOG(ERROR) << StringPrintf("_spi_open() Failed: retval %x", nHandle);
+    LOG(ERROR) << StringPrintf("%s : failed errno = 0x%x, retval %x",
+                                          __FUNCTION__, errno, nHandle);
     pConfig->pDevHandle = NULL;
-
     return ((errno == -EBUSY)||(errno == EBUSY)? ESESTATUS_DRIVER_BUSY : ESESTATUS_INVALID_DEVICE);
   }
   DLOG_IF(INFO, ese_debug_enabled)
