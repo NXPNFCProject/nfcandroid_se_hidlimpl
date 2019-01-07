@@ -112,7 +112,7 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data);
  * \retval ESESTATUS_SUCCESS On Success ESESTATUS_SUCCESS else proper error code
  *
  */
-ESESTATUS phNxpEse_open(phNxpEse_initParams initParams);
+ESESTATUS phNxpEse_open(phNxpEse_initParams initParams, bool triggerJcopOSU = false);
 
 /**
  * \ingroup spi_libese
@@ -164,7 +164,7 @@ ESESTATUS phNxpEse_deInit(void);
  *
  */
 
-ESESTATUS phNxpEse_close(void);
+ESESTATUS phNxpEse_close(bool triggerJcopOSU = false);
 
 /**
  * \ingroup spi_libese

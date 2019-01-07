@@ -23,7 +23,7 @@
 #define MAX_IOCTL_TRANSCEIVE_RESP_LEN 256
 #define MAX_ATR_INFO_LEN 128
 enum {
-  HAL_ESE_IOCTL_P61_IDLE_MODE = 0,
+  HAL_ESE_IOCTL_P61_IDLE_MODE = 0xA0,
   HAL_ESE_IOCTL_P61_WIRED_MODE,
   HAL_ESE_IOCTL_P61_PWR_MODE,
   HAL_ESE_IOCTL_P61_DISABLE_MODE,
@@ -154,6 +154,11 @@ typedef union {
   uint16_t fwMwVerStatus;
   uint8_t chipType;
 } eseOutputData_t;
+
+typedef union {
+  uint8_t nfc_jcop_download_state;
+} eseIoctlData_t;
+extern eseIoctlData_t  eseioctldata;
 
 /*
  * ese_nxp_ExtnOutputData_t :Apart from outputData_t, there are other

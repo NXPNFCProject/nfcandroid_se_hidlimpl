@@ -52,6 +52,7 @@ void* eSEUpdate_SE_SeqHandler(void* data);
 void eSEClientUpdate_Thread();
 SESTATUS ESE_ChannelInit(IChannel *ch);
 SESTATUS handleJcopOsDownload();
+void sendeSEUpdateState(uint8_t state);
 //void* LSUpdate_Thread(void* data);
 //uint8_t performLSUpdate();
 SESTATUS initializeEse(phNxpEse_initMode mode, SEDomainID Id);
@@ -354,7 +355,7 @@ SESTATUS handleJcopOsDownload()
     if(retstat != STATUS_SUCCESS)
     {
       ALOGE("%s: JCDND initialization failed", __FUNCTION__);
-      phNxpEse_close();
+      phNxpEse_close(true);
       return status;
     } else
     {
@@ -365,7 +366,7 @@ SESTATUS handleJcopOsDownload()
       }
     }
     JCDNLD_DeInit();
-    phNxpEse_close();
+    phNxpEse_close(true);
   }
   status = SESTATUS_SUCCESS;
   return status;
@@ -444,14 +445,14 @@ SESTATUS initializeEse(phNxpEse_initMode mode, __attribute__((unused))SEDomainID
 
   initParams.initMode = mode;
   ALOGE("%s: Mode = %d", __FUNCTION__, mode);
-  retstat = phNxpEse_open(initParams);
+  retstat = phNxpEse_open(initParams, true);
   if (retstat != ESESTATUS_SUCCESS) {
     return status;
   }
   retstat = phNxpEse_init(initParams);
   if(retstat != ESESTATUS_SUCCESS)
   {
-    phNxpEse_close();
+    phNxpEse_close(true);
     return status;
   }
   ESE_ChannelInit(&Ch);

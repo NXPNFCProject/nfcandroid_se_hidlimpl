@@ -66,6 +66,7 @@ static std::vector<uint8_t> gOmapiAppSignature3(20, 0xFF);
 static std::vector<uint8_t> gOmapiAppSignature4(20, 0xFF);
 static std::vector<uint8_t> gOmapiAppSignature5(20, 0xFF);
 
+eseIoctlData_t  eseioctldata;
 /*******************************************************************************
 **
 ** Function         phPalEse_spi_close
@@ -185,6 +186,16 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
       ALOGD_IF(ese_debug_enabled, "****GET SESSION:SIGNATURE NOT MATCHED****");
     }
   } break;
+    case HAL_ESE_IOCTL_NFC_JCOP_DWNLD:
+
+    eseioctldata.nfc_jcop_download_state = inpOutData->inp.data.nxpCmd.p_cmd[0];
+    if (eseioctldata.nfc_jcop_download_state == 1){
+      ALOGD_IF(ese_debug_enabled, "******************JCOP Download started*************************************");
+    }
+    else{
+      ALOGD_IF(ese_debug_enabled, "******************JCOP Download stopped*************************************");
+    }
+    break;
   default:
     break;
   }
@@ -206,7 +217,7 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
 **                  ESESTATUS_INVALID_DEVICE     - device open operation failure
 **
 *******************************************************************************/
-ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig) {
+ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig, bool triggerJcopOSU) {
   int nHandle;
   int retryCnt = 0, nfc_access_retryCnt = 0;
   int retval;
@@ -256,16 +267,18 @@ ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig) {
          sizeof(cmd_omapi_concurrent));
 
 retry_nfc_access:
-  omapi_status = ESESTATUS_FAILED;
-  retval = pNfcAdapt.HalIoctl(HAL_NFC_SPI_DWP_SYNC, &inpOutData);
-  if (omapi_status != 0) {
-    ALOGD_IF(ese_debug_enabled, "omapi_status return failed.");
-    nfc_access_retryCnt++;
-    phPalEse_sleep(2000000);
-    if (nfc_access_retryCnt < 5) goto retry_nfc_access;
-    ALOGD_IF(ese_debug_enabled, "%s: Return Exception NFC in USE...",
-             __FUNCTION__);
-    return ESESTATUS_FAILED;
+  if (!triggerJcopOSU) {
+    omapi_status = ESESTATUS_FAILED;
+    retval = pNfcAdapt.HalIoctl(HAL_NFC_SPI_DWP_SYNC, &inpOutData);
+    if (omapi_status != 0) {
+      ALOGD_IF(ese_debug_enabled, "omapi_status return failed.");
+      nfc_access_retryCnt++;
+      phPalEse_sleep(2000000);
+      if (nfc_access_retryCnt < 5) goto retry_nfc_access;
+      ALOGD_IF(ese_debug_enabled, "%s: Return Exception NFC in USE...",
+               __FUNCTION__);
+      return ESESTATUS_FAILED;
+  }
   }
   ALOGD_IF(ese_debug_enabled, "halimpl open exit");
   /* open port */
@@ -392,7 +405,7 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
   ese_nxp_IoctlInOutData_t inpOutData;
   inpOutData.inp.level = level;
   NfcAdaptation& pNfcAdapt = NfcAdaptation::GetInstance();
-  if (NULL == pDevHandle) {
+  if ((NULL == pDevHandle) && (eControlCode != phPalEse_e_SetClientUpdateState)) {
     return ESESTATUS_IOCTL_FAILED;
   }
   switch (eControlCode) {

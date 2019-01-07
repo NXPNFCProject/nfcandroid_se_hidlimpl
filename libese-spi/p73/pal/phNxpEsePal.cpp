@@ -83,10 +83,10 @@ void phPalEse_close(void* pDevHandle) {
 **                  ESESTATUS_INVALID_DEVICE     - device open operation failure
 **
 *******************************************************************************/
-ESESTATUS phPalEse_open_and_configure(pphPalEse_Config_t pConfig) {
+ESESTATUS phPalEse_open_and_configure(pphPalEse_Config_t pConfig, bool triggerJcopOSU) {
   ESESTATUS status = ESESTATUS_FAILED;
 #ifdef SPI_ENABLED
-  status = phPalEse_spi_open_and_configure(pConfig);
+  status = phPalEse_spi_open_and_configure(pConfig, triggerJcopOSU);
 #else
 /* RFU */
 #endif
@@ -166,7 +166,8 @@ ESESTATUS phPalEse_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
   ALOGD_IF(ese_debug_enabled, "phPalEse_spi_ioctl(), ioctl %x , level %lx",
            eControlCode, level);
 
-  if (NULL == pDevHandle) {
+  if ((NULL == pDevHandle) && (eControlCode != phPalEse_e_SetClientUpdateState)) {
+    ALOGD_IF(ese_debug_enabled, "Ganesh handle is null");
     return ESESTATUS_IOCTL_FAILED;
   }
 #ifdef SPI_ENABLED

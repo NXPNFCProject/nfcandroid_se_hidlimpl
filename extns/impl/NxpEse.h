@@ -46,6 +46,8 @@ struct NxpEse : public INxpEse {
   Return<void> ioctl(uint64_t ioctlType, const hidl_vec<uint8_t>& inOutData,
                      ioctl_cb _hidl_cb) override;
   Return<void> nfccNtf(uint64_t ntfType, const hidl_vec<uint8_t> &ntfData);
+  private:
+    Return<void> ioctlHandler(uint64_t ioctlType, ese_nxp_IoctlInOutData_t inpOutData);
 };
 
 }  // namespace implementation

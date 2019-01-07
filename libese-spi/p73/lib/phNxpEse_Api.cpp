@@ -161,7 +161,7 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
  *                  In case of failure returns other failure value.
  *
  ******************************************************************************/
-ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
+ESESTATUS phNxpEse_open(phNxpEse_initParams initParams, bool triggerJcopOSU) {
   phPalEse_Config_t tPalConfig;
   ESESTATUS wConfigStatus = ESESTATUS_SUCCESS;
   unsigned long int tpm_enable = 0;
@@ -231,7 +231,7 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   tPalConfig.pDevName = (int8_t*)ese_dev_node;
 
   /* Initialize PAL layer */
-  wConfigStatus = phPalEse_open_and_configure(&tPalConfig);
+  wConfigStatus = phPalEse_open_and_configure(&tPalConfig, triggerJcopOSU);
   if (wConfigStatus != ESESTATUS_SUCCESS) {
     ALOGE("phPalEse_Init Failed");
     goto clean_and_return;
@@ -848,7 +848,7 @@ ESESTATUS phNxpEse_deInit(void) {
  * Returns          Always return ESESTATUS_SUCCESS (0).
  *
  ******************************************************************************/
-ESESTATUS phNxpEse_close(void) {
+ESESTATUS phNxpEse_close( bool triggerJcopOSU) {
   ESESTATUS status = ESESTATUS_SUCCESS;
   ALOGD_IF(ese_debug_enabled, "%s Enter", __FUNCTION__);
   if ((ESE_STATUS_CLOSE == nxpese_ctxt.EseLibStatus)) {
@@ -859,6 +859,7 @@ ESESTATUS phNxpEse_close(void) {
 #ifdef SPM_INTEGRATED
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
 #endif
+if (!triggerJcopOSU)
   phPalEse_spi_dwp_sync_close();
 #ifdef SPM_INTEGRATED
   /* Release the Access of  */
