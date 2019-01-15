@@ -230,14 +230,16 @@ static ESESTATUS phNxpEseProto7816_SendSFrame(sFrameInfo_t sFrameData) {
       pcb_byte |= PH_PROTO_7816_S_RESET;
       break;
     case PROP_END_APDU_REQ:
-      frame_len = (PH_PROTO_7816_HEADER_LEN + PH_PROTO_7816_CRC_LEN);
+      frame_len = (PH_PROTO_7816_HEADER_LEN + PH_PROTO_7816_CRC_LEN + sframeData.len);
       p_framebuff = (uint8_t*)phNxpEse_memalloc(frame_len * sizeof(uint8_t));
       if (NULL == p_framebuff) {
         return ESESTATUS_FAILED;
       }
-      p_framebuff[2] = 0;
-      p_framebuff[3] = 0x00;
-
+      p_framebuff[2] = sframeData.len;
+      if(!sframeData.len)
+        p_framebuff[3] = PH_PROTO_7816_VALUE_ZERO;
+      else
+        phNxpEse_memcpy(&(p_framebuff[3]), sframeData.p_data, sframeData.len);
       pcb_byte |= PH_PROTO_7816_S_BLOCK_REQ; /* PCB */
       pcb_byte |= PH_PROTO_7816_S_END_OF_APDU;
       break;
@@ -647,11 +649,48 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS =
                 phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.defaultDataLenIFSC;
 
+  phNxpEse_memcpy(&phNxpEseProto7816_3_Var.atrInfo.len, &p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET],
+       sizeof(phNxpEseProto7816_ATR_Info_t));
+
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s Max DataLen=%d Current DataLen=%d Default DataLen=%d \n", __FUNCTION__,
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC,
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS,
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.defaultDataLenIFSC);
+  DLOG_IF(INFO, ese_debug_enabled)
+        << StringPrintf("ATR Data Follows");
+  DLOG_IF(INFO, ese_debug_enabled)
+          << StringPrintf("======================");
+  DLOG_IF(INFO, ese_debug_enabled)
+        << StringPrintf("ATR Length = %d", phNxpEseProto7816_3_Var.atrInfo.len);
+  DLOG_IF(INFO, ese_debug_enabled)
+          << StringPrintf("Vendor ID = 0x%.2x%.2x%.2x%.2x%.2x", phNxpEseProto7816_3_Var.atrInfo.vendorID[0]
+  , phNxpEseProto7816_3_Var.atrInfo.vendorID[1], phNxpEseProto7816_3_Var.atrInfo.vendorID[2]
+  , phNxpEseProto7816_3_Var.atrInfo.vendorID[3], phNxpEseProto7816_3_Var.atrInfo.vendorID[4]);
+  DLOG_IF(INFO, ese_debug_enabled)
+        << StringPrintf("DLL-IC = supports T%d", phNxpEseProto7816_3_Var.atrInfo.dll_IC);
+  DLOG_IF(INFO, ese_debug_enabled)
+          << StringPrintf("BGT = %d ms", (phNxpEseProto7816_3_Var.atrInfo.bgt[0]<<8)
+  | (phNxpEseProto7816_3_Var.atrInfo.bgt[1]));
+  DLOG_IF(INFO, ese_debug_enabled)
+          << StringPrintf("BWT = %d ms",phNxpEseProto7816_3_Var.atrInfo.bwt[0]<<8
+  | phNxpEseProto7816_3_Var.atrInfo.bwt[1]);
+  DLOG_IF(INFO, ese_debug_enabled)
+          << StringPrintf("Max supported frequency = %d Hz",phNxpEseProto7816_3_Var.atrInfo.maxFreq[0]<<8
+  |phNxpEseProto7816_3_Var.atrInfo.maxFreq[1]);
+  DLOG_IF(INFO, ese_debug_enabled)
+          << StringPrintf("Checksum LRC(0)/CRC(1) supports = 0x%x",phNxpEseProto7816_3_Var.atrInfo.checksum);
+  DLOG_IF(INFO, ese_debug_enabled)
+          << StringPrintf("DefaultIFSC = %d bytes",phNxpEseProto7816_3_Var.atrInfo.defaultIFSC);
+  DLOG_IF(INFO, ese_debug_enabled)
+          << StringPrintf("Max IFSC = %d bytes",phNxpEseProto7816_3_Var.atrInfo.maxIFSC[0]<<8
+  | phNxpEseProto7816_3_Var.atrInfo.maxIFSC[1]);
+  DLOG_IF(INFO, ese_debug_enabled)
+          << StringPrintf("Capabilities = 0x%x",phNxpEseProto7816_3_Var.atrInfo.capbilities[0]<<8
+  |phNxpEseProto7816_3_Var.atrInfo.capbilities[1]);
+  DLOG_IF(INFO, ese_debug_enabled)
+          << StringPrintf("======================");
+
 }
 
 /******************************************************************************
@@ -1267,6 +1306,8 @@ static ESESTATUS TransceiveProcess(void) {
         break;
       case SEND_S_EOS:
         sFrameInfo.sFrameType = PROP_END_APDU_REQ;
+        sFrameInfo.len = phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.len;
+        sFrameInfo.p_data = phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.p_data;
         status = phNxpEseProto7816_SendSFrame(sFrameInfo);
         break;
       case SEND_S_WTX_RSP:
@@ -1565,6 +1606,8 @@ ESESTATUS phNxpEseProto7816_Close(
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.sFrameType =
       PROP_END_APDU_REQ;
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.len =
+      PH_PROTO_7816_VALUE_ZERO;
   phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState = SEND_S_EOS;
   status = TransceiveProcess();
   if (ESESTATUS_FAILED == status) {
@@ -1576,6 +1619,51 @@ ESESTATUS phNxpEseProto7816_Close(
                   sizeof(phNxpEseProto7816SecureTimer_t));
   phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
       PH_NXP_ESE_PROTO_7816_IDLE;
+  return status;
+}
+
+/******************************************************************************
+ * Function         phNxpEseProto7816_CloseAllSessions
+ *
+ * Description      This function is used to close the 7816 protocol stack
+ *instance
+ *
+ * Returns          On success return true or else false.
+ *
+ ******************************************************************************/
+ESESTATUS phNxpEseProto7816_CloseAllSessions(void) {
+  ESESTATUS status = ESESTATUS_FAILED;
+
+  /*Note:- Below OS version check using ATR shall
+   * be removed while integrating with TEE/REE as ATR
+   * information is not available in REE case*/
+
+  if(phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN-1]
+  == PH_SE_OS_VERSION_10) {
+    uint8_t *buffer =
+        (uint8_t*)phNxpEse_memalloc(sizeof(uint8_t));
+    if(buffer != NULL) {
+      buffer[PH_PROTO_7816_VALUE_ZERO] = PH_PROTO_CLOSE_ALL_SESSION_INF;
+      /* send the end of session s-frame */
+      phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
+      phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.sFrameType =
+          PROP_END_APDU_REQ;
+      phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.p_data =buffer;
+      phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.len = PH_PROTO_CLOSE_ALL_SESSION_LEN;
+      phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState = SEND_S_EOS;
+      status = TransceiveProcess();
+      if (ESESTATUS_FAILED == status) {
+        /* reset all the structures */
+        LOG(ERROR) << StringPrintf("%s EndOfSession failed ", __FUNCTION__);
+      }
+      phNxpEse_free(buffer);
+      phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
+        PH_NXP_ESE_PROTO_7816_IDLE;
+    }
+  } else {
+    LOG(ERROR) << StringPrintf("%s Function not supported ", __FUNCTION__);
+    status = ESESTATUS_SUCCESS;
+  }
   return status;
 }
 

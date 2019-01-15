@@ -716,10 +716,6 @@ ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp) {
     if (ESESTATUS_SUCCESS != status) {
       LOG(ERROR) << StringPrintf(" %s phNxpEseProto7816_Transceive- Failed \n",
                       __FUNCTION__);
-      if(ESESTATUS_TRANSCEIVE_FAILED == status) {
-        //phPalEse_ioctl(phPalEse_e_ChipPwrRst, nxpese_ctxt.pDevHandle, SPM_POWER_RESET);
-        phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
-      }
     }
     nxpese_ctxt.EseLibStatus = ESE_STATUS_IDLE;
     nxpese_ctxt.rnack_sent = false;
@@ -1029,7 +1025,12 @@ ESESTATUS phNxpEse_close(void) {
     LOG(INFO) << StringPrintf("Inform eSE that trusted Mode is over");
     status = phPalEse_ioctl(phPalEse_e_SetSecureMode,
                                   nxpese_ctxt.pDevHandle,0x00);
-  }
+    }
+    status = phNxpEseProto7816_CloseAllSessions();
+    if(ESESTATUS_SUCCESS != status) {
+      LOG(INFO) << StringPrintf("eSE not responding perform hard reset");
+      phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
+    }
     phPalEse_close(nxpese_ctxt.pDevHandle);
     phNxpEse_memset(&nxpese_ctxt, 0x00, sizeof(nxpese_ctxt));
     DLOG_IF(INFO, ese_debug_enabled)
