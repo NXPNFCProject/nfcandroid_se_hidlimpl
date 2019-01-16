@@ -39,14 +39,14 @@ enum {
   HAL_ESE_IOCTL_P61_REL_ACCESS,
   HAL_ESE_IOCTL_ESE_CHIP_RST,
   HAL_ESE_IOCTL_REL_SVDD_WAIT,
-  HAL_ESE_IOCTL_SET_JCP_DWNLD_ENABLE,
+  HAL_ESE_IOCTL_SET_JCP_DWNLD_ENABLE,/*B0*/
   HAL_ESE_IOCTL_SET_JCP_DWNLD_DISABLE,
   HAL_ESE_IOCTL_SET_ESE_SERVICE_PID,
   HAL_ESE_IOCTL_REL_DWP_WAIT,
   HAL_ESE_IOCTL_GET_FEATURE_LIST,
   HAL_ESE_IOCTL_RF_STATUS_UPDATE,
   HAL_ESE_IOCTL_NFC_JCOP_DWNLD,
-  HAL_ESE_IOCTL_GET_ESE_UPDATE_STATE
+  HAL_ESE_IOCTL_GET_ESE_UPDATE_STATE/*B7 183*/
 };
 
 enum {
@@ -154,11 +154,6 @@ typedef union {
   uint16_t fwMwVerStatus;
   uint8_t chipType;
 } eseOutputData_t;
-
-typedef union {
-  uint8_t nfc_jcop_download_state;
-} eseIoctlData_t;
-extern eseIoctlData_t  eseioctldata;
 
 /*
  * ese_nxp_ExtnOutputData_t :Apart from outputData_t, there are other

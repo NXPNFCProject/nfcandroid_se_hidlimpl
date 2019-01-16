@@ -35,10 +35,6 @@
   ({ phPalEse_print_packet("RECV", data, len); })
 static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
                                int nNbBytesToRead);
-#ifdef NXP_ESE_JCOP_DWNLD_PROTECTION
-static ESESTATUS phNxpEse_checkJcopDwnldState(void);
-static ESESTATUS phNxpEse_setJcopDwnldState(phNxpEse_JcopDwnldState state);
-#endif
 #ifdef NXP_NFCC_SPI_FW_DOWNLOAD_SYNC
 static ESESTATUS phNxpEse_checkFWDwnldStatus(void);
 #endif
@@ -161,7 +157,7 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
  *                  In case of failure returns other failure value.
  *
  ******************************************************************************/
-ESESTATUS phNxpEse_open(phNxpEse_initParams initParams, bool triggerJcopOSU) {
+ESESTATUS phNxpEse_open(phNxpEse_initParams initParams, bool isSpiDwpSyncReqd) {
   phPalEse_Config_t tPalConfig;
   ESESTATUS wConfigStatus = ESESTATUS_SUCCESS;
   unsigned long int tpm_enable = 0;
@@ -231,7 +227,7 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams, bool triggerJcopOSU) {
   tPalConfig.pDevName = (int8_t*)ese_dev_node;
 
   /* Initialize PAL layer */
-  wConfigStatus = phPalEse_open_and_configure(&tPalConfig, triggerJcopOSU);
+  wConfigStatus = phPalEse_open_and_configure(&tPalConfig, isSpiDwpSyncReqd);
   if (wConfigStatus != ESESTATUS_SUCCESS) {
     ALOGE("phPalEse_Init Failed");
     goto clean_and_return;
@@ -289,17 +285,6 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams, bool triggerJcopOSU) {
 #endif
   phNxpEse_memcpy(&nxpese_ctxt.initParams, &initParams,
                   sizeof(phNxpEse_initParams));
-#ifdef NXP_ESE_JCOP_DWNLD_PROTECTION
-  /* Updating ESE power state based on the init mode */
-  if (ESE_MODE_OSU == nxpese_ctxt.initParams.initMode) {
-    ALOGE("%s Init mode ---->OSU", __FUNCTION__);
-    wConfigStatus = phNxpEse_checkJcopDwnldState();
-    if (wConfigStatus != ESESTATUS_SUCCESS) {
-      ALOGE("phNxpEse_checkJcopDwnldState failed");
-      goto clean_and_return_1;
-    }
-  }
-#endif
   wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_ENABLE);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
     ALOGE("phNxpEse_SPM_ConfigPwr: enabling power Failed");
@@ -460,16 +445,6 @@ ESESTATUS phNxpEse_openPrioSession(phNxpEse_initParams initParams) {
   }
   phNxpEse_memcpy(&nxpese_ctxt.initParams, &initParams.initMode,
                   sizeof(phNxpEse_initParams));
-#ifdef NXP_ESE_JCOP_DWNLD_PROTECTION
-  /* Updating ESE power state based on the init mode */
-  if (ESE_MODE_OSU == nxpese_ctxt.initParams.initMode) {
-    wConfigStatus = phNxpEse_checkJcopDwnldState();
-    if (wConfigStatus != ESESTATUS_SUCCESS) {
-      ALOGE("phNxpEse_checkJcopDwnldState failed");
-      goto clean_and_return_1;
-    }
-  }
-#endif
   wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_PRIO_ENABLE);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
     ALOGE("phNxpEse_SPM_ConfigPwr: enabling power for spi prio Failed");
@@ -538,77 +513,7 @@ clean_and_return_2:
   nxpese_ctxt.spm_power_state = false;
   return ESESTATUS_FAILED;
 }
-#ifdef NXP_ESE_JCOP_DWNLD_PROTECTION
-/******************************************************************************
- * Function         phNxpEse_setJcopDwnldState
- *
- * Description      This function is  used to check whether JCOP OS
- *                  download can be started or not.
- *
- * Returns          returns  ESESTATUS_SUCCESS or ESESTATUS_FAILED
- *
- ******************************************************************************/
-static ESESTATUS phNxpEse_setJcopDwnldState(phNxpEse_JcopDwnldState state) {
-  ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
-  ESESTATUS wConfigStatus = ESESTATUS_FAILED;
-  ALOGE("phNxpEse_setJcopDwnldState Enter");
 
-  wSpmStatus = phNxpEse_SPM_SetJcopDwnldState(state);
-  if (wSpmStatus == ESESTATUS_SUCCESS) {
-    wConfigStatus = ESESTATUS_SUCCESS;
-  }
-
-  return wConfigStatus;
-}
-
-/******************************************************************************
- * Function         phNxpEse_checkJcopDwnldState
- *
- * Description      This function is  used to check whether JCOP OS
- *                  download can be started or not.
- *
- * Returns          returns  ESESTATUS_SUCCESS or ESESTATUS_BUSY
- *
- ******************************************************************************/
-static ESESTATUS phNxpEse_checkJcopDwnldState(void) {
-  ALOGE("phNxpEse_checkJcopDwnld Enter");
-  ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
-  spm_state_t current_spm_state = SPM_STATE_INVALID;
-  uint8_t ese_dwnld_retry = 0x00;
-  ESESTATUS status = ESESTATUS_FAILED;
-
-  wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
-  if (wSpmStatus == ESESTATUS_SUCCESS) {
-    /* Check current_spm_state and update config/Spm status*/
-    if ((current_spm_state & SPM_STATE_JCOP_DWNLD) ||
-        (current_spm_state & SPM_STATE_WIRED))
-      return ESESTATUS_BUSY;
-
-    status = phNxpEse_setJcopDwnldState(JCP_DWNLD_INIT);
-    if (status == ESESTATUS_SUCCESS) {
-      while (ese_dwnld_retry < ESE_JCOP_OS_DWNLD_RETRY_CNT) {
-        ALOGE("ESE_JCOP_OS_DWNLD_RETRY_CNT retry count");
-        wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
-        if (wSpmStatus == ESESTATUS_SUCCESS) {
-          if ((current_spm_state & SPM_STATE_JCOP_DWNLD)) {
-            status = ESESTATUS_SUCCESS;
-            break;
-          }
-        } else {
-          status = ESESTATUS_FAILED;
-          break;
-        }
-        phNxpEse_Sleep(
-            200000); /*sleep for 200 ms checking for jcop dwnld status*/
-        ese_dwnld_retry++;
-      }
-    }
-  }
-
-  ALOGE("phNxpEse_checkJcopDwnldState status %x", status);
-  return status;
-}
-#endif
 /******************************************************************************
  * Function         phNxpEse_Transceive
  *
@@ -848,7 +753,7 @@ ESESTATUS phNxpEse_deInit(void) {
  * Returns          Always return ESESTATUS_SUCCESS (0).
  *
  ******************************************************************************/
-ESESTATUS phNxpEse_close( bool triggerJcopOSU) {
+ESESTATUS phNxpEse_close( bool isSpiDwpSyncReqd) {
   ESESTATUS status = ESESTATUS_SUCCESS;
   ALOGD_IF(ese_debug_enabled, "%s Enter", __FUNCTION__);
   if ((ESE_STATUS_CLOSE == nxpese_ctxt.EseLibStatus)) {
@@ -859,7 +764,7 @@ ESESTATUS phNxpEse_close( bool triggerJcopOSU) {
 #ifdef SPM_INTEGRATED
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
 #endif
-if (!triggerJcopOSU)
+if (isSpiDwpSyncReqd)
   phPalEse_spi_dwp_sync_close();
 #ifdef SPM_INTEGRATED
   /* Release the Access of  */
@@ -869,14 +774,6 @@ if (!triggerJcopOSU)
   } else {
     nxpese_ctxt.spm_power_state = false;
   }
-#ifdef NXP_ESE_JCOP_DWNLD_PROTECTION
-  if (ESE_MODE_OSU == nxpese_ctxt.initParams.initMode) {
-    status = phNxpEse_setJcopDwnldState(JCP_SPI_DWNLD_COMPLETE);
-    if (status != ESESTATUS_SUCCESS) {
-      ALOGE("%s: phNxpEse_setJcopDwnldState failed", __FUNCTION__);
-    }
-  }
-#endif
   wSpmStatus = phNxpEse_SPM_DeInit();
   if (wSpmStatus != ESESTATUS_SUCCESS) {
     ALOGE("phNxpEse_SPM_DeInit Failed");

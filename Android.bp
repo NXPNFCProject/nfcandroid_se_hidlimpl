@@ -21,6 +21,9 @@ cc_library_shared {
         "libese-spi/src/adaptation/Mutex.cpp",
         "libese-spi/src/sync/EseHalStates.cpp",
         "libese-spi/src/sync/StateMachine.cpp",
+        "ese-clients/src/EseUpdater.cpp",
+        "ese-clients/src/SeChannelCallback.cpp",
+        "ese-clients/src/SeEvtCallback.cpp"
     ],
 
     local_include_dirs: [
@@ -32,7 +35,6 @@ cc_library_shared {
     include_dirs: [
         "hardware/nxp/nfc/extns/impl",
         "hardware/nxp/secure_element/extns/impl",
-        "hardware/nxp/secure_element/ese-clients/inc"
     ],
     export_include_dirs: [
         "extns/impl",
@@ -41,6 +43,8 @@ cc_library_shared {
         "libese-spi/p73/inc",
         "libese-spi/p73/pal",
         "libese-spi/p73/utils",
+        "libese-spi/p73/spm",
+        "ese-clients/inc",
     ],
 
     cflags: [
@@ -64,6 +68,8 @@ cc_library_shared {
         "libbase",
         "vendor.nxp.nxpese@1.0",
         "vendor.nxp.nxpnfc@1.0",
+        "se_extn_client",
+        "jcos_client",
     ],
 }
 
@@ -102,7 +108,6 @@ cc_binary {
         "1.0/NxpEseService.cpp",
         "1.0/SecureElement.cpp",
         "extns/impl/NxpEse.cpp",
-        "ese-clients/src/eSEClient.cpp",
     ],
     local_include_dirs: [
         "libese-spi/common/include",
@@ -114,9 +119,7 @@ cc_binary {
         "libese-spi/p73/lib",
         "libese-spi/p73/pal",
         "libese-spi/p73/pal/spi",
-        "libese-spi/p73/spm",
         "libese-spi/src/include",
-        "ese-clients/inc",
     ],
     include_dirs: [
         "hardware/nxp/nfc/extns/impl",

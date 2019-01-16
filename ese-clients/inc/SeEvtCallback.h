@@ -15,27 +15,11 @@
  *  limitations under the License.
  *
  ******************************************************************************/
+#pragma once
+#include "ISeEvtCallback.h"
 
-#include <android/hardware/secure_element/1.0/ISecureElementHalCallback.h>
-#include "phNxpEse_Api.h"
-#include "../../../secure_element_extns/inc/eSEClientIntf.h"
-
-#ifndef ESE_UPDATE_2_H_
-#define ESE_UPDATE_2_H_
-
-extern ese_update_state_t ese_update;
-using ::android::hardware::secure_element::V1_0::ISecureElementHalCallback;
-
-
-void checkEseClientUpdate();
-
-SESTATUS perform_eSEClientUpdate();
-
-void eSEClientUpdate_SE_Thread();
-
-void seteSEClientState(uint8_t state);
-typedef enum {
-ESE = 0,
-EUICC = 1,
-}SEDomainID;
-#endif /* ESE_UPDATE_2_H_ */
+class SeEvtCallback : public ISeEvtCallback {
+ public:
+  void evtCallback(SESTATUS evt);
+  ~SeEvtCallback() {};
+};

@@ -72,8 +72,6 @@ ESESTATUS phNxpEse_SPM_RelAccess(void);
 ESESTATUS phNxpEse_SPM_SetPwrScheme(long arg);
 
 ESESTATUS phNxpEse_SPM_DisablePwrControl(unsigned long arg);
-#ifdef NXP_ESE_JCOP_DWNLD_PROTECTION
-ESESTATUS phNxpEse_SPM_SetJcopDwnldState(long arg);
-#endif
+
 #endif /*  _PHNXPESE_SPM_H    */
 /** @} */

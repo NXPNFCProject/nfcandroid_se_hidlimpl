@@ -42,6 +42,7 @@
 #include <phNxpEsePal.h>
 #include <phNxpEsePal_spi.h>
 #include <string.h>
+#include "EseUpdater.h"
 
 #define MAX_RETRY_CNT 10
 #define HAL_NFC_SPI_DWP_SYNC 21
@@ -66,7 +67,6 @@ static std::vector<uint8_t> gOmapiAppSignature3(20, 0xFF);
 static std::vector<uint8_t> gOmapiAppSignature4(20, 0xFF);
 static std::vector<uint8_t> gOmapiAppSignature5(20, 0xFF);
 
-eseIoctlData_t  eseioctldata;
 /*******************************************************************************
 **
 ** Function         phPalEse_spi_close
@@ -187,13 +187,24 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
     }
   } break;
     case HAL_ESE_IOCTL_NFC_JCOP_DWNLD:
-
-    eseioctldata.nfc_jcop_download_state = inpOutData->inp.data.nxpCmd.p_cmd[0];
-    if (eseioctldata.nfc_jcop_download_state == 1){
-      ALOGD_IF(ese_debug_enabled, "******************JCOP Download started*************************************");
+    {
+      int update_state = inpOutData->inp.data.nxpCmd.p_cmd[0];
+      if (update_state == 1)
+        ALOGD_IF(ese_debug_enabled, "******************JCOP Download started*************************************");
+      else
+        ALOGD_IF(ese_debug_enabled, "******************JCOP Download stopped*************************************");
     }
-    else{
-      ALOGD_IF(ese_debug_enabled, "******************JCOP Download stopped*************************************");
+    break;
+    case HAL_ESE_IOCTL_GET_ESE_UPDATE_STATE:
+    {
+      int update_state = inpOutData->inp.data.nxpCmd.p_cmd[0];
+      ALOGD_IF(ese_debug_enabled, "update EseUpdater::seteSEClientState");
+      inpOutData->out.data.status = (se_intf.isJcopUpdateRequired | (se_intf.isLSUpdateRequired << 8));
+      if(update_state == ESE_JCOP_UPDATE_COMPLETED ||
+      update_state == ESE_LS_UPDATE_COMPLETED) {
+        EseUpdater::seteSEClientState(update_state);
+        eSEClientUpdate_SE_Thread();
+      }
     }
     break;
   default:
@@ -217,7 +228,7 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
 **                  ESESTATUS_INVALID_DEVICE     - device open operation failure
 **
 *******************************************************************************/
-ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig, bool triggerJcopOSU) {
+ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig, bool isSpiDwpSyncReqd) {
   int nHandle;
   int retryCnt = 0, nfc_access_retryCnt = 0;
   int retval;
@@ -267,7 +278,7 @@ ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig, bool trigg
          sizeof(cmd_omapi_concurrent));
 
 retry_nfc_access:
-  if (!triggerJcopOSU) {
+  if (isSpiDwpSyncReqd) {
     omapi_status = ESESTATUS_FAILED;
     retval = pNfcAdapt.HalIoctl(HAL_NFC_SPI_DWP_SYNC, &inpOutData);
     if (omapi_status != 0) {
@@ -278,7 +289,7 @@ retry_nfc_access:
       ALOGD_IF(ese_debug_enabled, "%s: Return Exception NFC in USE...",
                __FUNCTION__);
       return ESESTATUS_FAILED;
-  }
+    }
   }
   ALOGD_IF(ese_debug_enabled, "halimpl open exit");
   /* open port */
@@ -405,7 +416,7 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
   ese_nxp_IoctlInOutData_t inpOutData;
   inpOutData.inp.level = level;
   NfcAdaptation& pNfcAdapt = NfcAdaptation::GetInstance();
-  if ((NULL == pDevHandle) && (eControlCode != phPalEse_e_SetClientUpdateState)) {
+  if ((NULL == pDevHandle) && (eControlCode != phPalEse_e_SetEseUpdateStatus)) {
     return ESESTATUS_IOCTL_FAILED;
   }
   switch (eControlCode) {
@@ -432,9 +443,9 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
       ret = ESESTATUS_SUCCESS;
       break;
 #ifdef NXP_ESE_JCOP_DWNLD_PROTECTION
-    case phPalEse_e_SetClientUpdateState:
+    case phPalEse_e_SetEseUpdateStatus:
     {
-      ALOGD_IF(ese_debug_enabled, "phPalEse_spi_ioctl state = phPalEse_e_SetJcopDwnldState");
+      ALOGD_IF(ese_debug_enabled, "phPalEse_spi_ioctl state = phPalEse_e_SetEseUpdateStatus");
       ese_nxp_IoctlInOutData_t inpOutData;
       memset(&inpOutData, 0x00, sizeof(ese_nxp_IoctlInOutData_t));
       inpOutData.inp.data.nxpCmd.cmd_len = 1;
@@ -442,14 +453,10 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
       uint8_t data = (uint8_t)level;
       memcpy(inpOutData.inp.data.nxpCmd.p_cmd, &data,
              sizeof(data));
-      ALOGD_IF(ese_debug_enabled, "Before phPalEse_e_SetClientUpdateState");
+      ALOGD_IF(ese_debug_enabled, "Before phPalEse_e_SetEseUpdateStatus");
       ret = pNfcAdapt.HalIoctl(HAL_NFC_IOCTL_ESE_JCOP_DWNLD, &inpOutData);
-      ALOGD_IF(ese_debug_enabled, "After phPalEse_e_SetClientUpdateState");
+      ALOGD_IF(ese_debug_enabled, "After phPalEse_e_SetEseUpdateStatus");
     }
-      break;
-    case phPalEse_e_SetJcopDwnldState:
-      // ret = sendIoctlData(p, HAL_NFC_SET_DWNLD_STATUS, &inpOutData);
-      ret = ESESTATUS_SUCCESS;
       break;
 #endif
     default:

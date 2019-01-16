@@ -61,8 +61,7 @@ typedef enum {
   phPalEse_e_DisablePwrCntrl
 #ifdef NXP_ESE_JCOP_DWNLD_PROTECTION
   ,
-  phPalEse_e_SetJcopDwnldState, /*!< Set Jcop Download state */
-  phPalEse_e_SetClientUpdateState, /*!< Set Jcop Download state */
+  phPalEse_e_SetEseUpdateStatus, /*Send ESE update status from SPI HAL to NFC HAL*/
 #endif
 } phPalEse_ControlCode_t; /*!< Control code for IOCTL call */
 
@@ -109,7 +108,7 @@ void phPalEse_close(void* pDevHandle);
  * \retval  ESESTATUS On Success ESESTATUS_SUCCESS else proper error code
  *
  */
-ESESTATUS phPalEse_open_and_configure(pphPalEse_Config_t pConfig, bool triggerJcopOSU = false);
+ESESTATUS phPalEse_open_and_configure(pphPalEse_Config_t pConfig, bool isSpiDwpSyncReqd = true);
 
 /**
  * \ingroup eSe_PAL
