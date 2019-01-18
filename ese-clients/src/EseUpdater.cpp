@@ -62,12 +62,11 @@ void* eSEUpdate_SE_SeqHandler(void* data);
 EseUpdater::EseUpdater() {}
 EseUpdater& EseUpdater::getInstance() { return sEseUpdaterInstance; }
 
-void EseUpdater::checkIfEseClientUpdate()
-{
+void EseUpdater::checkIfEseClientUpdateReqd() {
   ALOGD("%s enter:  ", __func__);
   se_intf = eseClientIntf.checkEseUpdateRequired(ESE_INTF_SPI);
-  if((se_intf.isJcopUpdateRequired && se_intf.sJcopUpdateIntferface)||
-   (se_intf.isLSUpdateRequired && se_intf.sLsUpdateIntferface))
+  if ((se_intf.isJcopUpdateRequired && se_intf.sJcopUpdateIntferface) ||
+      (se_intf.isLSUpdateRequired && se_intf.sLsUpdateIntferface))
     EseUpdater::seteSEClientState(ESE_UPDATE_STARTED);
 }
 

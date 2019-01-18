@@ -46,7 +46,7 @@ int main() {
   ALOGD("Registering SecureElement HALIMPL Service v1.0...");
   sp<ISecureElement> se_service = new SecureElement();
   configureRpcThreadpool(2, true /*callerWillJoin*/);
-  eseUpdater.checkIfEseClientUpdate();
+  eseUpdater.checkIfEseClientUpdateReqd();
 
   std::string spiTermName;
   spiTermName = EseConfig::getString(NAME_NXP_SPI_TERMINAL_NAME, "eSE1");

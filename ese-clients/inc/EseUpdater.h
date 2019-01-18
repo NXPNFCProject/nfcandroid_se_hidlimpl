@@ -90,7 +90,7 @@ class EseUpdater {
 
 /*******************************************************************************
 **
-** Function:        checkIfEseClientUpdate
+** Function:        checkIfEseClientUpdateReqd
 **
 ** Description:     Check the initial condition
                     and interafce for eSE Client update for LS and JCOP download
@@ -98,7 +98,7 @@ class EseUpdater {
 ** Returns:         SUCCESS of ok
 **
 *******************************************************************************/
-    void checkIfEseClientUpdate();
+    void checkIfEseClientUpdateReqd();
 
 /*******************************************************************************
 **
