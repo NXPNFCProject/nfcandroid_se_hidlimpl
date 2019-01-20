@@ -22,6 +22,7 @@
 #include "LsClient.h"
 #include "SecureElement.h"
 #include "phNxpEse_Api.h"
+#include "EseUpdater.h"
 
 extern bool ese_debug_enabled;
 
@@ -51,6 +52,12 @@ Return<void> SecureElement::init(
       ALOGE("%s: Failed to register death notification", __func__);
     }
   }
+  if (EseUpdater::msDwpEseUpdate != ESE_UPDATE_COMPLETED) {
+    ALOGE("%s: EseClientUpdate is going on SPI disabled", __func__);
+    clientCallback->onStateChange(false);
+    return Void();
+  }
+
   if (isSeInitialized()) {
     clientCallback->onStateChange(true);
     return Void();

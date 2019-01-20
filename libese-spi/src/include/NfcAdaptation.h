@@ -27,6 +27,8 @@
 #include <vendor/nxp/nxpnfc/1.0/INxpNfc.h>
 
 using vendor::nxp::nxpnfc::V1_0::INxpNfc;
+using ::android::sp;
+class NxpNfcDeathRecipient;
 
 class NfcAdaptation {
  public:
@@ -34,12 +36,14 @@ class NfcAdaptation {
    void Initialize();
    static NfcAdaptation &GetInstance();
    static ESESTATUS HalIoctl(long data_len, void *p_data);
+   void resetNxpNfcHalReference();
    ese_nxp_IoctlInOutData_t *mCurrentIoctlData;
 
  private:
   NfcAdaptation();
   static Mutex sLock;
   static Mutex sIoctlLock;
-  static NfcAdaptation* mpInstance;
+  static NfcAdaptation *mpInstance;
   static android::sp<INxpNfc> mHalNxpNfc;
+  sp<NxpNfcDeathRecipient> mNxpNfcDeathRecipient;
 };

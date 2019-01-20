@@ -202,7 +202,7 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
       inpOutData->out.data.status = (se_intf.isJcopUpdateRequired | (se_intf.isLSUpdateRequired << 8));
       if(update_state == ESE_JCOP_UPDATE_COMPLETED ||
       update_state == ESE_LS_UPDATE_COMPLETED) {
-        EseUpdater::seteSEClientState(update_state);
+        EseUpdater::setDwpEseClientState(update_state);
         eSEClientUpdate_SE_Thread();
       }
     }

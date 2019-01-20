@@ -32,6 +32,7 @@ extern eseUpdateInfo_t se_intf;
 class EseUpdater {
   public:
     static ese_update_state_t msEseUpdate;
+    static ese_update_state_t msDwpEseUpdate;
 
 /*****************************************************************************
 **
@@ -46,14 +47,25 @@ class EseUpdater {
 
 /*******************************************************************************
 **
-** Function:        seteSEClientState
+** Function:        setSpiEseClientState
 **
-** Description:     Function to set the eSEUpdate state
+** Description:     Function to set the eSEUpdate state for SPI INTF
 **
 ** Returns:         SUCCESS of ok
 **
 *******************************************************************************/
-    static void seteSEClientState(uint8_t state);
+    static void setSpiEseClientState(uint8_t state);
+
+/*******************************************************************************
+**
+** Function:        setDwpEseClientState
+**
+** Description:     Function to set the eSEUpdate state for SPI INTF
+**
+** Returns:         SUCCESS of ok
+**
+*******************************************************************************/
+    static void setDwpEseClientState(uint8_t state);
 
 /*******************************************************************************
 **

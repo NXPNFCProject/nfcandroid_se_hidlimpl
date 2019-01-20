@@ -28,6 +28,9 @@ using android::hardware::Return;
 using android::hardware::Void;
 using android::hardware::hidl_vec;
 using vendor::nxp::nxpnfc::V1_0::INxpNfc;
+using ::android::hardware::hidl_death_recipient;
+using ::android::wp;
+using ::android::hidl::base::V1_0::IBase;
 
 Mutex NfcAdaptation::sLock;
 Mutex NfcAdaptation::sIoctlLock;
@@ -37,6 +40,22 @@ NfcAdaptation *NfcAdaptation::mpInstance = nullptr;
 
 int omapi_status;
 extern bool ese_debug_enabled;
+
+class NxpNfcDeathRecipient : public hidl_death_recipient {
+ public:
+  sp<INxpNfc> mHalNxpNfcDeathRsp;
+  NxpNfcDeathRecipient(sp<INxpNfc>& mHalNxpNfc) {
+    mHalNxpNfcDeathRsp = mHalNxpNfc;
+  }
+  virtual void serviceDied(
+      uint64_t /* cookie */,
+      const wp<::android::hidl::base::V1_0::IBase>& /* who */) {
+    ALOGE("NxpNfcDeathRecipient::serviceDied - Nfc HalService died");
+    mHalNxpNfcDeathRsp->unlinkToDeath(this);
+    mHalNxpNfcDeathRsp = NULL;
+    NfcAdaptation::GetInstance().resetNxpNfcHalReference();
+  }
+};
 
 /*******************************************************************************
 **
@@ -51,14 +70,34 @@ void NfcAdaptation::Initialize() {
   const char* func = "NfcAdaptation::Initialize";
   ALOGD_IF(ese_debug_enabled, "%s", func);
   if (mHalNxpNfc != nullptr) return;
-  mHalNxpNfc = INxpNfc::tryGetService();
-  LOG_FATAL_IF(mHalNxpNfc == nullptr, "Failed to retrieve the NXP NFC HAL!");
-  if (mHalNxpNfc != nullptr) {
-    ALOGD_IF(ese_debug_enabled, "%s: INxpNfc::getService() returned %p (%s)",
-             func, mHalNxpNfc.get(),
-             (mHalNxpNfc->isRemote() ? "remote" : "local"));
-  }
+  resetNxpNfcHalReference();
   ALOGD_IF(ese_debug_enabled, "%s: exit", func);
+}
+
+/*******************************************************************************
+**
+** Function:    NfcAdaptation::resetNxpNfcHalReference()
+**
+** Description: Resets and gets the new hardware service reference
+**
+** Returns:     none
+**
+*******************************************************************************/
+void NfcAdaptation::resetNxpNfcHalReference() {
+  mHalNxpNfc = nullptr;
+  for (int cnt = 0; ((mHalNxpNfc == nullptr) && (cnt < 3)); cnt++) {
+    mHalNxpNfc = INxpNfc::tryGetService();
+    LOG_FATAL_IF(mHalNxpNfc == nullptr, "Failed to retrieve the NXP NFC HAL!");
+    if (mHalNxpNfc != nullptr) {
+      ALOGD_IF(ese_debug_enabled, "%s: INxpNfc::getService() returned %p (%s)",
+               __func__, mHalNxpNfc.get(),
+               (mHalNxpNfc->isRemote() ? "remote" : "local"));
+      mNxpNfcDeathRecipient = new NxpNfcDeathRecipient(mHalNxpNfc);
+      mHalNxpNfc->linkToDeath(mNxpNfcDeathRecipient, 0);
+    } else {
+      usleep(100 * 1000);
+    }
+  }
 }
 
 /*******************************************************************************
