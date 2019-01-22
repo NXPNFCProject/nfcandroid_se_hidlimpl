@@ -171,7 +171,11 @@ ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig) {
     LOG(ERROR) << StringPrintf("%s : failed errno = 0x%x, retval %x",
                                           __FUNCTION__, errno, nHandle);
     pConfig->pDevHandle = NULL;
-    return ((errno == -EBUSY)||(errno == EBUSY)? ESESTATUS_DRIVER_BUSY : ESESTATUS_INVALID_DEVICE);
+    if((errno == -EBUSY)||(errno == EBUSY)){
+      phPalEse_sleep(100*1000); //100ms delay
+      return ESESTATUS_DRIVER_BUSY;
+    }
+    return  ESESTATUS_INVALID_DEVICE;
   }
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("eSE driver opened :: fd = [%d]", nHandle);
