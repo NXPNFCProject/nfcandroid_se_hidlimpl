@@ -18,8 +18,10 @@
 
 #define LOG_TAG "vendor.nxp.nxpese@1.0-impl"
 #include "NxpEse.h"
+#include "LsClient.h"
 #include "phNxpEse_Api.h"
 #include <log/log.h>
+#include "SpiEseUpdater.h"
 
 namespace vendor {
 namespace nxp {
@@ -40,7 +42,7 @@ Return<void> NxpEse::ioctl(uint64_t ioctlType,
 
   /*data from proxy->stub is copied to local data which can be updated by
    * underlying HAL implementation since its an inout argument*/
-  if(ioctlType == HAL_ESE_IOCTL_GET_ESE_UPDATE_STATE) {
+  if((ioctlType == HAL_ESE_IOCTL_GET_ESE_UPDATE_STATE) || (ioctlType == HAL_ESE_IOCTL_NFC_JCOP_DWNLD)) {
     memcpy(&inpOutData, pInOutData, sizeof(ese_nxp_IoctlInOutData_t));
   } else {
     inpOutData.inp.data.nxpCmd.cmd_len = inOutData.size();
@@ -48,6 +50,15 @@ Return<void> NxpEse::ioctl(uint64_t ioctlType,
            inpOutData.inp.data.nxpCmd.cmd_len);
   }
   ESESTATUS status = phNxpEse_spiIoctl(ioctlType, &inpOutData);
+  if(HAL_ESE_IOCTL_NFC_JCOP_DWNLD == ioctlType) {
+      ALOGD("NxpEse::ioctl == HAL_ESE_IOCTL_NFC_JCOP_DWNLD");
+      if(pInOutData->inp.data.nxpCmd.p_cmd[0] == ESE_JCOP_UPDATE_COMPLETED
+          || pInOutData->inp.data.nxpCmd.p_cmd[0] == ESE_LS_UPDATE_COMPLETED) {
+        ALOGD("NxpEse::ioctl state == ESE_UPDATE_COMPLETED");
+        SpiEseUpdater::setDwpEseClientState(ESE_UPDATE_COMPLETED);
+        spiEseUpdater.reInitSeService();
+      }
+  }
 
   /*copy data and additional fields indicating status of ioctl operation
    * and context of the caller. Then invoke the corresponding proxy callback*/

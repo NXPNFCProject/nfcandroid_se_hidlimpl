@@ -22,7 +22,8 @@
 #include "LsClient.h"
 #include "SecureElement.h"
 #include "phNxpEse_Api.h"
-#include "EseUpdater.h"
+#include "NxpEse.h"
+#include "SpiEseUpdater.h"
 
 extern bool ese_debug_enabled;
 
@@ -31,6 +32,8 @@ namespace hardware {
 namespace secure_element {
 namespace V1_0 {
 namespace implementation {
+
+using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 
 sp<V1_0::ISecureElementHalCallback> SecureElement::mCallbackV1_0 = nullptr;
 
@@ -43,7 +46,6 @@ Return<void> SecureElement::init(
         ::android::hardware::secure_element::V1_0::ISecureElementHalCallback>&
         clientCallback) {
   ESESTATUS status = ESESTATUS_SUCCESS;
-
   if (clientCallback == nullptr) {
     return Void();
   } else {
@@ -52,7 +54,8 @@ Return<void> SecureElement::init(
       ALOGE("%s: Failed to register death notification", __func__);
     }
   }
-  if (EseUpdater::msDwpEseUpdate != ESE_UPDATE_COMPLETED) {
+
+  if ((SpiEseUpdater::msDwpEseUpdate != ESE_UPDATE_COMPLETED) || (SpiEseUpdater::msEseUpdate != ESE_UPDATE_COMPLETED)) {
     ALOGE("%s: EseClientUpdate is going on SPI disabled", __func__);
     clientCallback->onStateChange(false);
     return Void();
@@ -458,6 +461,11 @@ SecureElement::seHalDeInit() {
     }
   }
   return sestatus;
+}
+
+void SecureElement::reInitSeService(const sp<ISecureElement> &seContxt) {
+  if (mCallbackV1_0 != nullptr)
+    seContxt->init(mCallbackV1_0);
 }
 
 }  // namespace implementation

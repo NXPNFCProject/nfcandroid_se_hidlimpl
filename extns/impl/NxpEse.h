@@ -24,6 +24,7 @@
 #include <vendor/nxp/nxpese/1.0/INxpEse.h>
 #include "hal_nxpese.h"
 #include "utils/Log.h"
+#include <android/hardware/secure_element/1.0/ISecureElementHalCallback.h>
 
 namespace vendor {
 namespace nxp {
@@ -42,13 +43,18 @@ using ::android::hardware::Return;
 using ::android::hardware::Void;
 using ::android::sp;
 
+using ::android::hardware::secure_element::V1_0::ISecureElementHalCallback;
+
 struct NxpEse : public INxpEse {
   Return<void> ioctl(uint64_t ioctlType, const hidl_vec<uint8_t>& inOutData,
                      ioctl_cb _hidl_cb) override;
   Return<void> nfccNtf(uint64_t ntfType, const hidl_vec<uint8_t> &ntfData);
+
   private:
     Return<void> ioctlHandler(uint64_t ioctlType, ese_nxp_IoctlInOutData_t inpOutData);
 };
+
+void SpiJcopOsuStateCallBack();
 
 }  // namespace implementation
 }  // namespace V1_0

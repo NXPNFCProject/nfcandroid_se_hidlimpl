@@ -42,7 +42,7 @@
 #include <phNxpEsePal.h>
 #include <phNxpEsePal_spi.h>
 #include <string.h>
-#include "EseUpdater.h"
+#include "SpiEseUpdater.h"
 
 #define MAX_RETRY_CNT 10
 #define HAL_NFC_SPI_DWP_SYNC 21
@@ -198,11 +198,11 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
     case HAL_ESE_IOCTL_GET_ESE_UPDATE_STATE:
     {
       int update_state = inpOutData->inp.data.nxpCmd.p_cmd[0];
-      ALOGD_IF(ese_debug_enabled, "update EseUpdater::seteSEClientState");
+      ALOGD_IF(ese_debug_enabled, "update SpiEseUpdater::seteSEClientState");
       inpOutData->out.data.status = (se_intf.isJcopUpdateRequired | (se_intf.isLSUpdateRequired << 8));
       if(update_state == ESE_JCOP_UPDATE_COMPLETED ||
       update_state == ESE_LS_UPDATE_COMPLETED) {
-        EseUpdater::setDwpEseClientState(update_state);
+        SpiEseUpdater::setDwpEseClientState(update_state);
         eSEClientUpdate_SE_Thread();
       }
     }

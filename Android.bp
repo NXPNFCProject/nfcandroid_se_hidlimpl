@@ -21,7 +21,7 @@ cc_library_shared {
         "libese-spi/src/adaptation/Mutex.cpp",
         "libese-spi/src/sync/EseHalStates.cpp",
         "libese-spi/src/sync/StateMachine.cpp",
-        "ese-clients/src/EseUpdater.cpp",
+        "ese-clients/src/SpiEseUpdater.cpp",
         "ese-clients/src/SeChannelCallback.cpp",
         "ese-clients/src/SeEvtCallback.cpp"
     ],
@@ -29,7 +29,6 @@ cc_library_shared {
     local_include_dirs: [
         "libese-spi/p73/lib",
         "libese-spi/p73/pal/spi",
-        "libese-spi/src/include",
         "libese-spi/src/sync",
     ],
     include_dirs: [
@@ -45,6 +44,7 @@ cc_library_shared {
         "libese-spi/p73/utils",
         "libese-spi/p73/spm",
         "ese-clients/inc",
+        "libese-spi/src/include",
     ],
 
     cflags: [

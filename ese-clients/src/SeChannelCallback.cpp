@@ -1,36 +1,55 @@
+/*******************************************************************************
+ *
+ *  Copyright 2019 NXP
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ ******************************************************************************/
 #include <stdlib.h>
 #include <cutils/log.h>
 #include "SeChannelCallback.h"
-#include "eSEClientIntf.h"
+#include "EseUpdateChecker.h"
 #include "phNxpEse_Api.h"
-  /** abstract class having pure virtual functions to be implemented be each
-   * client  - spi, nfc etc**/
+/** abstract class having pure virtual functions to be implemented be each
+ * client  - spi, nfc etc**/
 
-    /*******************************************************************************
-    **
-    ** Function:        Open
-    **
-    ** Description:     Initialize the channel.
-    **
-    ** Returns:         True if ok.
-    **
-    *******************************************************************************/
-    int16_t SeChannelCallback :: open() { return SESTATUS_SUCCESS; }
+/*******************************************************************************
+**
+** Function:        Open
+**
+** Description:     Initialize the channel.
+**
+** Returns:         True if ok.
+**
+*******************************************************************************/
+int16_t SeChannelCallback ::open() { return SESTATUS_SUCCESS; }
 
-    /*******************************************************************************
-    **
-    ** Function:        close
-    **
-    ** Description:     Close the channel.
-    **
-    ** Returns:         True if ok.
-    **
-    *******************************************************************************/
-    bool SeChannelCallback::close(int16_t mHandle) {
-      if (mHandle != 0)
-        return true;
-      else
-        return false;
+/*******************************************************************************
+**
+** Function:        close
+**
+** Description:     Close the channel.
+**
+** Returns:         True if ok.
+**
+*******************************************************************************/
+bool SeChannelCallback::close(__attribute__((unused)) int16_t mHandle) {
+  if (phNxpEse_deInit() == ESESTATUS_SUCCESS) {
+    if (phNxpEse_close(false) != ESESTATUS_SUCCESS) {
+      return false;
+    }
+  }
+  return true;
     }
 
     /*******************************************************************************

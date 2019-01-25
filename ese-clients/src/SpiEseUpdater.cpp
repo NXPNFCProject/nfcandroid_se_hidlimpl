@@ -16,7 +16,7 @@
  *
  ******************************************************************************/
 #define LOG_TAG "JcDnld_SPI"
-#include "EseUpdater.h"
+#include "SpiEseUpdater.h"
 #include <cutils/log.h>
 #include <dirent.h>
 #include <stdlib.h>
@@ -41,11 +41,11 @@ using android::sp;
 using android::hardware::Void;
 using android::hardware::hidl_vec;
 sp <INxpNfc> mHalNxpNfc = nullptr;
-ese_update_state_t EseUpdater::msEseUpdate;
-ese_update_state_t EseUpdater::msDwpEseUpdate;
-spSeChannel EseUpdater::seChannelCallback = nullptr;
-spSeEvt EseUpdater::seEventCallback = nullptr;
-EseUpdater EseUpdater::sEseUpdaterInstance;
+ESE_UPDATE_STATE SpiEseUpdater::msEseUpdate;
+ESE_UPDATE_STATE SpiEseUpdater::msDwpEseUpdate;
+spSeChannel SpiEseUpdater::seChannelCallback = nullptr;
+spSeEvt SpiEseUpdater::seEventCallback = nullptr;
+SpiEseUpdater SpiEseUpdater::sEseUpdaterInstance;
 
 eseUpdateInfo_t se_intf, nfc_intf;
 
@@ -60,15 +60,15 @@ eseUpdateInfo_t se_intf, nfc_intf;
 *******************************************************************************/
 void* eSEUpdate_SE_SeqHandler(void* data);
 
-EseUpdater::EseUpdater() {}
-EseUpdater& EseUpdater::getInstance() { return sEseUpdaterInstance; }
+SpiEseUpdater::SpiEseUpdater() {}
+SpiEseUpdater& SpiEseUpdater::getInstance() { return sEseUpdaterInstance; }
 
-void EseUpdater::checkIfEseClientUpdateReqd() {
+void SpiEseUpdater::checkIfEseClientUpdateReqd() {
   ALOGD("%s enter:  ", __func__);
-  se_intf = eseClientIntf.checkEseUpdateRequired(ESE_INTF_SPI);
-  nfc_intf = eseClientIntf.checkEseUpdateRequired(ESE_INTF_NFC);
+  se_intf = eseUpdateChecker.checkEseUpdateRequired(ESE_INTF_SPI);
+  nfc_intf = eseUpdateChecker.checkEseUpdateRequired(ESE_INTF_NFC);
   if ((se_intf.isJcopUpdateRequired || se_intf.sLsUpdateIntferface))
-    EseUpdater::setSpiEseClientState(ESE_UPDATE_STARTED);
+    SpiEseUpdater::setSpiEseClientState(ESE_UPDATE_STARTED);
 }
 
 /*******************************************************************************
@@ -96,8 +96,12 @@ void IoctlCallback_eSEClient(::android::hardware::nfc::V1_0::NfcData outputData)
          func,pOutData->data.status);
 }
 
-SESTATUS EseUpdater::doEseUpdateIfReqd() {
+SESTATUS SpiEseUpdater::doEseUpdateIfReqd(
+    std::shared_ptr<IEseUpdateCompletedCallback> eseUpdateCompletedCallback,
+    void *context) {
   eSEClientUpdateHandler();
+  msEseUpdateCompletedCallback = eseUpdateCompletedCallback;
+  mEseUpdaterClientContext = context;
   return SESTATUS_SUCCESS;
 }
 
@@ -121,39 +125,39 @@ void eSEClientUpdate_SE_Thread()
 void* eSEUpdate_SE_SeqHandler(void* data) {
   (void)data;
   ALOGD("%s Enter\n", __func__);
-  EseUpdater::eSEUpdate_SeqHandler();
+  SpiEseUpdater::eSEUpdate_SeqHandler();
   ALOGD("%s Exit eSEUpdate_SE_SeqHandler\n", __func__);
   return NULL;
 }
 
-void EseUpdater::eSEClientUpdateHandler() {
+void SpiEseUpdater::eSEClientUpdateHandler() {
   ALOGD("%s Enter\n", __func__);
   if(nfc_intf.isJcopUpdateRequired) {
-      EseUpdater::setDwpEseClientState(ESE_JCOP_UPDATE_REQUIRED);
+      SpiEseUpdater::setDwpEseClientState(ESE_JCOP_UPDATE_REQUIRED);
       return;
     }
     else if(se_intf.isJcopUpdateRequired) {
-      EseUpdater::setSpiEseClientState(ESE_JCOP_UPDATE_REQUIRED);
+      SpiEseUpdater::setSpiEseClientState(ESE_JCOP_UPDATE_REQUIRED);
     }
 
-  if((ESE_JCOP_UPDATE_REQUIRED != EseUpdater::msEseUpdate) &&
+  if((ESE_JCOP_UPDATE_REQUIRED != SpiEseUpdater::msEseUpdate) &&
       (nfc_intf.isLSUpdateRequired)) {
-      EseUpdater::setDwpEseClientState(ESE_LS_UPDATE_REQUIRED);
+      SpiEseUpdater::setDwpEseClientState(ESE_LS_UPDATE_REQUIRED);
       return;
   } else if(se_intf.isLSUpdateRequired) {
-    EseUpdater::setSpiEseClientState(ESE_LS_UPDATE_REQUIRED);
+    SpiEseUpdater::setSpiEseClientState(ESE_LS_UPDATE_REQUIRED);
   }
 
-  if((EseUpdater::msEseUpdate == ESE_JCOP_UPDATE_REQUIRED) ||
-    (EseUpdater::msEseUpdate == ESE_LS_UPDATE_REQUIRED)) {
+  if((SpiEseUpdater::msEseUpdate == ESE_JCOP_UPDATE_REQUIRED) ||
+    (SpiEseUpdater::msEseUpdate == ESE_LS_UPDATE_REQUIRED)) {
       eSEUpdate_SeqHandler();
     }
   ALOGD("%s Exit \n", __func__);
 }
 
-SESTATUS EseUpdater::handleJcopOsDownload() {
+SESTATUS SpiEseUpdater::handleJcopOsDownload() {
   SESTATUS status = SESTATUS_FAILED;
-  status = EseUpdater::initializeEse(ESE_MODE_OSU, ESE);
+  status = SpiEseUpdater::initializeEse(ESE_MODE_OSU, ESE);
   ALOGD("%s doUpdate:  ", __func__);
   seChannelCallback = std::make_shared<SeChannelCallback>();
   seEventCallback = std::make_shared<SeEvtCallback>();
@@ -164,7 +168,7 @@ SESTATUS EseUpdater::handleJcopOsDownload() {
   return status;
 }
 
-SESTATUS EseUpdater::initializeEse(phNxpEse_initMode mode, __attribute__((unused)) SEDomainID Id) {
+SESTATUS SpiEseUpdater::initializeEse(phNxpEse_initMode mode, __attribute__((unused)) SEDomainID Id) {
   uint8_t retstat;
   SESTATUS status = SESTATUS_FAILED;
   phNxpEse_initParams initParams;
@@ -186,36 +190,34 @@ SESTATUS EseUpdater::initializeEse(phNxpEse_initMode mode, __attribute__((unused
   return status;
 }
 
-void EseUpdater::setSpiEseClientState(uint8_t state) {
+void SpiEseUpdater::setSpiEseClientState(uint8_t state) {
   ALOGE("%s: State = %d", __FUNCTION__, state);
-  EseUpdater::msEseUpdate = (ese_update_state_t)state;
+  SpiEseUpdater::msEseUpdate = (ESE_UPDATE_STATE)state;
 }
 
-void EseUpdater::setDwpEseClientState(uint8_t state) {
+void SpiEseUpdater::setDwpEseClientState(uint8_t state) {
   ALOGE("%s: State = %d", __FUNCTION__, state);
-  EseUpdater::msDwpEseUpdate = (ese_update_state_t)state;
+  SpiEseUpdater::msDwpEseUpdate = (ESE_UPDATE_STATE)state;
 }
 
-void EseUpdater::sendeSEUpdateState(ese_update_state_t state) {
+void SpiEseUpdater::sendeSEUpdateState(ESE_UPDATE_STATE state) {
   ALOGE("%s: State = %d", __FUNCTION__, state);
   phNxpEse_SPM_SetEseClientUpdateState(state);
 }
 
-SESTATUS EseUpdater::eSEUpdate_SeqHandler()
+SESTATUS SpiEseUpdater::eSEUpdate_SeqHandler()
 {
-    switch(EseUpdater::msEseUpdate)
+    switch(SpiEseUpdater::msEseUpdate)
     {
       case ESE_UPDATE_STARTED:
       break;
       case ESE_JCOP_UPDATE_REQUIRED:
         ALOGE("%s: ESE_JCOP_UPDATE_REQUIRED", __FUNCTION__);
         if(se_intf.isJcopUpdateRequired) {
-          if(se_intf.sJcopUpdateIntferface == ESE_INTF_SPI) {
-            EseUpdater::handleJcopOsDownload();
+          if (se_intf.sJcopUpdateInterface == ESE_INTF_SPI) {
+            SpiEseUpdater::handleJcopOsDownload();
             return SESTATUS_SUCCESS;
-            //sendeSEUpdateState(ESE_JCOP_UPDATE_COMPLETED);
-          }
-          else if(se_intf.sJcopUpdateIntferface == ESE_INTF_NFC) {
+          } else if (se_intf.sJcopUpdateInterface == ESE_INTF_NFC) {
             return SESTATUS_SUCCESS;
           }
         }
@@ -226,11 +228,17 @@ SESTATUS EseUpdater::eSEUpdate_SeqHandler()
       case ESE_LS_UPDATE_COMPLETED:
         ALOGE("%s: ESE_LS_UPDATE_COMPLETED", __FUNCTION__);
       case ESE_UPDATE_COMPLETED:
-        EseUpdater::setSpiEseClientState(ESE_UPDATE_COMPLETED);
-        EseUpdater::sendeSEUpdateState(ESE_UPDATE_COMPLETED);
-        //NxpEse::initSEService();
+        SpiEseUpdater::setSpiEseClientState(ESE_UPDATE_COMPLETED);
+        SpiEseUpdater::sendeSEUpdateState(ESE_UPDATE_COMPLETED);
+        spiEseUpdater.msEseUpdateCompletedCallback->updateEseUpdateState(
+            ESE_UPDATE_COMPLETED, spiEseUpdater.mEseUpdaterClientContext);
         ALOGE("%s: ESE_UPDATE_COMPLETED", __FUNCTION__);
       break;
     }
     return SESTATUS_SUCCESS;
+}
+
+void SpiEseUpdater::reInitSeService() {
+  spiEseUpdater.msEseUpdateCompletedCallback->updateEseUpdateState(
+            ESE_UPDATE_COMPLETED, spiEseUpdater.mEseUpdaterClientContext);
 }

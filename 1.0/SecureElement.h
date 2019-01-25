@@ -61,9 +61,10 @@ struct SecureElement : public ISecureElement, public hidl_death_recipient {
   Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
   closeChannel(uint8_t channelNumber) override;
   void serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) override;
+  static void reInitSeService(const sp<ISecureElement> &seContxt);
 
- private:
-  uint8_t mOpenedchannelCount = 0;
+private:
+  uint8_t mOpenedchannelCount;
   bool mOpenedChannels[MAX_LOGICAL_CHANNELS];
   static sp<V1_0::ISecureElementHalCallback> mCallbackV1_0;
   Return<::android::hardware::secure_element::V1_0::SecureElementStatus>

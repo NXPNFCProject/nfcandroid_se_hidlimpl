@@ -25,7 +25,7 @@
 #include "SecureElement.h"
 #include "StateMachine.h"
 #include "ese_config.h"
-#include "EseUpdater.h"
+#include "SpiEseUpdater.h"
 
 // Generated HIDL files
 using android::hardware::secure_element::V1_0::ISecureElement;
@@ -38,6 +38,23 @@ using android::status_t;
 using vendor::nxp::nxpese::V1_0::INxpEse;
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 
+class EseUpdateCompletedCallback
+    : public SpiEseUpdater::IEseUpdateCompletedCallback {
+public:
+  void updateEseUpdateState(ESE_UPDATE_STATE evt, void *context) {
+    (void)evt;
+    ALOGD("%s: enter", __func__);
+    if (evt == ESE_UPDATE_COMPLETED) {
+      SecureElement::reInitSeService(
+          reinterpret_cast<sp<ISecureElement> &>(context));
+    }
+    return;
+  }
+  ~EseUpdateCompletedCallback(){};
+};
+
+std::shared_ptr<SpiEseUpdater::IEseUpdateCompletedCallback>
+    gpEseUpdateCompletedCallback = nullptr;
 
 int main() {
   ALOGD("Initializing State Machine...");
@@ -46,7 +63,7 @@ int main() {
   ALOGD("Registering SecureElement HALIMPL Service v1.0...");
   sp<ISecureElement> se_service = new SecureElement();
   configureRpcThreadpool(2, true /*callerWillJoin*/);
-  eseUpdater.checkIfEseClientUpdateReqd();
+  spiEseUpdater.checkIfEseClientUpdateReqd();
 
   std::string spiTermName;
   spiTermName = EseConfig::getString(NAME_NXP_SPI_TERMINAL_NAME, "eSE1");
@@ -69,7 +86,9 @@ int main() {
     return -1;
   }
   ALOGD("Secure Element HAL Service is ready");
-  eseUpdater.doEseUpdateIfReqd();
+  gpEseUpdateCompletedCallback = std::make_shared<EseUpdateCompletedCallback>();
+  spiEseUpdater.doEseUpdateIfReqd(gpEseUpdateCompletedCallback,
+                                  static_cast<void *>(se_service.get()));
   joinRpcThreadpool();
   return 1;
 }
