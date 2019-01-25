@@ -968,9 +968,6 @@ ESESTATUS phNxpEse_deInit(void) {
   {
       status = phNxpEseProto7816_Close(
           (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
-      if(status == ESESTATUS_TRANSCEIVE_FAILED) {
-        nxpese_ctxt.EseLibStatus = ESE_STATUS_RECOVERY;
-      }
       if (status != ESESTATUS_FAILED) {
           DLOG_IF(INFO, ese_debug_enabled)
           << StringPrintf("%s secureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
@@ -1032,17 +1029,11 @@ ESESTATUS phNxpEse_close(void) {
     status = phPalEse_ioctl(phPalEse_e_SetSecureMode,
                                   nxpese_ctxt.pDevHandle,0x00);
     }
-    if(nxpese_ctxt.EseLibStatus == ESE_STATUS_RECOVERY) {
+    if(nxpese_ctxt.EseLibStatus == ESE_STATUS_RECOVERY ||
+    (ESESTATUS_SUCCESS != phNxpEseProto7816_CloseAllSessions())) {
       LOG(INFO) << StringPrintf("eSE not responding perform hard reset");
       phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
     }
-#ifdef CUSTOM_END_OF_APDU
-    status = phNxpEseProto7816_CloseAllSessions();
-    if(ESESTATUS_SUCCESS != status) {
-      LOG(INFO) << StringPrintf("eSE not responding perform hard reset");
-      phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
-    }
-#endif
     phPalEse_close(nxpese_ctxt.pDevHandle);
     phNxpEse_memset(&nxpese_ctxt, 0x00, sizeof(nxpese_ctxt));
     DLOG_IF(INFO, ese_debug_enabled)
