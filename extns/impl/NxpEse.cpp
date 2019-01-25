@@ -42,7 +42,7 @@ Return<void> NxpEse::ioctl(uint64_t ioctlType,
 
   /*data from proxy->stub is copied to local data which can be updated by
    * underlying HAL implementation since its an inout argument*/
-  if((ioctlType == HAL_ESE_IOCTL_GET_ESE_UPDATE_STATE) || (ioctlType == HAL_ESE_IOCTL_NFC_JCOP_DWNLD)) {
+  if(ioctlType == HAL_ESE_IOCTL_NFC_JCOP_DWNLD) {
     memcpy(&inpOutData, pInOutData, sizeof(ese_nxp_IoctlInOutData_t));
   } else {
     inpOutData.inp.data.nxpCmd.cmd_len = inOutData.size();

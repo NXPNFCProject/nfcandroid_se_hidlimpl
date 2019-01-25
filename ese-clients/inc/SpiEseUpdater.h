@@ -23,7 +23,6 @@
 
 #define spiEseUpdater (SpiEseUpdater::getInstance())
 using ::android::hardware::secure_element::V1_0::ISecureElementHalCallback;
-extern eseUpdateInfo_t se_intf;
 typedef enum {
   ESE = 0,
   EUICC = 1,
@@ -87,14 +86,14 @@ public:
 
   /*******************************************************************************
   **
-  ** Function:        eSEUpdate_SeqHandler
+  ** Function:        eseUpdateSeqHandler
   **
   ** Description:     ESE client update handler
   **
   ** Returns:         SUCCESS of ok
   **
   *******************************************************************************/
-  static SESTATUS eSEUpdate_SeqHandler();
+  static SESTATUS eseUpdateSeqHandler();
 
   /*******************************************************************************
   **
@@ -149,6 +148,7 @@ private:
   static SpiEseUpdater sEseUpdaterInstance;
   static spSeChannel seChannelCallback;
   static spSeEvt seEventCallback;
+  static eseUpdateInfo_t msEseSpiIntfInfo, msEseDwpIntfInfo;
   std::shared_ptr<IEseUpdateCompletedCallback> msEseUpdateCompletedCallback;
   void *mEseUpdaterClientContext;
 

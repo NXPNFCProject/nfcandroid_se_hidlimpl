@@ -21,6 +21,6 @@
 void SeEvtCallback::evtCallback(__attribute__((unused)) SESTATUS evt) {
     SpiEseUpdater::sendeSEUpdateState(ESE_JCOP_UPDATE_COMPLETED);
     SpiEseUpdater::setSpiEseClientState(ESE_UPDATE_COMPLETED);
-    SpiEseUpdater::eSEUpdate_SeqHandler();
+    SpiEseUpdater::eseUpdateSeqHandler();
 return;
 }

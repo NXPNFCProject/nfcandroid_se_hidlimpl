@@ -195,18 +195,6 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
         ALOGD_IF(ese_debug_enabled, "******************JCOP Download stopped*************************************");
     }
     break;
-    case HAL_ESE_IOCTL_GET_ESE_UPDATE_STATE:
-    {
-      int update_state = inpOutData->inp.data.nxpCmd.p_cmd[0];
-      ALOGD_IF(ese_debug_enabled, "update SpiEseUpdater::seteSEClientState");
-      inpOutData->out.data.status = (se_intf.isJcopUpdateRequired | (se_intf.isLSUpdateRequired << 8));
-      if(update_state == ESE_JCOP_UPDATE_COMPLETED ||
-      update_state == ESE_LS_UPDATE_COMPLETED) {
-        SpiEseUpdater::setDwpEseClientState(update_state);
-        eSEClientUpdate_SE_Thread();
-      }
-    }
-    break;
   default:
     break;
   }
