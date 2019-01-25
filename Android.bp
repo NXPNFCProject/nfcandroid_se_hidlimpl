@@ -68,8 +68,7 @@ cc_library_shared {
         "libbase",
         "vendor.nxp.nxpese@1.0",
         "vendor.nxp.nxpnfc@1.0",
-        "se_extn_client",
-        "jcos_client",
+        "ese_client",
     ],
 }
 
@@ -123,9 +122,6 @@ cc_binary {
     ],
     include_dirs: [
         "hardware/nxp/nfc/extns/impl",
-        "hardware/nxp/secure_element_extns/inc",
-        "hardware/nxp/secure_element/extns/impl",
-        "hardware/nxp/secure_element_extns/jcos_client/inc",
     ],
     shared_libs: [
         "android.hardware.secure_element@1.0",
@@ -141,8 +137,7 @@ cc_binary {
         "libutils",
         "vendor.nxp.nxpese@1.0",
         "vendor.nxp.nxpnfc@1.0",
-        "se_extn_client",
-        "jcos_client",
+        "ese_client",
         "android.hardware.nfc@1.0",
         "android.hardware.nfc@1.1",
     ],
