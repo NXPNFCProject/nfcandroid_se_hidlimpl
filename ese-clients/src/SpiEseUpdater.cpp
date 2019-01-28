@@ -66,7 +66,7 @@ void SpiEseUpdater::checkIfEseClientUpdateReqd() {
   ALOGD("%s enter:  ", __func__);
   msEseSpiIntfInfo = eseUpdateChecker.checkEseUpdateRequired(ESE_INTF_SPI);
   msEseDwpIntfInfo = eseUpdateChecker.checkEseUpdateRequired(ESE_INTF_NFC);
-  if ((msEseSpiIntfInfo.isJcopUpdateRequired || msEseSpiIntfInfo.sLsUpdateIntferface))
+  if ((msEseSpiIntfInfo.isJcopUpdateRequired || msEseSpiIntfInfo.isLSUpdateRequired))
     SpiEseUpdater::setSpiEseClientState(ESE_UPDATE_STARTED);
 }
 
