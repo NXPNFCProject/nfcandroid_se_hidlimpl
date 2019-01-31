@@ -50,6 +50,8 @@ static unsigned char* phNxpEse_GgetTimerTlvBuffer(unsigned char* timer_buffer,
 phNxpEse_Context_t nxpese_ctxt;
 bool ese_debug_enabled = true;
 SyncEvent gSpiOpenLock;
+Mutex gTransmitLock;
+extern bool gMfcAppSessionCount;
 
 /******************************************************************************
  * Function         phNxpLog_InitializeLogLevel
@@ -139,9 +141,12 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
 
   /* T=1 Protocol layer open */
   wConfigStatus = phNxpEseProto7816_Open(protoInitParam);
-  if (ESESTATUS_FAILED == wConfigStatus) {
+  if ((ESESTATUS_FAILED == wConfigStatus) ||
+      (ESESTATUS_WRITE_FAILED == wConfigStatus) ||
+      (ESESTATUS_READ_FAILED == wConfigStatus)) {
     wConfigStatus = ESESTATUS_FAILED;
     ALOGE("phNxpEseProto7816_Open failed");
+    phNxpEse_close();
   }
   return wConfigStatus;
 }
@@ -157,7 +162,7 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
  *                  In case of failure returns other failure value.
  *
  ******************************************************************************/
-ESESTATUS phNxpEse_open(phNxpEse_initParams initParams, bool isSpiDwpSyncReqd) {
+ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   phPalEse_Config_t tPalConfig;
   ESESTATUS wConfigStatus = ESESTATUS_SUCCESS;
   unsigned long int tpm_enable = 0;
@@ -227,13 +232,23 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams, bool isSpiDwpSyncReqd) {
   tPalConfig.pDevName = (int8_t*)ese_dev_node;
 
   /* Initialize PAL layer */
-  wConfigStatus = phPalEse_open_and_configure(&tPalConfig, isSpiDwpSyncReqd);
+  wConfigStatus = phPalEse_open_and_configure(&tPalConfig);
   if (wConfigStatus != ESESTATUS_SUCCESS) {
     ALOGE("phPalEse_Init Failed");
     goto clean_and_return;
   }
 
-  StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_OPEN);
+  if (!gMfcAppSessionCount) {
+    eStatus_t statusSpiSessionOpen =
+        StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_SESSION_OPEN);
+    if (statusSpiSessionOpen != SM_STATUS_SUCCESS) {
+      ALOGE(" %s : State Transition to SPI_OPEN Failed", __FUNCTION__);
+      ALOGE(" %s:  NFC in USE..", __FUNCTION__);
+      goto clean_and_return;
+    }
+  }
+
+  StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_DEVICE_OPEN);
 
   /* Copying device handle to ESE Lib context*/
   nxpese_ctxt.pDevHandle = tPalConfig.pDevHandle;
@@ -319,7 +334,7 @@ clean_and_return_2:
     phPalEse_close(nxpese_ctxt.pDevHandle);
     phNxpEse_memset(&nxpese_ctxt, 0x00, sizeof(nxpese_ctxt));
   }
-  StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_CLOSE);
+  StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_DEVICE_CLOSE);
   nxpese_ctxt.EseLibStatus = ESE_STATUS_CLOSE;
   nxpese_ctxt.spm_power_state = false;
   return ESESTATUS_FAILED;
@@ -523,6 +538,7 @@ clean_and_return_2:
  *
  ******************************************************************************/
 ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp) {
+  AutoMutex guard(gTransmitLock);
   ESESTATUS status = ESESTATUS_FAILED;
 
   if ((NULL == pCmd) || (NULL == pRsp)) return ESESTATUS_INVALID_PARAMETER;
@@ -753,7 +769,7 @@ ESESTATUS phNxpEse_deInit(void) {
  * Returns          Always return ESESTATUS_SUCCESS (0).
  *
  ******************************************************************************/
-ESESTATUS phNxpEse_close( bool isSpiDwpSyncReqd) {
+ESESTATUS phNxpEse_close() {
   ESESTATUS status = ESESTATUS_SUCCESS;
   ALOGD_IF(ese_debug_enabled, "%s Enter", __FUNCTION__);
   if ((ESE_STATUS_CLOSE == nxpese_ctxt.EseLibStatus)) {
@@ -764,8 +780,7 @@ ESESTATUS phNxpEse_close( bool isSpiDwpSyncReqd) {
 #ifdef SPM_INTEGRATED
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
 #endif
-if (isSpiDwpSyncReqd)
-  phPalEse_spi_dwp_sync_close();
+
 #ifdef SPM_INTEGRATED
   /* Release the Access of  */
   wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_DISABLE);
@@ -786,8 +801,12 @@ if (isSpiDwpSyncReqd)
     ALOGD_IF(ese_debug_enabled,
              "phNxpEse_close - ESE Context deinit completed");
   }
+
   /* Return success always */
-  StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_CLOSE);
+  StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_DEVICE_CLOSE);
+  if (!gMfcAppSessionCount) {
+    StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_SESSION_CLOSE);
+  }
   return status;
 }
 

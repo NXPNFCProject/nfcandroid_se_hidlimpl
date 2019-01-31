@@ -108,7 +108,7 @@ void phPalEse_close(void* pDevHandle);
  * \retval  ESESTATUS On Success ESESTATUS_SUCCESS else proper error code
  *
  */
-ESESTATUS phPalEse_open_and_configure(pphPalEse_Config_t pConfig, bool isSpiDwpSyncReqd = true);
+ESESTATUS phPalEse_open_and_configure(pphPalEse_Config_t pConfig);
 
 /**
  * \ingroup eSe_PAL

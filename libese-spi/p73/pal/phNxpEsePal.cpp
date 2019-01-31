@@ -83,10 +83,10 @@ void phPalEse_close(void* pDevHandle) {
 **                  ESESTATUS_INVALID_DEVICE     - device open operation failure
 **
 *******************************************************************************/
-ESESTATUS phPalEse_open_and_configure(pphPalEse_Config_t pConfig, bool isSpiDwpSyncReqd) {
+ESESTATUS phPalEse_open_and_configure(pphPalEse_Config_t pConfig) {
   ESESTATUS status = ESESTATUS_FAILED;
 #ifdef SPI_ENABLED
-  status = phPalEse_spi_open_and_configure(pConfig, isSpiDwpSyncReqd);
+  status = phPalEse_spi_open_and_configure(pConfig);
 #else
 /* RFU */
 #endif

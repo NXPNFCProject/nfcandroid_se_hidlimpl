@@ -137,8 +137,6 @@ public:
     case EVT_RF_OFF:
       PtrNextState = sListOfStates.find(ST_SPI_CLOSED_RF_IDLE)->second;
       break;
-    case EVT_SPI_OPEN:
-      break;
     default:
       break;
     }
@@ -161,9 +159,13 @@ public:
     case EVT_RF_ON:
       PtrNextState = sListOfStates.find(ST_SPI_CLOSED_RF_BUSY)->second;
       break;
-    case EVT_SPI_OPEN:
-      // TODO: Can OMAPI session cmd be send from here?
-      PtrNextState = sListOfStates.find(ST_SPI_OPEN_RF_IDLE)->second;
+    case EVT_SPI_SESSION_OPEN:
+      eStatus_t statusOmapicmd;
+      statusOmapicmd = SendOMAPISessionOpenCmd();
+      if (statusOmapicmd == SM_STATUS_SUCCESS) {
+        PtrNextState = sListOfStates.find(ST_SPI_SESSION_OPEN_RF_IDLE)->second;
+      }
+      PtrNextState->mLastProcessEventStatus = statusOmapicmd;
       break;
     default:
       break;
@@ -189,12 +191,88 @@ public:
     case EVT_SPI_TX:
       PtrNextState = sListOfStates.find(ST_SPI_BUSY_RF_BUSY)->second;
       break;
-    case EVT_SPI_CLOSE:
+    case EVT_SPI_SESSION_CLOSE:
+      ALOGE("Unexpected: SPI SESSION CLOSE evt RECVD!! ");
+      SendOMAPISessionCloseCmd();
       PtrNextState = sListOfStates.find(ST_SPI_CLOSED_RF_BUSY)->second;
       break;
     case EVT_SPI_TIMER_EXPIRED:
       PtrNextState = sListOfStates.find(ST_SPI_OPEN_SUSPENDED_RF_BUSY)->second;
       SendSwpSwitchAllowCmd();
+      break;
+    case EVT_SPI_DEVICE_CLOSE:
+      PtrNextState =
+          sListOfStates.find(ST_SPI_SESSION_OPEN_RESUMED_RF_BUSY)->second;
+      break;
+    default:
+      break;
+    }
+    return PtrNextState;
+  }
+};
+
+class StateSpiSessionOpenResumedRfBusy : public StateBase {
+public:
+  StateSpiSessionOpenResumedRfBusy() {}
+  ~StateSpiSessionOpenResumedRfBusy() {}
+
+  eStates_t GetState() { return ST_SPI_SESSION_OPEN_RESUMED_RF_BUSY; }
+
+  StateBase *ProcessEvent(eExtEvent_t event) {
+    StateBase *PtrNextState = this;
+    switch (event) {
+    case EVT_RF_OFF:
+      TimerStop();
+      PtrNextState = sListOfStates.find(ST_SPI_SESSION_OPEN_RF_IDLE)->second;
+      break;
+    case EVT_SPI_DEVICE_OPEN:
+      PtrNextState = sListOfStates.find(ST_SPI_OPEN_RESUMED_RF_BUSY)->second;
+      break;
+    case EVT_SPI_SESSION_CLOSE:
+      SendOMAPISessionCloseCmd();
+      PtrNextState = sListOfStates.find(ST_SPI_CLOSED_RF_BUSY)->second;
+      break;
+    case EVT_SPI_TIMER_EXPIRED:
+      SendSwpSwitchAllowCmd();
+      PtrNextState =
+          sListOfStates.find(ST_SPI_SESSION_OPEN_SUSPENDED_RF_BUSY)->second;
+      break;
+    default:
+      break;
+    }
+    return PtrNextState;
+  }
+};
+
+class StateSpiSessionOpenRfIdle : public StateBase {
+public:
+  StateSpiSessionOpenRfIdle() {}
+  ~StateSpiSessionOpenRfIdle() {}
+
+  eStates_t GetState() { return ST_SPI_SESSION_OPEN_RF_IDLE; }
+
+  StateBase *ProcessEvent(eExtEvent_t event) {
+    StateBase *PtrNextState = this;
+    switch (event) {
+    case EVT_RF_ON:
+      SendSwpSwitchAllowCmd();
+      PtrNextState =
+          sListOfStates.find(ST_SPI_SESSION_OPEN_SUSPENDED_RF_BUSY)->second;
+      break;
+    case EVT_RF_ON_FELICA_APP:
+      PtrNextState =
+          sListOfStates.find(ST_SPI_SESSION_OPEN_RESUMED_RF_BUSY)->second;
+      TimerStart(gFelicaAppTimeout);
+      break;
+    case EVT_SPI_DEVICE_CLOSE:
+      PtrNextState = sListOfStates.find(ST_SPI_SESSION_OPEN_RF_IDLE)->second;
+      break;
+    case EVT_SPI_SESSION_CLOSE:
+      SendOMAPISessionCloseCmd();
+      PtrNextState = sListOfStates.find(ST_SPI_CLOSED_RF_IDLE)->second;
+      break;
+    case EVT_SPI_DEVICE_OPEN:
+      PtrNextState = sListOfStates.find(ST_SPI_OPEN_RF_IDLE)->second;
       break;
     default:
       break;
@@ -214,8 +292,8 @@ public:
     StateBase *PtrNextState = this;
     switch (event) {
     case EVT_RF_ON:
-      PtrNextState = sListOfStates.find(ST_SPI_OPEN_SUSPENDED_RF_BUSY)->second;
       SendSwpSwitchAllowCmd();
+      PtrNextState = sListOfStates.find(ST_SPI_OPEN_SUSPENDED_RF_BUSY)->second;
       break;
     case EVT_RF_ON_FELICA_APP:
       PtrNextState = sListOfStates.find(ST_SPI_OPEN_RESUMED_RF_BUSY)->second;
@@ -224,8 +302,13 @@ public:
     case EVT_SPI_TX:
       PtrNextState = sListOfStates.find(ST_SPI_BUSY_RF_IDLE)->second;
       break;
-    case EVT_SPI_CLOSE:
-      PtrNextState = sListOfStates.find(ST_SPI_CLOSED_RF_IDLE)->second;
+    case EVT_SPI_DEVICE_CLOSE:
+      PtrNextState = sListOfStates.find(ST_SPI_SESSION_OPEN_RF_IDLE)->second;
+      break;
+    case EVT_SPI_SESSION_CLOSE:
+      ALOGE("Unexpected: SPI SESSION CLOSE evt RECVD!! ");
+      SendOMAPISessionCloseCmd();
+      PtrNextState = sListOfStates.find(ST_SPI_CLOSED_RF_BUSY)->second;
       break;
     default:
       break;
@@ -253,7 +336,42 @@ public:
       break;
     case EVT_SPI_TX:
       break;
-    case EVT_SPI_CLOSE:
+    case EVT_SPI_DEVICE_CLOSE:
+      PtrNextState =
+          sListOfStates.find(ST_SPI_SESSION_OPEN_SUSPENDED_RF_BUSY)->second;
+      break;
+    case EVT_SPI_SESSION_CLOSE:
+      ALOGE("Unexpected: SPI SESSION CLOSE evt RECVD!! ");
+      SendOMAPISessionCloseCmd();
+      PtrNextState = sListOfStates.find(ST_SPI_CLOSED_RF_BUSY)->second;
+      break;
+    default:
+      break;
+    }
+    return PtrNextState;
+  }
+};
+
+class StateSpiSessionOpenSuspendedRfBusy : public StateBase {
+public:
+  StateSpiSessionOpenSuspendedRfBusy() {}
+  ~StateSpiSessionOpenSuspendedRfBusy() {}
+
+  eStates_t GetState() { return ST_SPI_SESSION_OPEN_SUSPENDED_RF_BUSY; }
+
+  StateBase *ProcessEvent(eExtEvent_t event) {
+    StateBase *PtrNextState = this;
+    switch (event) {
+    case EVT_RF_OFF:
+      SendOMAPISessionOpenCmd();
+      PtrNextState = sListOfStates.find(ST_SPI_SESSION_OPEN_RF_IDLE)->second;
+      break;
+    case EVT_RF_ACT_NTF_ESE:
+      PtrNextState =
+          sListOfStates.find(ST_SPI_SESSION_OPEN_RESUMED_RF_BUSY)->second;
+      break;
+    case EVT_SPI_SESSION_CLOSE:
+      SendOMAPISessionCloseCmd();
       PtrNextState = sListOfStates.find(ST_SPI_CLOSED_RF_BUSY)->second;
       break;
     default:
@@ -343,6 +461,14 @@ StateBase *StateBase::InitializeStates() {
       make_pair(ST_SPI_BUSY_RF_BUSY, new StateSpiBusyRfBusy()));
   StateBase::sListOfStates.insert(make_pair(
       ST_SPI_BUSY_RF_BUSY_TIMER_EXPIRED, new StateSpiBusyRfBusyTimerExpired()));
+  StateBase::sListOfStates.insert(
+      make_pair(ST_SPI_SESSION_OPEN_RF_IDLE, new StateSpiSessionOpenRfIdle()));
+  StateBase::sListOfStates.insert(
+      make_pair(ST_SPI_SESSION_OPEN_SUSPENDED_RF_BUSY,
+                new StateSpiSessionOpenSuspendedRfBusy()));
+  StateBase::sListOfStates.insert(
+      make_pair(ST_SPI_SESSION_OPEN_RESUMED_RF_BUSY,
+                new StateSpiSessionOpenResumedRfBusy()));
 
   StateBase *PtrCurrentState =
       StateBase::sListOfStates.find(ST_SPI_CLOSED_RF_IDLE)->second;
@@ -357,6 +483,7 @@ eStatus_t StateBase::SendOMAPICommand(uint8_t cmd[], uint8_t cmd_len) {
   inpOutData.inp.data.nxpCmd.cmd_len = cmd_len;
   inpOutData.inp.data_source = 1;
   memcpy(inpOutData.inp.data.nxpCmd.p_cmd, cmd, cmd_len);
+  omapi_status = ESESTATUS_FAILED;
 retry_nfc_access:
   retval =
       NfcAdaptation::GetInstance().HalIoctl(HAL_NFC_SPI_DWP_SYNC, &inpOutData);

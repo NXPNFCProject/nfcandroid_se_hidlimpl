@@ -89,7 +89,7 @@ void phPalEse_spi_dwp_sync_close(void);
  * \retval  ESESTATUS On Success ESESTATUS_SUCCESS else proper error code
  *
  */
-ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig, bool isSpiDwpSyncReqd);
+ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig);
 
 /**
  * \ingroup eSe_PAL_Spi

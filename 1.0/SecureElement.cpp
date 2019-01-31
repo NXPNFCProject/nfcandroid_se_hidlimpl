@@ -444,21 +444,17 @@ Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
 SecureElement::seHalDeInit() {
   ESESTATUS status = ESESTATUS_SUCCESS;
   SecureElementStatus sestatus = SecureElementStatus::FAILED;
-  status = phNxpEse_deInit();
+  phNxpEse_deInit();
+  status = phNxpEse_close();
   if (status != ESESTATUS_SUCCESS) {
     sestatus = SecureElementStatus::FAILED;
   } else {
-    status = phNxpEse_close();
-    if (status != ESESTATUS_SUCCESS) {
-      sestatus = SecureElementStatus::FAILED;
-    } else {
-      sestatus = SecureElementStatus::SUCCESS;
+    sestatus = SecureElementStatus::SUCCESS;
 
-      for (uint8_t xx = 0; xx < MAX_LOGICAL_CHANNELS; xx++) {
-        mOpenedChannels[xx] = false;
-      }
-      mOpenedchannelCount = 0;
+    for (uint8_t xx = 0; xx < MAX_LOGICAL_CHANNELS; xx++) {
+      mOpenedChannels[xx] = false;
     }
+    mOpenedchannelCount = 0;
   }
   return sestatus;
 }

@@ -45,7 +45,7 @@ int16_t SeChannelCallback ::open() { return SESTATUS_SUCCESS; }
 *******************************************************************************/
 bool SeChannelCallback::close(__attribute__((unused)) int16_t mHandle) {
   if (phNxpEse_deInit() == ESESTATUS_SUCCESS) {
-    if (phNxpEse_close(false) != ESESTATUS_SUCCESS) {
+    if (phNxpEse_close() != ESESTATUS_SUCCESS) {
       return false;
     }
   }

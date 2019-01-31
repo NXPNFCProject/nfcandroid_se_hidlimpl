@@ -33,7 +33,6 @@ extern bool gMfcAppSessionCount;
  * This module provide the 7816-3 protocol level implementation for ESE
  *
  ******************************************************************************/
-static ESESTATUS phNxpEseProto7816_ResetProtoParams(void);
 static ESESTATUS phNxpEseProto7816_SendRawFrame(uint32_t data_len,
                                                 uint8_t* p_data);
 static ESESTATUS phNxpEseProto7816_GetRawFrame(uint32_t* data_len,
@@ -53,6 +52,7 @@ static ESESTATUS phNxpEseProto7816_RecoverySteps(void);
 static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
                                                uint32_t data_len);
 static ESESTATUS phNxpEseProto7816_ProcessResponse(void);
+static bool IsTransceiveAllowed(void);
 static ESESTATUS TransceiveProcess(void);
 static ESESTATUS phNxpEseProto7816_RSync(void);
 static ESESTATUS phNxpEseProto7816_ResetProtoParams(void);
@@ -988,7 +988,52 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
   ALOGD_IF(ese_debug_enabled, "Exit %s Status 0x%x", __FUNCTION__, status);
   return status;
 }
+/******************************************************************************
+ * Function         IsTransceiveAllowed
+ *
+ * Description      This function checks if Transceive is allowed in the
+ *                  current SPI Ese HAl state
+ * Returns          On success return true or else false.
+ *
+ ******************************************************************************/
+static bool IsTransceiveAllowed(void) {
+  bool isCmdAllowedInAllEseStates = false;
 
+  if (phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState ==
+      SEND_S_EOS) {
+    isCmdAllowedInAllEseStates = true;
+  } else if (phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState ==
+             SEND_IFRAME) {
+    if ((phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.sendDataLen >
+         0x02) &&
+        (phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.p_data[1] ==
+         0x70) &&
+        (phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.p_data[2] ==
+         0x80)) {
+      isCmdAllowedInAllEseStates = true;
+    } else if ((phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo
+                    .sendDataLen > 0x03) &&
+               (phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo
+                    .p_data[0] == 0x00) &&
+               (phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo
+                    .p_data[1] == 0xA4) &&
+               (phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo
+                    .p_data[4] == 0x00)) {
+      isCmdAllowedInAllEseStates = true;
+    } else {
+      isCmdAllowedInAllEseStates = false;
+    }
+  } else {
+    isCmdAllowedInAllEseStates = false;
+  }
+  bool isSpiTxRxAllowedInCurrentState =
+      StateMachine::GetInstance().isSpiTxRxAllowed();
+  ALOGD_IF(ese_debug_enabled,
+           "isCmdAllowedInAllEseStates: %d, isSpiTxRxAllowedInCurrentState:%d",
+           isCmdAllowedInAllEseStates, isSpiTxRxAllowedInCurrentState);
+
+  return (isCmdAllowedInAllEseStates || isSpiTxRxAllowedInCurrentState);
+}
 /******************************************************************************
  * Function         TransceiveProcess
  *
@@ -1010,7 +1055,7 @@ static ESESTATUS TransceiveProcess(void) {
     SyncEventGuard guard(gSpiTxLock);
     ALOGD_IF(ese_debug_enabled, "%s: CurrentState:%d", __FUNCTION__,
              StateMachine::GetInstance().GetCurrentState());
-    if (!StateMachine::GetInstance().isSpiTxRxAllowed()) {
+    if (!IsTransceiveAllowed()) {
       if (gMfcAppSessionCount) {
         ALOGD_IF(ese_debug_enabled,
                  "%s: Waiting for either 2seconds or RF-OFF...", __FUNCTION__);
@@ -1341,7 +1386,8 @@ ESESTATUS phNxpEseProto7816_IntfReset(
   phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
       SEND_S_INTF_RST;
   status = TransceiveProcess();
-  if (ESESTATUS_FAILED == status) {
+  if ((ESESTATUS_FAILED == status) || (ESESTATUS_WRITE_FAILED == status) ||
+      (ESESTATUS_READ_FAILED == status)) {
     uint32_t data_len = 0;
     uint8_t* p_data = NULL;
     /* reset all the structures */

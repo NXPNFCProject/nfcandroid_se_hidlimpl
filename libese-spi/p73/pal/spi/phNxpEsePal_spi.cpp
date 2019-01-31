@@ -48,6 +48,8 @@
 #define HAL_NFC_SPI_DWP_SYNC 21
 #define RF_ON 1
 #define SHA1_LEN 20
+#define FIRST_MFC_APP_OPEN_NUM 1
+#define LAST_MFC_APP_CLOSE_NUM 0
 
 extern int omapi_status;
 extern bool ese_debug_enabled;
@@ -140,7 +142,7 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
       ALOGD_IF(
           ese_debug_enabled,
           "*******************RF IS OFF************************************");
-      phPalEse_spi_start_debounce_timer(500);
+      phPalEse_spi_start_debounce_timer(50);
     }
   } break;
   case HAL_NFC_IOCTL_RF_ACTION_NTF: {
@@ -165,8 +167,11 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
                                        inpOutData->inp.data.nxpCmd.cmd_len);
     if (!phPalEse_spi_match_app_signatures(signature)) {
       ALOGD_IF(ese_debug_enabled, "****RELEASE SESSION:SIGNATURE MATCHED****");
-      if (gMfcAppSessionCount)
+      if (gMfcAppSessionCount) {
         gMfcAppSessionCount--;
+        if (gMfcAppSessionCount == LAST_MFC_APP_CLOSE_NUM)
+          StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_SESSION_CLOSE);
+      }
     } else {
       ALOGD_IF(ese_debug_enabled, "**RELEASE SESSION:SIGNATURE NOT MATCHED**");
     }
@@ -177,10 +182,13 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
                                        inpOutData->inp.data.nxpCmd.cmd_len);
     if (!phPalEse_spi_match_app_signatures(signature)) {
       ALOGD_IF(ese_debug_enabled, "******GET SESSION:SIGNATURE MATCHED******");
-      gMfcAppSessionCount++;
       if (rf_status) {
         ALOGD_IF(ese_debug_enabled, "**GET SESSION:SIGNATURE MATCHED RF ON**");
         status = ESESTATUS_NOT_ALLOWED;
+      } else {
+        gMfcAppSessionCount++;
+        if (gMfcAppSessionCount == FIRST_MFC_APP_OPEN_NUM)
+          StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_SESSION_OPEN);
       }
     } else {
       ALOGD_IF(ese_debug_enabled, "****GET SESSION:SIGNATURE NOT MATCHED****");
@@ -216,10 +224,9 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
 **                  ESESTATUS_INVALID_DEVICE     - device open operation failure
 **
 *******************************************************************************/
-ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig, bool isSpiDwpSyncReqd) {
+ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig) {
   int nHandle;
-  int retryCnt = 0, nfc_access_retryCnt = 0;
-  int retval;
+  int retryCnt = 0;
   ese_nxp_IoctlInOutData_t inpOutData;
   NfcAdaptation& pNfcAdapt = NfcAdaptation::GetInstance();
   pNfcAdapt.Initialize();
@@ -265,21 +272,6 @@ ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig, bool isSpi
   memcpy(inpOutData.inp.data.nxpCmd.p_cmd, cmd_omapi_concurrent,
          sizeof(cmd_omapi_concurrent));
 
-retry_nfc_access:
-  if (isSpiDwpSyncReqd) {
-    omapi_status = ESESTATUS_FAILED;
-    retval = pNfcAdapt.HalIoctl(HAL_NFC_SPI_DWP_SYNC, &inpOutData);
-    if (omapi_status != 0) {
-      ALOGD_IF(ese_debug_enabled, "omapi_status return failed.");
-      nfc_access_retryCnt++;
-      phPalEse_sleep(2000000);
-      if (nfc_access_retryCnt < 5) goto retry_nfc_access;
-      ALOGD_IF(ese_debug_enabled, "%s: Return Exception NFC in USE...",
-               __FUNCTION__);
-      return ESESTATUS_FAILED;
-    }
-  }
-  ALOGD_IF(ese_debug_enabled, "halimpl open exit");
   /* open port */
   ALOGD_IF(ese_debug_enabled, "Opening port=%s\n", pConfig->pDevName);
 retry:
@@ -300,6 +292,7 @@ retry:
   }
   ALOGD_IF(ese_debug_enabled, "eSE driver opened :: fd = [%d]", nHandle);
   pConfig->pDevHandle = (void*)((intptr_t)nHandle);
+  ALOGD_IF(ese_debug_enabled, "halimpl open exit");
   return ESESTATUS_SUCCESS;
 }
 

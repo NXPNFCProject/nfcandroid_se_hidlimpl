@@ -33,6 +33,7 @@ public:
   static StateBase *InitializeStates();
   virtual eStates_t GetState() = 0;
   virtual StateBase *ProcessEvent(eExtEvent_t) = 0;
+  eStatus_t mLastProcessEventStatus;
 
 protected:
   static map<eStates_t, StateBase *> sListOfStates;

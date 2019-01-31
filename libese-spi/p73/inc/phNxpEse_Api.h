@@ -112,9 +112,9 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data);
  * \retval ESESTATUS_SUCCESS On Success ESESTATUS_SUCCESS else proper error code
  *
  */
-ESESTATUS phNxpEse_open(phNxpEse_initParams initParams, bool isSpiDwpSyncReqd = true);
+ESESTATUS phNxpEse_open(phNxpEse_initParams initParams);
 
-/**
+/**F
  * \ingroup spi_libese
  * \brief It opens the physical connectio with ESE () and creates required
  *        client thread for operation. This will get priority access to ESE
@@ -164,7 +164,7 @@ ESESTATUS phNxpEse_deInit(void);
  *
  */
 
-ESESTATUS phNxpEse_close(bool isSpiDwpSyncReqd = true);
+ESESTATUS phNxpEse_close();
 
 /**
  * \ingroup spi_libese
