@@ -51,7 +51,7 @@ phNxpEse_Context_t nxpese_ctxt;
 bool ese_debug_enabled = true;
 SyncEvent gSpiOpenLock;
 Mutex gTransmitLock;
-extern bool gMfcAppSessionCount;
+extern uint8_t gMfcAppSessionCount;
 
 /******************************************************************************
  * Function         phNxpLog_InitializeLogLevel
