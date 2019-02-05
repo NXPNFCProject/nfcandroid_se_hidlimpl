@@ -167,12 +167,36 @@ public:
       }
       PtrNextState->mLastProcessEventStatus = statusOmapicmd;
       break;
+    case EVT_SPI_DEVICE_OPEN:
+      PtrNextState = sListOfStates.find(ST_SPI_OPEN_FOR_ESEUPDATE_RF_IDLE)->second;
+      break;
     default:
       break;
     }
     return PtrNextState;
   }
 };
+
+class StateSpiOpenForEseUpdateRfIdle : public StateBase {
+public:
+  StateSpiOpenForEseUpdateRfIdle() {}
+  ~StateSpiOpenForEseUpdateRfIdle() {}
+
+  eStates_t GetState() { return ST_SPI_OPEN_FOR_ESEUPDATE_RF_IDLE; }
+
+  StateBase *ProcessEvent(eExtEvent_t event) {
+    StateBase *PtrNextState = this;
+    switch (event) {
+    case EVT_SPI_DEVICE_CLOSE:
+      PtrNextState = sListOfStates.find(ST_SPI_CLOSED_RF_IDLE)->second;
+      break;
+    default:
+      break;
+    }
+    return PtrNextState;
+  }
+};
+
 
 class StateSpiOpenResumedRfBusy : public StateBase {
 public:
@@ -469,6 +493,9 @@ StateBase *StateBase::InitializeStates() {
   StateBase::sListOfStates.insert(
       make_pair(ST_SPI_SESSION_OPEN_RESUMED_RF_BUSY,
                 new StateSpiSessionOpenResumedRfBusy()));
+  StateBase::sListOfStates.insert(
+      make_pair(ST_SPI_OPEN_FOR_ESEUPDATE_RF_IDLE,
+                new StateSpiOpenForEseUpdateRfIdle()));
 
   StateBase *PtrCurrentState =
       StateBase::sListOfStates.find(ST_SPI_CLOSED_RF_IDLE)->second;

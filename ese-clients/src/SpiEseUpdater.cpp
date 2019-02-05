@@ -175,14 +175,14 @@ SESTATUS SpiEseUpdater::initializeEse(phNxpEse_initMode mode, __attribute__((unu
 
   initParams.initMode = mode;
   ALOGE("%s: Mode = %d", __FUNCTION__, mode);
-  retstat = phNxpEse_open(initParams);
+  retstat = phNxpEse_open(initParams, false);
   if (retstat != ESESTATUS_SUCCESS) {
     return status;
   }
   retstat = phNxpEse_init(initParams);
   if(retstat != ESESTATUS_SUCCESS)
   {
-    phNxpEse_close();
+    phNxpEse_close(false);
     return status;
   }
   status = SESTATUS_SUCCESS;

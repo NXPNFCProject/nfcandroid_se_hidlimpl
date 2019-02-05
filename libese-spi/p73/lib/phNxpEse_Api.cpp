@@ -162,7 +162,7 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
  *                  In case of failure returns other failure value.
  *
  ******************************************************************************/
-ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
+ESESTATUS phNxpEse_open(phNxpEse_initParams initParams, bool isSpiDwpSyncReqd) {
   phPalEse_Config_t tPalConfig;
   ESESTATUS wConfigStatus = ESESTATUS_SUCCESS;
   unsigned long int tpm_enable = 0;
@@ -238,7 +238,7 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
     goto clean_and_return;
   }
 
-  if (!gMfcAppSessionCount) {
+  if (!gMfcAppSessionCount && isSpiDwpSyncReqd) {
     eStatus_t statusSpiSessionOpen =
         StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_SESSION_OPEN);
     if (statusSpiSessionOpen != SM_STATUS_SUCCESS) {
@@ -769,7 +769,7 @@ ESESTATUS phNxpEse_deInit(void) {
  * Returns          Always return ESESTATUS_SUCCESS (0).
  *
  ******************************************************************************/
-ESESTATUS phNxpEse_close() {
+ESESTATUS phNxpEse_close(bool isSpiDwpSyncReqd) {
   ESESTATUS status = ESESTATUS_SUCCESS;
   ALOGD_IF(ese_debug_enabled, "%s Enter", __FUNCTION__);
   if ((ESE_STATUS_CLOSE == nxpese_ctxt.EseLibStatus)) {
@@ -804,7 +804,7 @@ ESESTATUS phNxpEse_close() {
 
   /* Return success always */
   StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_DEVICE_CLOSE);
-  if (!gMfcAppSessionCount) {
+  if (!gMfcAppSessionCount && isSpiDwpSyncReqd) {
     StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_SESSION_CLOSE);
   }
   return status;

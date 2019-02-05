@@ -51,6 +51,8 @@ bool StateMachine::isSpiTxRxAllowed() {
   if (!((eStates_t)ST_SPI_OPEN_RF_IDLE ==
             (eStates_t)StateMachine::GetInstance().GetCurrentState() ||
         (eStates_t)ST_SPI_OPEN_RESUMED_RF_BUSY ==
+            (eStates_t)StateMachine::GetInstance().GetCurrentState() ||
+        (eStates_t)ST_SPI_OPEN_FOR_ESEUPDATE_RF_IDLE ==
             (eStates_t)StateMachine::GetInstance().GetCurrentState())) {
     return false;
   } else {

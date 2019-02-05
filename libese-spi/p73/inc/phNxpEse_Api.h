@@ -112,7 +112,7 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data);
  * \retval ESESTATUS_SUCCESS On Success ESESTATUS_SUCCESS else proper error code
  *
  */
-ESESTATUS phNxpEse_open(phNxpEse_initParams initParams);
+ESESTATUS phNxpEse_open(phNxpEse_initParams initParams, bool isSpiDwpSyncReqd = true);
 
 /**F
  * \ingroup spi_libese
@@ -164,7 +164,7 @@ ESESTATUS phNxpEse_deInit(void);
  *
  */
 
-ESESTATUS phNxpEse_close();
+ESESTATUS phNxpEse_close(bool isSpiDwpSyncReqd = true);
 
 /**
  * \ingroup spi_libese
