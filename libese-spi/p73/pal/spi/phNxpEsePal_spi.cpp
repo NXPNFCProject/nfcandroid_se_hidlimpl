@@ -58,6 +58,7 @@ extern SyncEvent gSpiOpenLock;
 
 static int rf_status;
 unsigned long configNum1, configNum2, gFelicaAppTimeout;
+unsigned long gRfOffDebounceTimeout;
 
 static const uint8_t MAX_SPI_WRITE_RETRY_COUNT_HW_ERR = 3;
 static IntervalTimer sTimerInstance;
@@ -142,7 +143,7 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
       ALOGD_IF(
           ese_debug_enabled,
           "*******************RF IS OFF************************************");
-      phPalEse_spi_start_debounce_timer(50);
+      phPalEse_spi_start_debounce_timer(gRfOffDebounceTimeout);
     }
   } break;
   case HAL_NFC_IOCTL_RF_ACTION_NTF: {
@@ -248,6 +249,16 @@ ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig) {
     ALOGD_IF(ese_debug_enabled,
              "NXP_OMAPI_APP_TIMEOUT value from config file = %ld",
              gFelicaAppTimeout);
+  }
+  if (EseConfig::hasKey(NAME_NXP_RF_OFF_DEBOUNCE_TIMEOUT)) {
+    gRfOffDebounceTimeout =
+        EseConfig::getUnsigned(NAME_NXP_RF_OFF_DEBOUNCE_TIMEOUT);
+    if (gRfOffDebounceTimeout == 0) {
+      gRfOffDebounceTimeout = 1;
+    }
+    ALOGD_IF(ese_debug_enabled,
+             "NAME_NXP_RF_OFF_DEBOUNCE_TIMEOUT value from config file = %ld",
+             gRfOffDebounceTimeout);
   }
   if (EseConfig::hasKey(NAME_NXP_OMAPI_APP_SIGNATURE_1)) {
     gOmapiAppSignature1 = EseConfig::getBytes(NAME_NXP_OMAPI_APP_SIGNATURE_1);
