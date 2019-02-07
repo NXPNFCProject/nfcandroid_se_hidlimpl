@@ -86,6 +86,9 @@ public:
       break;
     case EVT_SPI_TX_WTX_RSP:
       break;
+    case EVT_RF_OFF:
+      PtrNextState = sListOfStates.find(ST_SPI_BUSY_RF_IDLE)->second;
+      break;
     default:
       break;
     }
