@@ -88,35 +88,6 @@ void phPalEse_spi_close(void* pDevHandle) {
   ALOGD_IF(ese_debug_enabled, "halimpl close exit.");
   return;
 }
-/*******************************************************************************
-**
-** Function         phPalEse_spi_close
-**
-** Description      Closes PN547 device
-**
-** Parameters       pDevHandle - device handle
-**
-** Returns          None
-**
-*******************************************************************************/
-void phPalEse_spi_dwp_sync_close() {
-  ese_nxp_IoctlInOutData_t inpOutData;
-  static uint8_t cmd_omapi_concurrent[] = {0x2F, 0x01, 0x01, 0x00};
-  int retval;
-  ALOGD_IF(ese_debug_enabled, "halimpl close enter.");
-
-  NfcAdaptation& pNfcAdapt = NfcAdaptation::GetInstance();
-  pNfcAdapt.Initialize();
-  // nxpesehal_ctrl.p_ese_stack_cback = p_cback;
-  // nxpesehal_ctrl.p_ese_stack_data_cback = p_data_cback;
-  memset(&inpOutData, 0x00, sizeof(ese_nxp_IoctlInOutData_t));
-  inpOutData.inp.data.nxpCmd.cmd_len = sizeof(cmd_omapi_concurrent);
-  inpOutData.inp.data_source = 1;
-  memcpy(inpOutData.inp.data.nxpCmd.p_cmd, cmd_omapi_concurrent,
-         sizeof(cmd_omapi_concurrent));
-  retval = pNfcAdapt.HalIoctl(HAL_NFC_SPI_DWP_SYNC, &inpOutData);
-  ALOGD_IF(ese_debug_enabled, "_spi_close() status %x", retval);
-}
 
 ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
   ESESTATUS status = ESESTATUS_SUCCESS;

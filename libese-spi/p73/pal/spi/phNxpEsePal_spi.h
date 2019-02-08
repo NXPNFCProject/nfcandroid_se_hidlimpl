@@ -74,14 +74,6 @@ void phPalEse_spi_close(void* pDevHandle);
 
 /**
  * \ingroup eSe_PAL_Spi
- * \brief DWP SPI SYNC close
- *
- * \retval  None
- *
- */
-void phPalEse_spi_dwp_sync_close(void);
-/**
- * \ingroup eSe_PAL_Spi
  * \brief Open and configure ESE device
  *
  * \param[in]       pphPalEse_Config_t: Config to open the device
