@@ -519,8 +519,10 @@ SESTATUS eSEUpdate_SeqHandler()
             return SESTATUS_SUCCESS;
           }
         }
+        [[fallthrough]];
       case ESE_JCOP_UPDATE_COMPLETED:
         ALOGE("%s: ESE_JCOP_UPDATE_COMPLETED", __FUNCTION__);
+        [[fallthrough]];
       case ESE_LS_UPDATE_REQUIRED:
         if(se_intf.isLSUpdateRequired) {
           if(se_intf.sLsUpdateIntferface == ESE_INTF_SPI) {
@@ -534,8 +536,10 @@ SESTATUS eSEUpdate_SeqHandler()
           }
         }
         ALOGE("%s: ESE_LS_UPDATE_REQUIRED", __FUNCTION__);
+        [[fallthrough]];
       case ESE_LS_UPDATE_COMPLETED:
         ALOGE("%s: ESE_LS_UPDATE_COMPLETED", __FUNCTION__);
+        [[fallthrough]];
       case ESE_UPDATE_COMPLETED:
         seteSEClientState(ESE_UPDATE_COMPLETED);
         sendeSEUpdateState(ESE_UPDATE_COMPLETED);
