@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@
  *
  */
 
+#include "phNxpEsePal_spi.h"
+
 #include <android-base/stringprintf.h>
 #include <base/logging.h>
 
@@ -43,13 +45,14 @@
 #include "phNxpEse_Api.h"
 #include "eSEClient.h"
 #include "NfcAdaptation.h"
+
 using android::base::StringPrintf;
 
 #define MAX_RETRY_CNT 10
 #define HAL_NFC_SPI_DWP_SYNC 21
 extern int omapi_status;
 static int rf_status;
-unsigned long int configNum1, configNum2;
+unsigned long int configNum1, configNum2, cold_reset_intf;;
 // Default max retry count for SPI CLT write blocked in secs
 unsigned long int MAX_SPI_WRITE_RETRY_COUNT = 10;
 eseIoctlData_t  eseioctldata;
@@ -77,6 +80,7 @@ void phPalEse_spi_close(void* pDevHandle) {
   inpOutData.inp.data_source = 1;
   memcpy(inpOutData.inp.data.nxpCmd.p_cmd, cmd_omapi_concurrent,
          sizeof(cmd_omapi_concurrent));
+
   // retval = sendIoctlData(p, HAL_NFC_SPI_DWP_SYNC, &inpOutData);
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("halimpl close exit................");
@@ -155,6 +159,17 @@ ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig) {
     DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("NXP_SPI_WRITE_TIMEOUT value from config file = %ld", configNum2);
   }
+  /* Read eSE cold reset interface from ese config file */
+  if (EseConfig::hasKey(NAME_NXP_P61_COLD_RESET_INTERFACE)) {
+    cold_reset_intf = EseConfig::getUnsigned(NAME_NXP_P61_COLD_RESET_INTERFACE);
+    DLOG_IF(INFO, ese_debug_enabled)
+            << StringPrintf("cold_reset_intf value from config file = %ld", cold_reset_intf);
+  } else {
+    cold_reset_intf =0x01; /* Default interface is NFC HAL */
+    DLOG_IF(INFO, ese_debug_enabled)
+            << StringPrintf("cold_reset_intf: Default value ");
+  }
+
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("halimpl open enter................");
   memset(&inpOutData, 0x00, sizeof(ese_nxp_IoctlInOutData_t));
@@ -325,12 +340,20 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHand
           ret= ESESTATUS_SUCCESS;
       }
     break;
-    // Nfc Driver communication part
+
     case phPalEse_e_ChipRst:
-        if(level == 5)
+      if(level == 5)
+      {//SPI driver communication part
+        if(!cold_reset_intf){/* Call the driver IOCTL */
+          if(!(ioctl((intptr_t)pDevHandle, ESE_PERFORM_COLD_RESET, level)))
+             ret= ESESTATUS_SUCCESS;
+        }else {
+          // Nfc Driver communication part
           ret = pNfcAdapt.HalIoctl(HAL_NFC_SET_SPM_PWR, &inpOutData);
-        else
+        }
+      } else {
           ret = ESESTATUS_SUCCESS;
+      }
       //ret = ESESTATUS_SUCCESS;
       break;
 

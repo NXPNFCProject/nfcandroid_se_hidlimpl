@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -1017,11 +1017,6 @@ ESESTATUS phNxpEse_close(void) {
   } else {
     nxpese_ctxt.spm_power_state = false;
   }
-  wSpmStatus = phNxpEse_SPM_DeInit();
-  if (wSpmStatus != ESESTATUS_SUCCESS) {
-    LOG(ERROR) << StringPrintf("phNxpEse_SPM_DeInit Failed");
-  }
-
 #endif
   if (NULL != nxpese_ctxt.pDevHandle) {
     if(ESE_PROTOCOL_MEDIA_SPI == nxpese_ctxt.initParams.mediaType){
@@ -1034,6 +1029,13 @@ ESESTATUS phNxpEse_close(void) {
       LOG(INFO) << StringPrintf("eSE not responding perform hard reset");
       phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
     }
+#ifdef SPM_INTEGRATED
+    wSpmStatus = phNxpEse_SPM_DeInit();
+    if (wSpmStatus != ESESTATUS_SUCCESS) {
+      LOG(ERROR) << StringPrintf("phNxpEse_SPM_DeInit Failed");
+    }
+#endif
+
     phPalEse_close(nxpese_ctxt.pDevHandle);
     phNxpEse_memset(&nxpese_ctxt, 0x00, sizeof(nxpese_ctxt));
     DLOG_IF(INFO, ese_debug_enabled)

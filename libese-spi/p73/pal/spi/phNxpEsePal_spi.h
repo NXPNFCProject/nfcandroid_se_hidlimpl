@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -114,6 +114,12 @@
  *        the logical interface
  */
 #define ESE_SET_TRUSTED_ACCESS  _IOW(P61_MAGIC, 0x0B, long)
+
+/*!
+ * \brief IOCTL to perform the eSE COLD_RESET  via NFC driver.
+ */
+#define ESE_PERFORM_COLD_RESET  _IOW(P61_MAGIC, 0x0C, long)
+
 /* Function declarations */
 /**
  * \ingroup eSe_PAL_Spi
