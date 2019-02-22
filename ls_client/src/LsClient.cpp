@@ -44,6 +44,7 @@ const uint8_t LS_DOWNLOAD_FAILED = 0x01;
 static android::sp<ISecureElementHalCallback> cCallback;
 void* performLSDownload_thread(void* data);
 static void getLSScriptSourcePrefix(std::string& prefix);
+static void deInitAndCloseEseHal();
 
 void getLSScriptSourcePrefix(std::string& prefix) {
   char source_path[PROPERTY_VALUE_MAX] = {0};
@@ -224,15 +225,7 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
       if (lsHashStatus != LSCSTATUS_SUCCESS) {
         ALOGD_IF(ese_debug_enabled, "%s LSC_UpdateLsHash Failed\n", __func__);
       }
-      ESESTATUS estatus = phNxpEse_deInit();
-      if (estatus == ESESTATUS_SUCCESS) {
-        estatus = phNxpEse_close();
-        if (estatus == ESESTATUS_SUCCESS) {
-          ALOGD_IF(ese_debug_enabled, "%s: Ese_close success\n", __func__);
-        }
-      } else {
-        ALOGE("%s: Ese_deInit failed", __func__);
-      }
+      deInitAndCloseEseHal();
       cCallback->onStateChange(false);
       break;
     } else {
@@ -250,11 +243,24 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
   phNxpEse_free(lsHashInfo.readBuffHash);
 
   if (status == LSCSTATUS_SUCCESS) {
+    deInitAndCloseEseHal();
     cCallback->onStateChange(true);
   }
   pthread_exit(NULL);
   ALOGD_IF(ese_debug_enabled, "%s pthread_exit\n", __func__);
   return NULL;
+}
+
+void deInitAndCloseEseHal() {
+  ESESTATUS estatus = phNxpEse_deInit();
+  if (estatus == ESESTATUS_SUCCESS) {
+    estatus = phNxpEse_close();
+    if (estatus == ESESTATUS_SUCCESS) {
+      ALOGD_IF(ese_debug_enabled, "%s: Ese_close success\n", __func__);
+    }
+  } else {
+    ALOGE("%s: Ese_deInit failed", __func__);
+  }
 }
 
 /*******************************************************************************
