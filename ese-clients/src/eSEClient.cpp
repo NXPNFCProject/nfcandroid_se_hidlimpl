@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -85,9 +85,8 @@ bool SE_Transmit(uint8_t* xmitBuffer, int32_t xmitBufferSize, uint8_t* recvBuffe
     {
       memcpy(&recvBuffer[0], rspData.p_data, rspData.len);
     }
-        //free (rspData.p_data);
-    //&recvBuffer = rspData.p_data;
-    ALOGE("%s: size = 0x%x recv[0] = 0x%x", __FUNCTION__, recvBufferActualSize, recvBuffer[0]);
+
+    ALOGE("%s: size = 0x%x ", __FUNCTION__, recvBufferActualSize);
     return true;
 }
 

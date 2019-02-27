@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -1389,9 +1389,6 @@ ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp)
           "%s Data successfully received at 7816, packaging to "
           "send upper layers: DataLen = %d",
           __FUNCTION__, pRes.len);
-      /* Copy the data to be read by the upper layer via transceive api */
-      pRsp->len = pRes.len;
-      pRsp->p_data = pRes.p_data;
     }
   } else {
     // fetch the data info and report to upper layer.
@@ -1402,12 +1399,14 @@ ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp)
           "%s Data successfully received at 7816, packaging to "
           "send upper layers: DataLen = %d",
           __FUNCTION__, pRes.len);
-      /* Copy the data to be read by the upper layer via transceive api */
-      pRsp->len = pRes.len;
-      pRsp->p_data = pRes.p_data;
     } else
       status = ESESTATUS_FAILED;
   }
+
+  /* Copy the data to be read by the upper layer via transceive api */
+  pRsp->len = pRes.len;
+  pRsp->p_data = pRes.p_data;
+
   phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
       PH_NXP_ESE_PROTO_7816_IDLE;
   phNxpEseProto7816_3_Var.reset_type = RESET_TYPE_NONE;

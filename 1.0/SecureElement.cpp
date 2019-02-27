@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -255,9 +255,13 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   status = phNxpEse_Transceive(&cmdApdu, &rspApdu);
   if (status != ESESTATUS_SUCCESS) {
     resApduBuff.channelNumber = 0xff;
-    if (rspApdu.len > 0 &&
-        (rspApdu.p_data[0] == 0x64 && rspApdu.p_data[1] == 0xFF)) {
-      sestatus = SecureElementStatus::IOERROR;
+    if ( NULL != rspApdu.p_data && rspApdu.len > 0){
+      if (rspApdu.p_data[0] == 0x64 && rspApdu.p_data[1] == 0xFF) {
+        sestatus = SecureElementStatus::IOERROR;
+      }
+    }
+    if(SecureElementStatus::IOERROR != sestatus) {
+      sestatus = SecureElementStatus::FAILED;
     }
   } else if (rspApdu.p_data[rspApdu.len - 2] == 0x6A &&
              rspApdu.p_data[rspApdu.len - 1] == 0x81) {
