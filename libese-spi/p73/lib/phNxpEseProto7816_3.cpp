@@ -25,7 +25,7 @@
 SyncEvent gSpiTxLock;
 
 extern bool ese_debug_enabled;
-extern bool gMfcAppSessionCount;
+extern uint8_t gMfcAppSessionCount;
 
 /******************************************************************************
 \section Introduction Introduction

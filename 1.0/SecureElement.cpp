@@ -26,6 +26,7 @@
 #include "SpiEseUpdater.h"
 
 extern bool ese_debug_enabled;
+extern uint8_t gMfcAppSessionCount;
 
 namespace android {
 namespace hardware {
@@ -411,6 +412,7 @@ SecureElement::closeChannel(uint8_t channelNumber) {
 
 void SecureElement::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
   ALOGE("%s: SecureElement serviceDied!!!", __func__);
+  gMfcAppSessionCount = 0;
   SecureElementStatus sestatus = seHalDeInit();
   if (sestatus != SecureElementStatus::SUCCESS) {
     ALOGE("%s: seHalDeInit Faliled!!!", __func__);

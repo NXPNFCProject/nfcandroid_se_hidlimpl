@@ -807,7 +807,6 @@ ESESTATUS phNxpEse_close(bool isSpiDwpSyncReqd) {
   if (!gMfcAppSessionCount && isSpiDwpSyncReqd) {
     StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_SESSION_CLOSE);
   }
-  gMfcAppSessionCount = 0;
   return status;
 }
 
