@@ -107,6 +107,7 @@ cc_binary {
         "1.0/NxpEseService.cpp",
         "1.0/SecureElement.cpp",
         "extns/impl/NxpEse.cpp",
+        "extns/impl/NxpEseEvtProcessor.cpp",
     ],
     local_include_dirs: [
         "libese-spi/common/include",
@@ -136,6 +137,7 @@ cc_binary {
         "liblog",
         "libutils",
         "vendor.nxp.nxpese@1.0",
+        "vendor.nxp.eventprocessor@1.0",
         "vendor.nxp.nxpnfc@1.0",
         "ese_client",
         "android.hardware.nfc@1.0",

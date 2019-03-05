@@ -20,8 +20,10 @@
 #include <hidl/LegacySupport.h>
 #include <log/log.h>
 #include <vendor/nxp/nxpese/1.0/INxpEse.h>
+#include <vendor/nxp/eventprocessor/1.0/INxpEseEvtProcessor.h>
 
 #include "NxpEse.h"
+#include "NxpEseEvtProcessor.h"
 #include "SecureElement.h"
 #include "StateMachine.h"
 #include "ese_config.h"
@@ -37,6 +39,8 @@ using android::sp;
 using android::status_t;
 using vendor::nxp::nxpese::V1_0::INxpEse;
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
+using vendor::nxp::eventprocessor::V1_0::INxpEseEvtProcessor;
+using vendor::nxp::eventprocessor::V1_0::implementation::NxpEseEvtProcessor;
 
 class EseUpdateCompletedCallback
     : public SpiEseUpdater::IEseUpdateCompletedCallback {
@@ -85,6 +89,17 @@ int main() {
         status);
     return -1;
   }
+
+  ALOGD("Registering SecureElement Event Handler Service v1.0...");
+  sp<INxpEseEvtProcessor> nxp_se_evt_handler_service = new NxpEseEvtProcessor();
+  status = nxp_se_evt_handler_service->registerAsService();
+  if (status != OK) {
+    LOG_ALWAYS_FATAL(
+        "Could not register service for SecureElement Event Handler Extn Iface (%d).",
+        status);
+    return -1;
+  }
+
   ALOGD("Secure Element HAL Service is ready");
   gpEseUpdateCompletedCallback = std::make_shared<EseUpdateCompletedCallback>();
   spiEseUpdater.doEseUpdateIfReqd(gpEseUpdateCompletedCallback,

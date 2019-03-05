@@ -74,19 +74,6 @@ Return<void> NxpEse::ioctl(uint64_t ioctlType,
   return Void();
 }
 
-Return<void> NxpEse::nfccNtf(uint64_t ntfType,
-                             const hidl_vec<uint8_t> &ntfData) {
-  ALOGD("NxpEse::nfccNtf(): enter");
-  ese_nxp_IoctlInOutData_t inpOutData;
-  ese_nxp_IoctlInOutData_t *pInOutData =
-      (ese_nxp_IoctlInOutData_t *)&ntfData[0];
-  /*data from proxy->stub is copied to local data*/
-  memcpy(&inpOutData, pInOutData, sizeof(ese_nxp_IoctlInOutData_t));
-  phNxpEse_spiIoctl(ntfType, &inpOutData);
-  ALOGD("NxpEse::nfccNtf(): exit");
-  return Void();
-}
-
 // Methods from ::android::hidl::base::V1_0::IBase follow.
 
 }  // namespace implementation

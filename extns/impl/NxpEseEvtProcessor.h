@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright (C) 2018 NXP Semiconductors
+ *  Copyright 2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,26 +15,25 @@
  *  limitations under the License.
  *
  ******************************************************************************/
-#ifndef VENDOR_NXP_NXPNFC_V1_0_NXPNFC_H
-#define VENDOR_NXP_NXPNFC_V1_0_NXPNFC_H
+#ifndef VENDOR_NXP_NXPESEEVTPROCESSOR_V1_0_NXPESENFCCNTC_H
+#define VENDOR_NXP_NXPESEEVTPROCESSOR_V1_0_NXPESENFCCNTC_H
 
 #include <hardware/hardware.h>
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>
-#include <vendor/nxp/nxpese/1.0/INxpEse.h>
+#include <vendor/nxp/eventprocessor/1.0/INxpEseEvtProcessor.h>
 #include "hal_nxpese.h"
 #include "utils/Log.h"
-#include <android/hardware/secure_element/1.0/ISecureElementHalCallback.h>
 
 namespace vendor {
 namespace nxp {
-namespace nxpese {
+namespace eventprocessor {
 namespace V1_0 {
 namespace implementation {
 
 using ::android::hidl::base::V1_0::DebugInfo;
 using ::android::hidl::base::V1_0::IBase;
-using ::vendor::nxp::nxpese::V1_0::INxpEse;
+using ::vendor::nxp::eventprocessor::V1_0::INxpEseEvtProcessor;
 using ::android::hardware::hidl_array;
 using ::android::hardware::hidl_memory;
 using ::android::hardware::hidl_string;
@@ -43,22 +42,15 @@ using ::android::hardware::Return;
 using ::android::hardware::Void;
 using ::android::sp;
 
-using ::android::hardware::secure_element::V1_0::ISecureElementHalCallback;
 
-struct NxpEse : public INxpEse {
-  Return<void> ioctl(uint64_t ioctlType, const hidl_vec<uint8_t>& inOutData,
-                     ioctl_cb _hidl_cb) override;
-
-  private:
-    Return<void> ioctlHandler(uint64_t ioctlType, ese_nxp_IoctlInOutData_t inpOutData);
+struct NxpEseEvtProcessor : public INxpEseEvtProcessor {
+  Return<void> nfccNtf(uint64_t ntfType, const hidl_vec<uint8_t> &ntfData);
 };
-
-void SpiJcopOsuStateCallBack();
 
 }  // namespace implementation
 }  // namespace V1_0
-}  // namespace nxpese
+}  // namespace eventprocessor
 }  // namespace nxp
 }  // namespace vendor
 
-#endif  // VENDOR_NXP_NXPNFC_V1_0_NXPNFC_H
+#endif  // VENDOR_NXP_NXPESEEVTPROCESSOR_V1_0_NXPESENFCCNTC_H

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright (C) 2018 NXP Semiconductors
+ *  Copyright 2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,16 +15,16 @@
  *  limitations under the License.
  *
  ******************************************************************************/
-package vendor.nxp.nxpese@1.0;
+package vendor.nxp.eventprocessor@1.0;
 
-interface INxpEse {
+interface INxpEseEvtProcessor {
     /*
-     * Performs a general input/output operations.
+     * Non blocking API, used to process nfc notifications coming from nfcc.
      *
-     * Based on the ioctlType, input data bytes are processed and
-     * Output data bytes are generated.
-     * @param ioctlType contains type of functionality requested.
-     * @return output data as stream of bytes
+     * Based on the ntfType, input data bytes are processed.
+     * @param ntfType contains type of functionality.
+     * @param ntfData contains data related to ntfType.
+     * @return nothing.
      */
-    ioctl(uint64_t ioctlType, vec<uint8_t> inputData) generates(vec<uint8_t> outputData);
+    oneway nfccNtf(uint64_t ntfType, vec<uint8_t> ntfData);
 };
