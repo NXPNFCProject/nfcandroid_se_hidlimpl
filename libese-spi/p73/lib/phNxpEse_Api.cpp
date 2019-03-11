@@ -305,16 +305,14 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   phNxpLog_InitializeLogLevel();
   if (EseConfig::hasKey(NAME_NXP_NAD_POLL_RETRY_TIME)) {
     num = EseConfig::getUnsigned(NAME_NXP_NAD_POLL_RETRY_TIME);
-    /*To avoid se service restart in case of no response from eSE*/
-    if(num > 3)
-        num = 3;
     nxpese_ctxt.nadPollingRetryTime = num;
   }
   else
   {
-    nxpese_ctxt.nadPollingRetryTime = 2;
+    nxpese_ctxt.nadPollingRetryTime = 5;
   }
-  LOG(ERROR) << StringPrintf("Nad poll retry time in ms - %lu ms", nxpese_ctxt.nadPollingRetryTime);
+  LOG(INFO) << StringPrintf("Nad poll retry time in us - %lu us",
+          nxpese_ctxt.nadPollingRetryTime * WAKE_UP_DELAY * NAD_POLLING_SCALER);
 
   /*Read device node path*/
   ese_node = EseConfig::getString(NAME_NXP_ESE_DEV_NODE, "/dev/pn81a");

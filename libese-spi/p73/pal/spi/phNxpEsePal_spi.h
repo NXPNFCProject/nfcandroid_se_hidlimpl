@@ -47,7 +47,7 @@
 /*!
  * \brief ESE wakeup delay in case of write error retry
  */
-#define NAD_POLLING_SCALER 10
+#define NAD_POLLING_SCALER 1
 /*!
  * \brief ESE wakeup delay in case of write error retry
  */
