@@ -311,6 +311,7 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   {
     nxpese_ctxt.nadPollingRetryTime = 5;
   }
+
   LOG(INFO) << StringPrintf("Nad poll retry time in us - %lu us",
           nxpese_ctxt.nadPollingRetryTime * WAKE_UP_DELAY * NAD_POLLING_SCALER);
 
@@ -1113,7 +1114,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
   {
     /*wait based on config option */
     /*(nadPollingRetryTime * WAKE_UP_DELAY * NAD_POLLING_SCALER)*/
-    max_sof_counter = (ESE_POLL_TIMEOUT / nxpese_ctxt.nadPollingRetryTime);
+    max_sof_counter = ((ESE_POLL_TIMEOUT * 1000)/ (nxpese_ctxt.nadPollingRetryTime * WAKE_UP_DELAY * NAD_POLLING_SCALER));
   }
   if(nxpese_ctxt.rnack_sent)
   {
