@@ -95,7 +95,7 @@ LSCSTATUS LSC_update_seq_handler(
   ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
   memset(&update_info, 0, sizeof(Lsc_ImageInfo_t));
   if (dest != NULL) {
-    strcat(update_info.fls_RespPath, dest);
+    strncat(update_info.fls_RespPath, dest, MAX_LEN_LS_SCRIPT_PATH);
     ALOGD_IF(ese_debug_enabled,
              "%s: Loader Service response data path/destination: %s", fn, dest);
     update_info.bytes_wrote = 0xAA;
@@ -106,7 +106,7 @@ LSCSTATUS LSC_update_seq_handler(
     return LSCSTATUS_FAILED;
   }
   // memcpy(update_info.fls_path, (char*)Lsc_path, sizeof(Lsc_path));
-  strcat(update_info.fls_path, name);
+  strncat(update_info.fls_path, name, MAX_LEN_LS_SCRIPT_PATH);
   ALOGD_IF(ese_debug_enabled, "Selected applet to install is: %s",
            update_info.fls_path);
 
@@ -381,8 +381,7 @@ LSCSTATUS LSC_StoreData(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
 LSCSTATUS LSC_loadapplet(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
                          Lsc_TranscieveInfo_t* pTranscv_Info) {
   static const char fn[] = "LSC_loadapplet";
-  bool reachEOFCheck = false;
-
+  LSCSTATUS tag40_found = LSCSTATUS_FAILED;
   ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
   if (Os_info == NULL || pTranscv_Info == NULL) {
     ALOGE("%s: Invalid parameter", fn);
@@ -435,10 +434,6 @@ LSCSTATUS LSC_loadapplet(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
   while (!feof(Os_info->fp) && (Os_info->bytes_read < Os_info->fls_size)) {
     len_byte = 0;
     offset = 0;
-    /*Check if the certificate/ is verified or not*/
-    if (status != LSCSTATUS_SUCCESS) {
-      goto exit;
-    }
 
     uint8_t temp_buf[1024];
     memset(temp_buf, 0, sizeof(temp_buf));
@@ -446,11 +441,8 @@ LSCSTATUS LSC_loadapplet(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
     if (status != LSCSTATUS_SUCCESS) {
       goto exit;
     }
-    /*Reset the flag in case further commands exists*/
-    reachEOFCheck = false;
 
     int32_t wLen = 0;
-    LSCSTATUS tag40_found = LSCSTATUS_SUCCESS;
     if (temp_buf[offset] == TAG_LSC_CMD_ID) {
       /* start sending the packet to Lsc */
       offset = offset + 1;
@@ -548,11 +540,6 @@ exit:
   if (Os_info->bytes_wrote == 0xAA) {
     fclose(Os_info->fResp);
   }
-  /*Script ends with SW 6320 and reached END OF FILE*/
-  if (reachEOFCheck == true) {
-    status = LSCSTATUS_SUCCESS;
-    LSC_UpdateExeStatus(LS_SUCCESS_STATUS);
-  }
   ALOGD_IF(ese_debug_enabled, "%s: exit; status= 0x%X", fn, status);
   return status;
 }
@@ -572,9 +559,9 @@ LSCSTATUS LSC_Check_KeyIdentifier(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
                                   int32_t wNewLen) {
   static const char fn[] = "LSC_Check_KeyIdentifier";
   status = LSCSTATUS_FAILED;
-  uint8_t read_buf[1024];
+  uint8_t read_buf[1024] = {0};
   uint16_t offset = 0, len_byte = 0;
-  int32_t wLen;
+  int32_t wLen = 0;
   uint8_t certf_found = LSCSTATUS_FAILED;
 
   ALOGD_IF(ese_debug_enabled, "%s: enter", fn);

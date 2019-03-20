@@ -91,12 +91,14 @@ void phPalEse_spi_close(void* pDevHandle) {
 
 ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
   ESESTATUS status = ESESTATUS_SUCCESS;
-  ese_nxp_IoctlInOutData_t *inpOutData;
-  if (p_data != NULL) {
-    inpOutData = (ese_nxp_IoctlInOutData_t *)p_data;
-    ALOGD_IF(ese_debug_enabled, "phNxpEse_spiIoctl(): ioctlType: %ld",
-             (long)ioctlType);
+  ese_nxp_IoctlInOutData_t *inpOutData = NULL;
+  if (p_data == NULL) {
+    ALOGE("%s:Invalid Data", __FUNCTION__);
+    return ESESTATUS_FAILED;
   }
+  inpOutData = (ese_nxp_IoctlInOutData_t *)p_data;
+  ALOGD_IF(ese_debug_enabled, "phNxpEse_spiIoctl(): ioctlType: %ld",
+           (long)ioctlType);
   switch (ioctlType) {
   case HAL_NFC_IOCTL_RF_STATUS_UPDATE: {
     rf_status = inpOutData->inp.data.nxpCmd.p_cmd[0];

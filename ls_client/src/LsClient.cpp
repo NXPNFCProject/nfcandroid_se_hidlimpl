@@ -60,6 +60,7 @@ void getLSScriptSourcePrefix(std::string& prefix) {
     } else {
       ALOGD("%s Cannot open file %s\n", __func__, source_path);
     }
+    fclose(fd);
   }
   if (prefix.empty()) {
     prefix.assign(ls_script_source_prefix);
@@ -169,18 +170,28 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
     FILE* fOut = fopen(outPath.c_str(), "wb+");
     if (fOut == NULL) {
       ALOGE("%s Failed to open file %s\n", __func__, outPath.c_str());
+      fclose(fIn);
+      status = LSCSTATUS_FAILED;
       break;
     }
+    fclose(fOut);
     /*Read the script content to a local buffer*/
     fseek(fIn, 0, SEEK_END);
     long lsBufSize = ftell(fIn);
+    if (lsBufSize < 0) {
+      ALOGE("%s Failed to get current value of position indicator\n", __func__);
+      fclose(fIn);
+      status = LSCSTATUS_FAILED;
+      break;
+    }
     rewind(fIn);
     if (lsHashInfo.lsRawScriptBuf == nullptr) {
       lsHashInfo.lsRawScriptBuf = (uint8_t*)phNxpEse_memalloc(lsBufSize + 1);
     }
     memset(lsHashInfo.lsRawScriptBuf, 0x00, (lsBufSize + 1));
-    fread(lsHashInfo.lsRawScriptBuf, lsBufSize, 1, fIn);
-
+    if (fread(lsHashInfo.lsRawScriptBuf, (size_t)lsBufSize, 1, fIn) != 1)
+      ALOGD_IF(ese_debug_enabled, "%s Failed to read file", __func__);
+    fclose(fIn);
     LSCSTATUS lsHashStatus = LSCSTATUS_FAILED;
 
     /*Get 20bye SHA1 of the script*/
@@ -279,9 +290,11 @@ unsigned char* getHASH(uint8_t* buffer, size_t buffSize) {
   if (NULL != md) {
     EVP_MD_CTX mdctx;
     EVP_MD_CTX_init(&mdctx);
-    EVP_DigestInit_ex(&mdctx, md, NULL);
+    if (EVP_DigestInit_ex(&mdctx, md, NULL) != 1)
+      ALOGD_IF(ese_debug_enabled, "EVP_DigestInit_ex Returns fail\n");
     EVP_DigestUpdate(&mdctx, buffer, buffSize);
-    EVP_DigestFinal_ex(&mdctx, outHash, &md_len);
+    if (EVP_DigestFinal_ex(&mdctx, outHash, &md_len) != 1)
+      ALOGD_IF(ese_debug_enabled, "EVP_DigestFinal_ex Returns fail\n");
     EVP_MD_CTX_cleanup(&mdctx);
   }
   return outHash;

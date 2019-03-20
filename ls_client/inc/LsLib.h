@@ -136,6 +136,7 @@ static uint8_t SelectLscSlotHash[] = {0x00, 0xA4, 0x04, 0x00, 0x10, 0xA0, 0x00,
 #define STORE_DATA_LEN 32
 #define STORE_DATA_TAG 0x4F
 
+#define MAX_LEN_LS_SCRIPT_PATH 256
 /*******************************************************************************
 **
 ** Function:        Perform_LSC

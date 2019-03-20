@@ -838,7 +838,7 @@ ESESTATUS phNxpEse_read(uint32_t* data_len, uint8_t** pp_data) {
     status = ESESTATUS_FAILED;
   } else {
     PH_PAL_ESE_PRINT_PACKET_RX(nxpese_ctxt.p_read_buff, ret);
-    *data_len = ret;
+    *data_len = (uint32_t)ret;
     *pp_data = nxpese_ctxt.p_read_buff;
     status = ESESTATUS_SUCCESS;
   }
