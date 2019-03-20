@@ -244,14 +244,14 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
     uint8_t sw2 = rspApdu.p_data[rspApdu.len - 1];
     /*Return response on success, empty vector on failure*/
     /*Status is success*/
-    if (sw1 == 0x90 && sw2 == 0x00) {
+    if ((sw1 == 0x90 && sw2 == 0x00) || (sw1 == 0x62) || (sw1 == 0x63)) {
       /*Copy the response including status word*/
       resApduBuff.selectResponse.resize(rspApdu.len);
       memcpy(&resApduBuff.selectResponse[0], rspApdu.p_data, rspApdu.len);
       sestatus = SecureElementStatus::SUCCESS;
     }
     /*AID provided doesn't match any applet on the secure element*/
-    else if (sw1 == 0x6A && sw2 == 0x82) {
+    else if ((sw1 == 0x6A && sw2 == 0x82) || (sw1 == 0x69 && sw2 == 0x99)) {
       sestatus = SecureElementStatus::NO_SUCH_ELEMENT_ERROR;
     }
     /*Operation provided by the P2 parameter is not permitted by the applet.*/
