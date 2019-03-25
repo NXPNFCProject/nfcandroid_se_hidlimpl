@@ -395,11 +395,13 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
     resApduBuff.selectResponse[responseLen - 2] = rpdu.sw1;
 
     /*Status is success*/
-    if (rpdu.sw1 == 0x90 && rpdu.sw2 == 0x00) {
+    if ((rpdu.sw1 == 0x90 && rpdu.sw2 == 0x00) || (rpdu.sw1 == 0x62) ||
+        (rpdu.sw1 == 0x63)) {
       sestatus = SecureElementStatus::SUCCESS;
     }
     /*AID provided doesn't match any applet on the secure element*/
-    else if (rpdu.sw1 == 0x6A && rpdu.sw2 == 0x82) {
+    else if ((rpdu.sw1 == 0x6A && rpdu.sw2 == 0x82) ||
+             (rpdu.sw1 == 0x69 && rpdu.sw2 == 0x99)) {
       sestatus = SecureElementStatus::NO_SUCH_ELEMENT_ERROR;
     }
     /*Operation provided by the P2 parameter is not permitted by the applet.*/
