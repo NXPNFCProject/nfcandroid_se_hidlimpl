@@ -51,7 +51,7 @@ static ESESTATUS phNxpEseProto7816_RecoverySteps(void);
 static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data, uint32_t data_len);
 static ESESTATUS phNxpEseProto7816_ProcessResponse(void);
 static ESESTATUS TransceiveProcess(void);
-static ESESTATUS phNxpEseProto7816_RSync(void);
+//static ESESTATUS phNxpEseProto7816_RSync(void);
 static ESESTATUS phNxpEseProto7816_ResetProtoParams(void);
 static ESESTATUS phNxpEseProto7816_HardReset(void);
 
@@ -882,23 +882,34 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
       if (phNxpEseProto7816_3_Var.recoveryCounter <
           PH_PROTO_7816_FRAME_RETRY_COUNT) {
         if (phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.FrameType == IFRAME) {
-          if (phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.seqNo !=
-              phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.seqNo) {
-              status = phNxpEseProto7816_RSync();
-          }
-          phNxpEse_memcpy(&phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx,
+            /*Only for R-NACK other issue re sync*/
+            if((pcb_bits.lsb == 0x00) && (pcb_bits.bit2 == 0x01)) {
+              if (phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.seqNo !=
+                phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.seqNo &&
+                phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.isChained ==
+                  false) {
+
+                phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+                    SEND_S_RSYNC;
+                phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
+                phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.sFrameType =
+                    RESYNCH_REQ;
+              } else {
+                  /*If R-NACK with sequence no matching then also reissue frame*/
+                  phNxpEse_memcpy(&phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx,
+                                &phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx,
+                                sizeof(phNxpEseProto7816_NextTx_Info_t));
+                  phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+                    SEND_IFRAME;
+                  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = IFRAME;
+              }
+          } else {
+            phNxpEse_memcpy(&phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx,
                           &phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx,
                           sizeof(phNxpEseProto7816_NextTx_Info_t));
-          phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+            phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
               SEND_IFRAME;
-          phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = IFRAME;
-          if(status == ESESTATUS_SUCCESS) {
-              phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.seqNo =
-              PH_PROTO_7816_VALUE_ZERO;
-              /* Initialized the I-Frame sequence number as boot time,
-                as R-SYNCH has reset the Jcop seq number */
-              phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.seqNo =
-              PH_PROTO_7816_VALUE_ONE;
+            phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = IFRAME;
           }
         } else if (phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.FrameType ==
                    RFRAME) {
@@ -1001,11 +1012,31 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
             RESYNCH_REQ;
         break;
       case RESYNCH_RSP:
-        phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
-            RESYNCH_RSP;
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = UNKNOWN;
-        phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
-            IDLE_STATE;
+        if(phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.errCode ==
+            OTHER_ERROR) {
+            phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
+                RESYNCH_RSP;
+            phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.errCode =
+                NO_ERROR;
+            phNxpEse_memcpy(&phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx,
+                          &phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx,
+                          sizeof(phNxpEseProto7816_NextTx_Info_t));
+            phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+              SEND_IFRAME;
+            phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = IFRAME;
+            phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.seqNo =
+              PH_PROTO_7816_VALUE_ZERO;
+              /* Initialized the I-Frame sequence number as boot time,
+                as R-SYNCH has reset the Jcop seq number */
+            phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.seqNo =
+              PH_PROTO_7816_VALUE_ONE;
+        } else {
+          phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
+              RESYNCH_RSP;
+          phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = UNKNOWN;
+          phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+              IDLE_STATE;
+        }
         break;
       case IFS_REQ:
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
@@ -1426,6 +1457,7 @@ ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp)
       << StringPrintf("Exit %s Status 0x%x", __FUNCTION__, status);
   return status;
 }
+#if 0
 /******************************************************************************
  * Function         phNxpEseProto7816_RSync
  *
@@ -1448,6 +1480,8 @@ static ESESTATUS phNxpEseProto7816_RSync(void) {
       PH_NXP_ESE_PROTO_7816_IDLE;
   return status;
 }
+#endif
+
 /******************************************************************************
  * Function         phNxpEseProto7816_HardReset
  *
