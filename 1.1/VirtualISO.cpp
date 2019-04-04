@@ -477,7 +477,7 @@ VirtualISO::internalCloseChannel(uint8_t channelNumber)
   phNxpEse_7816_rpdu_t rpdu;
 
   LOG(ERROR)<<"internalCloseChannel Enter";
-  if (channelNumber < DEFAULT_BASIC_CHANNEL ||
+  if ((int)channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d",channelNumber);
     sestatus = SecureElementStatus::FAILED;
@@ -497,11 +497,7 @@ VirtualISO::internalCloseChannel(uint8_t channelNumber)
     status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
 
     if (status != ESESTATUS_SUCCESS) {
-      if (rpdu.len > 0 && (rpdu.sw1 == 0x64 && rpdu.sw2 == 0xFF)) {
-        sestatus = SecureElementStatus::FAILED;
-      } else {
-        sestatus = SecureElementStatus::FAILED;
-      }
+      sestatus = SecureElementStatus::FAILED;
     } else {
       if ((rpdu.sw1 == 0x90) && (rpdu.sw2 == 0x00)) {
         sestatus = SecureElementStatus::SUCCESS;
@@ -538,9 +534,9 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
   phNxpEse_7816_rpdu_t rpdu;
 
   LOG(INFO) << "Acquired the lock in VISO closeChannel";
-  if (channelNumber < DEFAULT_BASIC_CHANNEL ||
+  if ((int)channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
-    LOG(ERROR) << StringPrintf("invalid channel!!! %d for %d",channelNumber,mOpenedChannels[channelNumber]);
+    LOG(ERROR) << StringPrintf("invalid channel!!! %d",channelNumber);
     sestatus = SecureElementStatus::FAILED;
   } else if (channelNumber > DEFAULT_BASIC_CHANNEL){
     phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
@@ -558,11 +554,7 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
     status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
 
     if (status != ESESTATUS_SUCCESS) {
-      if (rpdu.len > 0 && (rpdu.sw1 == 0x64 && rpdu.sw2 == 0xFF)) {
-        sestatus = SecureElementStatus::FAILED;
-      } else {
-        sestatus = SecureElementStatus::FAILED;
-      }
+      sestatus = SecureElementStatus::FAILED;
     } else {
       if ((rpdu.sw1 == 0x90) && (rpdu.sw2 == 0x00)) {
         sestatus = SecureElementStatus::SUCCESS;
@@ -634,18 +626,13 @@ VirtualISO::seHalDeInit() {
   if (status != ESESTATUS_SUCCESS) {
     sestatus = SecureElementStatus::FAILED;
   } else {
-    //status = phNxpEse_close();
-    if (status != ESESTATUS_SUCCESS) {
-      sestatus = SecureElementStatus::FAILED;
-    } else {
-      mIsEseInitialized = false;
-      sestatus = SecureElementStatus::SUCCESS;
+    mIsEseInitialized = false;
+    sestatus = SecureElementStatus::SUCCESS;
 
-      for (uint8_t xx = 0; xx < MAX_LOGICAL_CHANNELS; xx++) {
-        mOpenedChannels[xx] = false;
-      }
-      mOpenedchannelCount = 0;
+    for (uint8_t xx = 0; xx < MAX_LOGICAL_CHANNELS; xx++) {
+      mOpenedChannels[xx] = false;
     }
+    mOpenedchannelCount = 0;
   }
   return sestatus;
 }

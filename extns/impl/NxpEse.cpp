@@ -116,7 +116,7 @@ static android::sp<ISecureElementHalCallback> virtualISOCallback;
     }
   }
 Return<void> NxpEse::ioctlHandler(uint64_t ioctlType,
-                           ese_nxp_IoctlInOutData_t inpOutData) {
+                           ese_nxp_IoctlInOutData_t &inpOutData) {
   switch(ioctlType)
   {
     case HAL_ESE_IOCTL_NFC_JCOP_DWNLD:

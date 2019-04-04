@@ -77,7 +77,10 @@ bool SE_Transmit(uint8_t* xmitBuffer, int32_t xmitBufferSize, uint8_t* recvBuffe
 
     recvBufferMaxSize++;
     timeoutMillisec++;
-    phNxpEse_Transceive(&cmdData, &rspData);
+
+    if (ESESTATUS_SUCCESS != phNxpEse_Transceive(&cmdData, &rspData)) {
+      ALOGE("%s: phNxpEse_Transceive Failed", __FUNCTION__);
+    }
 
     recvBufferActualSize = rspData.len;
 
@@ -450,7 +453,10 @@ SESTATUS initializeEse(phNxpEse_initMode mode, SEDomainID Id)
   if (retstat != ESESTATUS_SUCCESS) {
     return status;
   }
-  phNxpEse_SetEndPoint_Cntxt(Id);
+  retstat = phNxpEse_SetEndPoint_Cntxt(Id);
+  if (retstat != ESESTATUS_SUCCESS) {
+    ALOGE("%s:phNxpEse_SetEndPoint_Cntxt failed!!!", __FUNCTION__);
+  }
   retstat = phNxpEse_init(initParams);
   if(retstat != ESESTATUS_SUCCESS)
   {

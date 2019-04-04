@@ -49,7 +49,7 @@ struct NxpEse : public INxpEse {
   static void initSEService();
   static void initVIrtualISOService();
   private:
-  Return<void> ioctlHandler(uint64_t ioctlType, ese_nxp_IoctlInOutData_t inpOutData);
+  Return<void> ioctlHandler(uint64_t ioctlType, ese_nxp_IoctlInOutData_t &inpOutData);
 };
 
 }  // namespace implementation
