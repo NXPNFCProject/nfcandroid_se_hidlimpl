@@ -220,12 +220,16 @@ SESTATUS SpiEseUpdater::eseUpdateSeqHandler()
             return SESTATUS_SUCCESS;
           }
         }
+        [[fallthrough]];
       case ESE_JCOP_UPDATE_COMPLETED:
         ALOGE("%s: ESE_JCOP_UPDATE_COMPLETED", __FUNCTION__);
+        [[fallthrough]];
       case ESE_LS_UPDATE_REQUIRED:
         ALOGE("%s: ESE_LS_UPDATE_REQUIRED BUT DON't DO ANYTHING", __FUNCTION__);
+        [[fallthrough]];
       case ESE_LS_UPDATE_COMPLETED:
         ALOGE("%s: ESE_LS_UPDATE_COMPLETED", __FUNCTION__);
+        [[fallthrough]];
       case ESE_UPDATE_COMPLETED:
         SpiEseUpdater::setSpiEseClientState(ESE_UPDATE_COMPLETED);
         SpiEseUpdater::sendeSEUpdateState(ESE_UPDATE_COMPLETED);
