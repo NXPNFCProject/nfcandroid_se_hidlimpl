@@ -431,6 +431,7 @@ bool CNfcConfig::readConfig(const char* name, bool bResetContent) {
 *******************************************************************************/
 CNfcConfig::CNfcConfig()
     : mValidFile(true),
+      config_crc32_(0),
       m_timeStamp(0),
       m_timeStampRF(0),
       m_timeStampTransit(0),
@@ -791,7 +792,9 @@ int CNfcConfig::checkTimestamp(const char* fileName, const char* fileNameTime) {
       ALOGE("%s Cannot open file %s\n", __func__, fileName);
       return 1;
     }
-    fread(&value, sizeof(unsigned long), 1, fd);
+    if(fread(&value, sizeof(unsigned long), 1, fd) != 1) {
+      ALOGE("%s: Failed to read file", __func__);
+    }
     ret = (value != timeStamp) ? 1 : 0;
     if (ret) {
       ALOGD("Config File Modified Update timestamp");
@@ -832,7 +835,9 @@ int CNfcConfig::updateTimestamp() {
       return 1;
     }
 
-    fread(&value, sizeof(unsigned long), 1, fd);
+    if(fread(&value, sizeof(unsigned long), 1, fd) != 1) {
+      ALOGE("%s: Failed to read file", __func__);
+    }
     ret = (value != m_timeStamp);
     if (ret) {
       fseek(fd, 0, SEEK_SET);
@@ -852,7 +857,9 @@ bool CNfcConfig::isModified() {
   }
 
   uint32_t stored_crc32 = 0;
-  fread(&stored_crc32, sizeof(uint32_t), 1, fd);
+  if(fread(&stored_crc32, sizeof(uint32_t), 1, fd) != 1) {
+    ALOGE("%s: Failed to read file", __func__);
+  }
   fclose(fd);
 
   return stored_crc32 != config_crc32_;
