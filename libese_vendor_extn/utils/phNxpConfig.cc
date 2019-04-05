@@ -86,6 +86,10 @@ size_t readConfigFile(const char* fileName, uint8_t** p_data) {
 
   fseek(fd, 0L, SEEK_END);
   const size_t file_size = ftell(fd);
+  if(0 >= file_size) {
+    fclose(fd);
+    return 0;
+  }
   rewind(fd);
 
   uint8_t* buffer = new uint8_t[file_size];

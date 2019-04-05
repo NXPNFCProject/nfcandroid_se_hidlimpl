@@ -1739,6 +1739,8 @@ tLSC_STATUS Check_LSRootID_Tag(uint8_t* read_buf, uint16_t* offset1) {
         offset = offset + tag42Len;
         *offset1 = offset;
         return STATUS_OK;
+      } else {
+        ALOGD("LSC_Check_KeyIdentifier : TAG 42 failed");
       }
     }
   }
@@ -1826,20 +1828,21 @@ tLSC_STATUS Check_Date_Tag(uint8_t* read_buf, uint16_t* offset1) {
 *******************************************************************************/
 tLSC_STATUS Check_45_Tag(uint8_t* read_buf, uint16_t* offset1,
                          uint8_t* tag45Len) {
-  tLSC_STATUS status = STATUS_FAILED;
   uint16_t offset = *offset1;
   if (read_buf[offset] == TAG_LSRE_SIGNID) {
     *tag45Len = read_buf[offset + 1];
     offset = offset + 2;
     if (tag45Arr[0] == *tag45Len) {
-      status = memcmp(&read_buf[offset], &tag45Arr[1], tag45Arr[0]);
-      if (status == STATUS_OK) {
+      if(!memcmp(&read_buf[offset], &tag45Arr[1], tag45Arr[0])) {
         ALOGD("LSC_Check_KeyIdentifier : TAG 45 verified");
         *offset1 = offset;
+        return STATUS_OK;
+      } else {
+        ALOGD("LSC_Check_KeyIdentifier : TAG 45 failed");
       }
     }
   }
-  return status;
+  return STATUS_FAILED;
 }
 
 /*******************************************************************************
