@@ -747,7 +747,7 @@ ESESTATUS phNxpEse_coldReset(void) {
  *                  ESESTATUS_FAILED(1)
  ******************************************************************************/
 ESESTATUS phNxpEse_reset(void) {
-  ESESTATUS status = ESESTATUS_SUCCESS;
+  ESESTATUS status = ESESTATUS_FAILED;
   unsigned long maxTimer = 0;
 #ifdef SPM_INTEGRATED
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
@@ -760,7 +760,8 @@ ESESTATUS phNxpEse_reset(void) {
    * cycle or not */
   status = phNxpEseProto7816_IntfReset(
       (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
-  if (!status) status = ESESTATUS_FAILED;
+  if (!status)
+    LOG(ERROR) << StringPrintf("%s phNxpEseProto7816_IntfReset: failed", __FUNCTION__);
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s secureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
                   __FUNCTION__, nxpese_ctxt.secureTimerParams.secureTimer1,

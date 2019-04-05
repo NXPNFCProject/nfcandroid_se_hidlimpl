@@ -537,7 +537,7 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
   phNxpEse_7816_rpdu_t rpdu;
 
   LOG(ERROR) << "Acquired the lock in SPI internalCloseChannel";
-  if ((int)channelNumber < DEFAULT_BASIC_CHANNEL ||
+  if ((int8_t)channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d",channelNumber);
     sestatus = SecureElementStatus::FAILED;
@@ -594,7 +594,7 @@ SecureElement::closeChannel(uint8_t channelNumber) {
   phNxpEse_7816_rpdu_t rpdu;
 
   LOG(ERROR) << "Acquired the lock in SPI closeChannel";
-  if ((int)channelNumber < DEFAULT_BASIC_CHANNEL ||
+  if ((int8_t)channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d",channelNumber);
     sestatus = SecureElementStatus::FAILED;
@@ -613,11 +613,7 @@ SecureElement::closeChannel(uint8_t channelNumber) {
     }
     status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
     if (status != ESESTATUS_SUCCESS) {
-      if (rpdu.len > 0 && (rpdu.sw1 == 0x64 && rpdu.sw2 == 0xFF)) {
-        sestatus = SecureElementStatus::FAILED;
-      } else {
-        sestatus = SecureElementStatus::FAILED;
-      }
+      sestatus = SecureElementStatus::FAILED;
     } else {
       if ((rpdu.sw1 == 0x90) && (rpdu.sw2 == 0x00)) {
         sestatus = SecureElementStatus::SUCCESS;

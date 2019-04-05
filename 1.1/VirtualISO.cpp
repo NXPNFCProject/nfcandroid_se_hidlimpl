@@ -477,7 +477,7 @@ VirtualISO::internalCloseChannel(uint8_t channelNumber)
   phNxpEse_7816_rpdu_t rpdu;
 
   LOG(ERROR)<<"internalCloseChannel Enter";
-  if ((int)channelNumber < DEFAULT_BASIC_CHANNEL ||
+  if ((int8_t)channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d",channelNumber);
     sestatus = SecureElementStatus::FAILED;
@@ -534,7 +534,7 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
   phNxpEse_7816_rpdu_t rpdu;
 
   LOG(INFO) << "Acquired the lock in VISO closeChannel";
-  if ((int)channelNumber < DEFAULT_BASIC_CHANNEL ||
+  if ((int8_t)channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d",channelNumber);
     sestatus = SecureElementStatus::FAILED;
