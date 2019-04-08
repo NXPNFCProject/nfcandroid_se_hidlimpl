@@ -16,6 +16,8 @@ cc_library_shared {
         "p73/utils/config.cpp",
         "p73/utils/ringbuffer.cpp",
         "src/adaptation/NfcAdaptation.cpp",
+        "src/adaptation/CondVar.cpp",
+        "src/adaptation/Mutex.cpp",
     ],
 
     local_include_dirs: [

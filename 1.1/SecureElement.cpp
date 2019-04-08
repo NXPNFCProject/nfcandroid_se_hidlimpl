@@ -185,6 +185,7 @@ Return<void> SecureElement::init_1_1(
 }
 
 Return<void> SecureElement::getAtr(getAtr_cb _hidl_cb) {
+  AutoMutex guard(seHalLock);
   LOG(ERROR) << "Processing ATR.....";
   phNxpEse_data atrData;
   hidl_vec<uint8_t> response;
@@ -225,6 +226,7 @@ Return<bool> SecureElement::isCardPresent() { return true; }
 
 Return<void> SecureElement::transmit(const hidl_vec<uint8_t>& data,
                                      transmit_cb _hidl_cb) {
+  AutoMutex guard(seHalLock);
   ESESTATUS status = ESESTATUS_FAILED;
   hidl_vec<uint8_t> result;
   phNxpEse_memset(&gsTxRxBuffer.cmdData, 0x00, sizeof(phNxpEse_data));
@@ -274,6 +276,7 @@ Return<void> SecureElement::transmit(const hidl_vec<uint8_t>& data,
 Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
                                                uint8_t p2,
                                                openLogicalChannel_cb _hidl_cb) {
+  AutoMutex guard(seHalLock);
   hidl_vec<uint8_t> manageChannelCommand = {0x00, 0x70, 0x00, 0x00, 0x01};
 
   LogicalChannelResponse resApduBuff;
@@ -434,6 +437,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
 Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
                                              uint8_t p2,
                                              openBasicChannel_cb _hidl_cb) {
+  AutoMutex guard(seHalLock);
   ESESTATUS status = ESESTATUS_SUCCESS;
   phNxpEse_7816_cpdu_t cpdu;
   phNxpEse_7816_rpdu_t rpdu;
@@ -588,59 +592,10 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
 
 Return<SecureElementStatus>
 SecureElement::closeChannel(uint8_t channelNumber) {
-  ESESTATUS status = ESESTATUS_SUCCESS;
-  SecureElementStatus sestatus = SecureElementStatus::FAILED;
-  phNxpEse_7816_cpdu_t cpdu;
-  phNxpEse_7816_rpdu_t rpdu;
-
-  LOG(ERROR) << "Acquired the lock in SPI closeChannel";
-  if ((int8_t)channelNumber < DEFAULT_BASIC_CHANNEL ||
-      channelNumber >= MAX_LOGICAL_CHANNELS) {
-    LOG(ERROR) << StringPrintf("invalid channel!!! %d",channelNumber);
-    sestatus = SecureElementStatus::FAILED;
-  } else if (channelNumber > DEFAULT_BASIC_CHANNEL){
-    phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
-    phNxpEse_memset(&rpdu, 0x00, sizeof(phNxpEse_7816_rpdu_t));
-    cpdu.cla = channelNumber; /* Class of instruction */
-    cpdu.ins = 0x70;          /* Instruction code */
-    cpdu.p1 = 0x80;           /* Instruction parameter 1 */
-    cpdu.p2 = channelNumber;  /* Instruction parameter 2 */
-    cpdu.lc = 0x00;
-    cpdu.le = 0x9000;
-    status = phNxpEse_SetEndPoint_Cntxt(0);
-    if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
-    }
-    status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
-    if (status != ESESTATUS_SUCCESS) {
-      sestatus = SecureElementStatus::FAILED;
-    } else {
-      if ((rpdu.sw1 == 0x90) && (rpdu.sw2 == 0x00)) {
-        sestatus = SecureElementStatus::SUCCESS;
-      } else {
-        sestatus = SecureElementStatus::FAILED;
-      }
-    }
-    status = phNxpEse_ResetEndPoint_Cntxt(0);
-    if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
-    }
-  }
-  if ((channelNumber == DEFAULT_BASIC_CHANNEL) ||
-      (sestatus == SecureElementStatus::SUCCESS)) {
-      if(mOpenedChannels[channelNumber]) {
-          mOpenedChannels[channelNumber] = false;
-          mOpenedchannelCount--;
-      }
-  }
-  /*If there are no channels remaining close secureElement*/
-  if (mOpenedchannelCount == 0) {
-    sestatus = seHalDeInit();
-  } else {
-    sestatus = SecureElementStatus::SUCCESS;
-  }
-  return sestatus;
+  AutoMutex guard(seHalLock);
+  return internalCloseChannel(channelNumber);
 }
+
 void SecureElement::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
     LOG(ERROR) << " SecureElement serviceDied!!!";
     mIsEseInitialized = false;

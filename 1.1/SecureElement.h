@@ -25,6 +25,7 @@
 #include <hidl/Status.h>
 #include <pthread.h>
 #include "phNxpEse_Api.h"
+#include <SyncEvent.h>
 #include <android-base/stringprintf.h>
 
 
@@ -106,6 +107,7 @@ struct SecureElement : public V1_1::ISecureElement, public hidl_death_recipient 
 
  private:
   uint8_t mOpenedchannelCount = 0;
+  Mutex seHalLock;
   bool mIsEseInitialized = false;
   bool mOpenedChannels[MAX_LOGICAL_CHANNELS];
   static sp<V1_0::ISecureElementHalCallback> mCallbackV1_0;
