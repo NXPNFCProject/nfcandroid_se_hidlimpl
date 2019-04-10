@@ -29,14 +29,40 @@ namespace implementation {
 using android::base::StringPrintf;
 //using android::hardware::secure_element::V1_0::implementation::SecureElement;
 static android::sp<ISecureElementHalCallback> seCallback;
+static android::sp<
+    ::android::hardware::secure_element::V1_1::ISecureElementHalCallback>
+    seCallback_1_1;
 static android::sp<ISecureElementHalCallback> virtualISOCallback;
+static android::sp<
+    ::android::hardware::secure_element::V1_1::ISecureElementHalCallback>
+    virtualISOCallback_1_1;
+bool isSeHalV1_1 = false;
 // Methods from ::vendor::nxp::nxpese::V1_0::INxpEse follow.
   Return<void> NxpEse::setSeCallBack(const android::sp<ISecureElementHalCallback>& clientCallback) {
     seCallback = clientCallback;
     return Void();
   }
+
+  Return<void> NxpEse::setSeCallBack_1_1(
+      const sp<
+          ::android::hardware::secure_element::V1_1::ISecureElementHalCallback>&
+          clientCallback) {
+    seCallback_1_1 = clientCallback;
+    isSeHalV1_1 = true;
+    return Void();
+  }
+
   Return<void> NxpEse::setVirtualISOCallBack(const android::sp<ISecureElementHalCallback>& clientCallback){
     virtualISOCallback = clientCallback;
+    return Void();
+  }
+
+  Return<void> NxpEse::setVirtualISOCallBack_1_1(
+      const android::sp<
+          ::android::hardware::secure_element::V1_1::ISecureElementHalCallback>&
+          clientCallback) {
+    virtualISOCallback_1_1 = clientCallback;
+    isSeHalV1_1 = true;
     return Void();
   }
   void NxpEse::initSEService() {
@@ -44,8 +70,9 @@ static android::sp<ISecureElementHalCallback> virtualISOCallback;
     phNxpEse_initParams initParams;
     memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
     initParams.initMode = ESE_MODE_NORMAL;
-    if(!seCallback)
-      return;
+    if (!seCallback && !isSeHalV1_1) return;
+
+    if (!seCallback_1_1 && isSeHalV1_1) return;
 
     status = phNxpEse_open(initParams);
     if (status != ESESTATUS_SUCCESS) {
@@ -71,12 +98,18 @@ static android::sp<ISecureElementHalCallback> virtualISOCallback;
     exit:
     if (status == ESESTATUS_SUCCESS)
     {
-      seCallback->onStateChange(true);
+      if (isSeHalV1_1)
+        seCallback_1_1->onStateChange_1_1(true, "NXP SE HAL init ok");
+      else
+        seCallback->onStateChange(true);
     }
     else
     {
       LOG(ERROR) << "eSE-Hal Init failed";
-      seCallback->onStateChange(false);
+      if (isSeHalV1_1)
+        seCallback_1_1->onStateChange_1_1(false, "NXP SE HAL init not ok");
+      else
+        seCallback->onStateChange(false);
     }
   }
 
@@ -85,8 +118,9 @@ static android::sp<ISecureElementHalCallback> virtualISOCallback;
     phNxpEse_initParams initParams;
     memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
     initParams.initMode = ESE_MODE_NORMAL;
-    if(!virtualISOCallback)
-      return;
+    if (!virtualISOCallback && !isSeHalV1_1) return;
+
+    if (!virtualISOCallback_1_1 && isSeHalV1_1) return;
 
     status = phNxpEse_SetEndPoint_Cntxt(1);
     if (status != ESESTATUS_SUCCESS) {
@@ -107,12 +141,19 @@ static android::sp<ISecureElementHalCallback> virtualISOCallback;
     exit:
     if (status == ESESTATUS_SUCCESS)
     {
-      virtualISOCallback->onStateChange(true);
+      if (isSeHalV1_1)
+        virtualISOCallback_1_1->onStateChange_1_1(true, "NXP SE HAL init ok");
+      else
+        virtualISOCallback->onStateChange(true);
     }
     else
     {
       LOG(ERROR) << "eSE-Hal Init failed";
-      virtualISOCallback->onStateChange(false);
+      if (isSeHalV1_1)
+        virtualISOCallback_1_1->onStateChange_1_1(false,
+                                                  "NXP SE HAL init not ok");
+      else
+        virtualISOCallback->onStateChange(false);
     }
   }
 Return<void> NxpEse::ioctlHandler(uint64_t ioctlType,

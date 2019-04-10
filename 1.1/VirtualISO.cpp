@@ -131,7 +131,7 @@ Return<void> VirtualISO::init_1_1(
     mCallbackV1_1 = clientCallback;
     clientCallback->onStateChange_1_1(false,  "NXP SE update going on");
     LOG(INFO) << "ESE JCOP Download in progress";
-    NxpEse::setVirtualISOCallBack(clientCallback);
+    NxpEse::setVirtualISOCallBack_1_1(clientCallback);
     return Void();
     //Register
   }

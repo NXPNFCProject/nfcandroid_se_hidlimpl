@@ -18,12 +18,14 @@
 #ifndef VENDOR_NXP_NXPNFC_V1_0_NXPNFC_H
 #define VENDOR_NXP_NXPNFC_V1_0_NXPNFC_H
 
+#include <android/hardware/secure_element/1.0/ISecureElementHalCallback.h>
+#include <android/hardware/secure_element/1.1/ISecureElement.h>
+#include <android/hardware/secure_element/1.1/ISecureElementHalCallback.h>
 #include <hardware/hardware.h>
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>
 #include <vendor/nxp/nxpese/1.0/INxpEse.h>
 #include "hal_nxpese.h"
-#include <android/hardware/secure_element/1.0/ISecureElementHalCallback.h>
 namespace vendor {
 namespace nxp {
 namespace nxpese {
@@ -45,7 +47,15 @@ struct NxpEse : public INxpEse {
   Return<void> ioctl(uint64_t ioctlType, const hidl_vec<uint8_t>& inOutData,
                      ioctl_cb _hidl_cb) override;
   static Return<void> setSeCallBack(const android::sp<ISecureElementHalCallback>& clientCallback);
+  static Return<void> setSeCallBack_1_1(
+      const android::sp<
+          ::android::hardware::secure_element::V1_1::ISecureElementHalCallback>&
+          clientCallback);
   static Return<void> setVirtualISOCallBack(const android::sp<ISecureElementHalCallback>& clientCallback);
+  static Return<void> setVirtualISOCallBack_1_1(
+      const android::sp<
+          ::android::hardware::secure_element::V1_1::ISecureElementHalCallback>&
+          clientCallback);
   static void initSEService();
   static void initVIrtualISOService();
   private:
