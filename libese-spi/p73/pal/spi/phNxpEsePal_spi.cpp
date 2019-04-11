@@ -334,19 +334,21 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHand
     //return ESESTATUS_IOCTL_FAILED; No dependency on dev handle
   }
   switch (eControlCode) {
-  case phPalEse_e_SetSecureMode:
-      retioctl = (ESESTATUS)ioctl((intptr_t)pDevHandle, ESE_SET_TRUSTED_ACCESS, level);
-      if(!retioctl){
+    case phPalEse_e_SetSecureMode:
+      retioctl = ioctl((intptr_t)pDevHandle, ESE_SET_TRUSTED_ACCESS, level);
+      if(0x00 <= retioctl){
           ret= ESESTATUS_SUCCESS;
       }
-    break;
+      break;
 
     case phPalEse_e_ChipRst:
       if(level == 5)
       {//SPI driver communication part
         if(!cold_reset_intf){/* Call the driver IOCTL */
-          if(!(ioctl((intptr_t)pDevHandle, ESE_PERFORM_COLD_RESET, level)))
-             ret= ESESTATUS_SUCCESS;
+          retioctl = ioctl((intptr_t)pDevHandle, ESE_PERFORM_COLD_RESET, level);
+            if(0x00 <= retioctl){
+              ret= ESESTATUS_SUCCESS;
+          }
         }else {
           // Nfc Driver communication part
           ret = pNfcAdapt.HalIoctl(HAL_NFC_SET_SPM_PWR, &inpOutData);
@@ -401,7 +403,7 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHand
       break;
   }
   DLOG_IF(INFO, ese_debug_enabled)
-  << StringPrintf("Exit  phPalEse_spi_ioctl : ret = %d errno = %d",
+          << StringPrintf("Exit  phPalEse_spi_ioctl : ret = %d errno = %d",
                          ret, errno);
   return ret;
 }
