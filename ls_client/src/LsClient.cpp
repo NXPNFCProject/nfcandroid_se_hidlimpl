@@ -19,6 +19,7 @@
 #include "LsClient.h"
 #include <cutils/properties.h>
 #include <dirent.h>
+#include <errno.h>
 #include <log/log.h>
 #include <openssl/evp.h>
 #include <pthread.h>
@@ -41,7 +42,8 @@ const uint8_t LS_MAX_COUNT = 10;
 const uint8_t LS_DOWNLOAD_SUCCESS = 0x00;
 const uint8_t LS_DOWNLOAD_FAILED = 0x01;
 
-static android::sp<ISecureElementHalCallback> cCallback;
+static LSC_onCompletedCallback mCallback = nullptr;
+static void* mCallbackParams = NULL;
 void* performLSDownload_thread(void* data);
 static void getLSScriptSourcePrefix(std::string& prefix);
 static void deInitAndCloseEseHal();
@@ -94,20 +96,22 @@ LSCSTATUS LSC_Start(const char* name, const char* dest, uint8_t* pdata,
 **
 ** Function:        LSC_doDownload
 **
-** Description:     Start LS download process by creating thread
+** Description:     Start LS download process
 **
-** Returns:         SUCCESS of ok
+** Returns:         SUCCESS if ok
 **
 *******************************************************************************/
-LSCSTATUS LSC_doDownload(
-    const android::sp<ISecureElementHalCallback>& clientCallback) {
+LSCSTATUS LSC_doDownload(LSC_onCompletedCallback callback, void* args) {
   static const char fn[] = "LSC_doDownload";
+
+  mCallback = callback;
+  mCallbackParams = args;
+
   LSCSTATUS status;
   pthread_t thread;
   pthread_attr_t attr;
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  cCallback = clientCallback;
   if (pthread_create(&thread, &attr, &performLSDownload_thread, NULL) < 0) {
     ALOGE("%s: Thread creation failed", fn);
     status = LSCSTATUS_FAILED;
@@ -237,8 +241,10 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
         ALOGD_IF(ese_debug_enabled, "%s LSC_UpdateLsHash Failed\n", __func__);
       }
       deInitAndCloseEseHal();
-      cCallback->onStateChange(false);
-      break;
+	  if (mCallback != nullptr) {
+        (mCallback)(false, "LS task failed with script", mCallbackParams);
+        break;
+      }
     } else {
       /*If current script execution is succes, update the status along with the
        * hash to the applet*/
@@ -255,7 +261,9 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
 
   if (status == LSCSTATUS_SUCCESS) {
     deInitAndCloseEseHal();
-    cCallback->onStateChange(true);
+    if (mCallback != nullptr) {
+      (mCallback)(true, "LS task done successfully", mCallbackParams);
+    }
   }
   pthread_exit(NULL);
   ALOGD_IF(ese_debug_enabled, "%s pthread_exit\n", __func__);
