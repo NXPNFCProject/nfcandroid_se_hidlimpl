@@ -273,8 +273,8 @@ void* eSEClientUpdate_ThreadHandler(void* data) {
     if(mHalNxpNfc == nullptr)
       ALOGD(": Failed to retrieve the NXP NFC HAL!");
     if(mHalNxpNfc != nullptr) {
-	ALOGD("INxpNfc::getService() returned %p (%s)",
-		  mHalNxpNfc.get(),
+    	ALOGD("INxpNfc::getService() returned %p (%s)",
+    		  mHalNxpNfc.get(),
                (mHalNxpNfc->isRemote() ? "remote" : "local"));
     }
     usleep(100*1000);
@@ -300,11 +300,11 @@ void* eSEClientUpdate_ThreadHandler(void* data) {
     ALOGD("Ioctl Completed for Type result = %d", pInpOutData->out.data.status);
     if(!se_intf.isJcopUpdateRequired && (pInpOutData->out.data.status & 0xFF))
     {
-	  se_intf.isJcopUpdateRequired = true;
+  	  se_intf.isJcopUpdateRequired = true;
     }
     if(!se_intf.isLSUpdateRequired && ((pInpOutData->out.data.status >> 8) & 0xFF))
     {
-	  se_intf.isLSUpdateRequired = true;
+  	  se_intf.isLSUpdateRequired = true;
     }
   }
 
