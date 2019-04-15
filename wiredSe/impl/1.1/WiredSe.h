@@ -19,7 +19,7 @@
 #define ANDROID_HARDWARE_SECURE_ELEMENT_V1_0_WIREDSE_H
 
 #include <android-base/stringprintf.h>
-#include <android/hardware/secure_element/1.0/ISecureElement.h>
+#include <android/hardware/secure_element/1.1/ISecureElement.h>
 #include <hardware/hardware.h>
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>
@@ -31,20 +31,20 @@ namespace wired_se {
 namespace V1_0 {
 namespace implementation {
 
+using ::android::sp;
 using ::android::wp;
-using ::android::hardware::hidl_death_recipient;
-using ::android::hardware::secure_element::V1_0::LogicalChannelResponse;
-using ::android::hardware::secure_element::V1_0::SecureElementStatus;
-using ::android::hardware::secure_element::V1_0::ISecureElement;
-using ::android::hidl::base::V1_0::IBase;
+using android::base::StringPrintf;
 using ::android::hardware::hidl_array;
+using ::android::hardware::hidl_death_recipient;
 using ::android::hardware::hidl_memory;
 using ::android::hardware::hidl_string;
 using ::android::hardware::hidl_vec;
 using ::android::hardware::Return;
 using ::android::hardware::Void;
-using ::android::sp;
-using android::base::StringPrintf;
+using ::android::hardware::secure_element::V1_0::LogicalChannelResponse;
+using ::android::hardware::secure_element::V1_0::SecureElementStatus;
+using ::android::hardware::secure_element::V1_1::ISecureElement;
+using ::android::hidl::base::V1_0::IBase;
 using ::vendor::nxp::nxpwiredse::V1_0::INxpWiredSeHalCallback;
 
 #ifndef MAX_LOGICAL_CHANNELS
@@ -68,6 +68,10 @@ struct WiredSe : public ISecureElement, public hidl_death_recipient {
   init(const sp<
        ::android::hardware::secure_element::V1_0::ISecureElementHalCallback>
            &clientCallback) override;
+  Return<void>
+  init_1_1(const sp<
+           ::android::hardware::secure_element::V1_1::ISecureElementHalCallback>
+               &clientCallback) override;
   Return<void> getAtr(getAtr_cb _hidl_cb) override;
   Return<bool> isCardPresent() override;
   Return<void> transmit(const hidl_vec<uint8_t> &data,

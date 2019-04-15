@@ -21,7 +21,6 @@
 #include <log/log.h>
 
 #include "hal_nxpese.h"
-using android::hardware::secure_element::V1_0::ISecureElementHalCallback;
 using vendor::nxp::wired_se::V1_0::implementation::WiredSe;
 
 extern WiredSe *pWiredSe;
@@ -32,7 +31,12 @@ namespace V1_0 {
 namespace implementation {
 android::sp<INxpWiredSeHalCallback> WiredSe::sWiredCallbackHandle = nullptr;
 static hidl_vec<uint8_t> gsRspDataBuff(256);
-static android::sp<ISecureElementHalCallback> gSeHalCallback;
+static android::sp<
+    ::android::hardware::secure_element::V1_0::ISecureElementHalCallback>
+    gSeHalCallbackV1_0;
+static android::sp<
+    ::android::hardware::secure_element::V1_1::ISecureElementHalCallback>
+    gSeHalCallbackV1_1;
 std::vector<uint8_t> atrResponse;
 
 WiredSe::WiredSe()
@@ -46,10 +50,11 @@ Return<void> WiredSe::init(
   if (clientCallback == nullptr) {
     return Void();
   }
-  gSeHalCallback = clientCallback;
-  gSeHalCallback->linkToDeath(this, 0 /*cookie*/);
+  gSeHalCallbackV1_0 = clientCallback;
+  gSeHalCallbackV1_1 = nullptr;
+  gSeHalCallbackV1_0->linkToDeath(this, 0 /*cookie*/);
   if (sWiredCallbackHandle == nullptr) {
-    gSeHalCallback->onStateChange(false);
+    gSeHalCallbackV1_0->onStateChange(false);
     ALOGE("%s: NfcService callback handle not registered yet!", __func__);
     return Void();
   }
@@ -58,7 +63,7 @@ Return<void> WiredSe::init(
   mWiredSeHandle = sWiredCallbackHandle->openWiredSe();
   if (mWiredSeHandle <= 0) {
     ALOGE("%s: openWiredSe failed!", __func__);
-    gSeHalCallback->onStateChange(false);
+    gSeHalCallbackV1_0->onStateChange(false);
   } else {
     ALOGD("%s: Handle registration success", __func__);
     std::vector<uint8_t> getAtrResponse;
@@ -70,7 +75,44 @@ Return<void> WiredSe::init(
                                    }
                                  });
     atrResponse.swap(getAtrResponse);
-    gSeHalCallback->onStateChange(true);
+    gSeHalCallbackV1_0->onStateChange(true);
+  }
+  return Void();
+}
+
+Return<void> WiredSe::init_1_1(
+    const sp<
+        ::android::hardware::secure_element::V1_1::ISecureElementHalCallback>
+        &clientCallback) {
+  if (clientCallback == nullptr) {
+    return Void();
+  }
+  gSeHalCallbackV1_1 = clientCallback;
+  gSeHalCallbackV1_0 = nullptr;
+  gSeHalCallbackV1_1->linkToDeath(this, 0 /*cookie*/);
+  if (sWiredCallbackHandle == nullptr) {
+    gSeHalCallbackV1_1->onStateChange_1_1(false, "NXP WiredSe inti failed");
+    ALOGE("%s: NfcService callback handle not registered yet!", __func__);
+    return Void();
+  }
+  ALOGD("%s: Handle registration success", __func__);
+
+  mWiredSeHandle = sWiredCallbackHandle->openWiredSe();
+  if (mWiredSeHandle <= 0) {
+    ALOGE("%s: openWiredSe failed!", __func__);
+    gSeHalCallbackV1_1->onStateChange_1_1(false, "NXP WiredSe inti failed");
+  } else {
+    ALOGD("%s: Handle registration success", __func__);
+    std::vector<uint8_t> getAtrResponse;
+    sWiredCallbackHandle->getAtr(mWiredSeHandle,
+                                 [&getAtrResponse](std::vector<uint8_t> res) {
+                                   getAtrResponse.resize(res.size());
+                                   for (size_t i = 0; i < res.size(); i++) {
+                                     getAtrResponse[i] = res[i];
+                                   }
+                                 });
+    atrResponse.swap(getAtrResponse);
+    gSeHalCallbackV1_1->onStateChange_1_1(true, "NXP WiredSe inti ok");
   }
   return Void();
 }
@@ -470,8 +512,10 @@ void WiredSe::serviceDied(uint64_t /*cookie*/, const wp<IBase> & /*who*/) {
   if (sestatus != SecureElementStatus::SUCCESS) {
     ALOGE("%s: seHalDeInit Faliled!!!", __func__);
   }
-  if (gSeHalCallback != nullptr) {
-    gSeHalCallback->unlinkToDeath(this);
+  if (gSeHalCallbackV1_1 != nullptr) {
+    gSeHalCallbackV1_1->unlinkToDeath(this);
+  } else if (gSeHalCallbackV1_0 != nullptr) {
+    gSeHalCallbackV1_0->unlinkToDeath(this);
   }
 }
 
@@ -527,10 +571,19 @@ Return<void> WiredSe::setWiredSeCallback(
     ALOGD("%s WiredSeCallback handle is NULL", __func__);
     if (pWiredSe != nullptr)
       pWiredSe->resetWiredSeContext();
-    if (gSeHalCallback != nullptr)
-      gSeHalCallback->onStateChange(false);
-  } else if (gSeHalCallback != nullptr)
-    gSeHalCallback->onStateChange(true);
+    if (gSeHalCallbackV1_1 != nullptr)
+      gSeHalCallbackV1_1->onStateChange_1_1(
+          false, "NXP WiredSe setWiredSeCallback failed");
+    else if (gSeHalCallbackV1_0 != nullptr)
+      gSeHalCallbackV1_0->onStateChange(false);
+  } else {
+    if (gSeHalCallbackV1_1 != nullptr) {
+      gSeHalCallbackV1_1->onStateChange_1_1(true, "NXP WiredSe init ok");
+    } else if (gSeHalCallbackV1_0 != nullptr) {
+      gSeHalCallbackV1_0->onStateChange(true);
+    }
+  }
+
   return Void();
 }
 

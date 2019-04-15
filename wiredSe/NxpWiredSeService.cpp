@@ -19,20 +19,20 @@
 #include "NxpWiredSe.h"
 #include "WiredSe.h"
 #include "phNxpConfig.h"
-#include <android/hardware/secure_element/1.0/ISecureElement.h>
+#include <android/hardware/secure_element/1.1/ISecureElement.h>
 #include <hidl/LegacySupport.h>
 #include <log/log.h>
 #include <vendor/nxp/nxpwiredse/1.0/INxpWiredSe.h>
 
-using android::hardware::secure_element::V1_0::ISecureElement;
-using vendor::nxp::wired_se::V1_0::implementation::WiredSe;
-using android::hardware::configureRpcThreadpool;
-using android::hardware::joinRpcThreadpool;
 using android::OK;
 using android::sp;
 using android::status_t;
+using android::hardware::configureRpcThreadpool;
+using android::hardware::joinRpcThreadpool;
+using android::hardware::secure_element::V1_1::ISecureElement;
 using vendor::nxp::nxpwiredse::V1_0::INxpWiredSe;
 using vendor::nxp::nxpwiredse::V1_0::implementation::NxpWiredSe;
+using vendor::nxp::wired_se::V1_0::implementation::WiredSe;
 WiredSe* pWiredSe = nullptr;
 
 int main() {

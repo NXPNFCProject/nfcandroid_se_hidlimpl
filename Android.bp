@@ -154,13 +154,14 @@ cc_binary {
     defaults: ["hidl_defaults"],
     srcs: [
         "wiredSe/NxpWiredSeService.cpp",
-        "wiredSe/impl/WiredSe.cpp",
-        "wiredSe/impl/NxpWiredSe.cpp",
+        "wiredSe/impl/1.1/WiredSe.cpp",
+        "wiredSe/impl/1.1/NxpWiredSe.cpp",
     ],
         local_include_dirs: [
-        "wiredSe/impl"
+        "wiredSe/impl/1.1"
     ],
 shared_libs: [
+        "android.hardware.secure_element@1.1",
         "android.hardware.secure_element@1.0",
         "ese_spi_nxp",
         "nfc_nci_nxp",
