@@ -58,10 +58,12 @@ Return<void> SecureElement::init(
         ::android::hardware::secure_element::V1_0::ISecureElementHalCallback>&
         clientCallback) {
   ESESTATUS status = ESESTATUS_SUCCESS;
+  bool mIsInitDone = false;
   phNxpEse_initParams initParams;
   gsTxRxBuffer.pRspDataBuff = &gsRspDataBuff;
   memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
   initParams.initMode = ESE_MODE_NORMAL;
+  initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
 
   if (clientCallback == nullptr) {
     return Void();
@@ -70,7 +72,6 @@ Return<void> SecureElement::init(
   }
   LOG(INFO) << "SecureElement::init called here";
   if(ese_update != ESE_UPDATE_COMPLETED) {
-    mIsEseInitialized = true;
     mCallbackV1_0 = clientCallback;
     clientCallback->onStateChange(false);
     LOG(INFO) << "ESE JCOP Download in progress";
@@ -84,28 +85,19 @@ Return<void> SecureElement::init(
   }
 
   status = phNxpEse_open(initParams);
-  if (status != ESESTATUS_SUCCESS && ESESTATUS_BUSY != status) {
-    goto exit;
+  if (status == ESESTATUS_SUCCESS || ESESTATUS_BUSY == status){
+    if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0) &&
+      ESESTATUS_SUCCESS == phNxpEse_init(initParams)){
+      if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)){
+        LOG(INFO) << "ESE SPI init complete!!!";
+        mIsInitDone = true;
+      }
+      if (ESESTATUS_SUCCESS != phNxpEse_deInit())
+        mIsInitDone = false;
+    }
+    status = phNxpEse_close();
   }
-
-  status = phNxpEse_SetEndPoint_Cntxt(0);
-  if (status != ESESTATUS_SUCCESS) {
-    goto exit;
-  }
-  status = phNxpEse_init(initParams);
-  if (status != ESESTATUS_SUCCESS) {
-    goto exit;
-  }
-  status = phNxpEse_ResetEndPoint_Cntxt(0);
-  if (status != ESESTATUS_SUCCESS) {
-    phNxpEse_deInit();
-    goto exit;
-  }
-  mIsEseInitialized = true;
-  LOG(INFO) << "ESE SPI init complete!!!";
-
-  exit:
-  if (status == ESESTATUS_SUCCESS)
+  if (status == ESESTATUS_SUCCESS && mIsInitDone)
   {
     clientCallback->onStateChange(true);
     mCallbackV1_0 = clientCallback;
@@ -124,11 +116,12 @@ Return<void> SecureElement::init_1_1(
         ::android::hardware::secure_element::V1_1::ISecureElementHalCallback>&
         clientCallback) {
   ESESTATUS status = ESESTATUS_SUCCESS;
+  bool mIsInitDone = false;
   phNxpEse_initParams initParams;
   gsTxRxBuffer.pRspDataBuff = &gsRspDataBuff;
   memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
   initParams.initMode = ESE_MODE_NORMAL;
-
+  initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
   if (clientCallback == nullptr) {
     return Void();
   } else {
@@ -136,7 +129,6 @@ Return<void> SecureElement::init_1_1(
   }
   LOG(INFO) << "SecureElement::init called here";
   if(ese_update != ESE_UPDATE_COMPLETED) {
-    mIsEseInitialized = true;
     mCallbackV1_1 = clientCallback;
     clientCallback->onStateChange_1_1(false, "NXP SE update going on");
     LOG(INFO) << "ESE JCOP Download in progress";
@@ -149,28 +141,19 @@ Return<void> SecureElement::init_1_1(
     return Void();
   }
 
-  status = phNxpEse_open(initParams);
-  if (status != ESESTATUS_SUCCESS && ESESTATUS_BUSY != status) {
-    goto exit;
+ status = phNxpEse_open(initParams);
+  if (status == ESESTATUS_SUCCESS || ESESTATUS_BUSY == status){
+    if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0) &&
+      ESESTATUS_SUCCESS == phNxpEse_init(initParams)){
+      if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)){
+        LOG(INFO) << "ESE SPI init complete!!!";
+        mIsInitDone = true;
+      }
+      if (ESESTATUS_SUCCESS != phNxpEse_deInit())
+        mIsInitDone = false;
+    }
+    status = phNxpEse_close();
   }
-
-  status = phNxpEse_SetEndPoint_Cntxt(0);
-  if (status != ESESTATUS_SUCCESS) {
-    goto exit;
-  }
-  status = phNxpEse_init(initParams);
-  if (status != ESESTATUS_SUCCESS) {
-    goto exit;
-  }
-  status = phNxpEse_ResetEndPoint_Cntxt(0);
-  if (status != ESESTATUS_SUCCESS) {
-    phNxpEse_deInit();
-    goto exit;
-  }
-  mIsEseInitialized = true;
-  LOG(INFO) << "ESE SPI init complete!!!";
-
-  exit:
   if (status == ESESTATUS_SUCCESS)
   {
     clientCallback->onStateChange_1_1(true, "NXP SE HAL init ok");
@@ -190,6 +173,18 @@ Return<void> SecureElement::getAtr(getAtr_cb _hidl_cb) {
   phNxpEse_data atrData;
   hidl_vec<uint8_t> response;
   ESESTATUS status = ESESTATUS_FAILED;
+  bool mIsSeHalInitDone = false;
+
+  if (!mIsEseInitialized) {
+    ESESTATUS status = seHalInit();
+    if (status != ESESTATUS_SUCCESS) {
+      LOG(ERROR) << "%s: seHalInit Failed!!!"<< __func__;
+      _hidl_cb(response);/*Return with empty Vector*/
+      return Void();
+    }else{
+      mIsSeHalInitDone=true;
+    }
+  }
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
     LOG(ERROR) << "Endpoint set failed";
@@ -218,6 +213,12 @@ Return<void> SecureElement::getAtr(getAtr_cb _hidl_cb) {
   _hidl_cb(response);
   if(atrData.p_data != NULL){
     phNxpEse_free(atrData.p_data);
+  }
+  if(mIsSeHalInitDone){
+    if(SecureElementStatus::SUCCESS != seHalDeInit())
+      LOG(ERROR) << "phNxpEse_getAtr seHalDeInit failed";
+    mIsEseInitialized = false;
+    mIsSeHalInitDone = false;
   }
   return Void();
 }
@@ -308,7 +309,6 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
                                                sizeof(uint8_t));
   memcpy(cmdApdu.p_data, manageChannelCommand.data(), cmdApdu.len);
 
-
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
     LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
@@ -316,9 +316,13 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   status = phNxpEse_Transceive(&cmdApdu, &rspApdu);
   if (status != ESESTATUS_SUCCESS) {
     resApduBuff.channelNumber = 0xff;
-    if (rspApdu.len > 0 &&
-        (rspApdu.p_data[0] == 0x64 && rspApdu.p_data[1] == 0xFF)) {
-      sestatus = SecureElementStatus::IOERROR;
+    if ( NULL != rspApdu.p_data && rspApdu.len > 0){
+      if (rspApdu.p_data[0] == 0x64 && rspApdu.p_data[1] == 0xFF) {
+        sestatus = SecureElementStatus::IOERROR;
+      }
+    }
+    if(SecureElementStatus::IOERROR != sestatus) {
+      sestatus = SecureElementStatus::FAILED;
     }
   } else if (rspApdu.p_data[rspApdu.len - 2] == 0x6A &&
              rspApdu.p_data[rspApdu.len - 1] == 0x81) {
@@ -560,7 +564,11 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
     }
     status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
     if (status != ESESTATUS_SUCCESS) {
+      if (rpdu.len > 0 && (rpdu.sw1 == 0x64 && rpdu.sw2 == 0xFF)) {
         sestatus = SecureElementStatus::FAILED;
+      } else {
+        sestatus = SecureElementStatus::FAILED;
+      }
     } else {
       if ((rpdu.sw1 == 0x90) && (rpdu.sw2 == 0x00)) {
         sestatus = SecureElementStatus::SUCCESS;
@@ -573,12 +581,9 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
       LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     }
   }
-  if ((channelNumber == DEFAULT_BASIC_CHANNEL) ||
-      (sestatus == SecureElementStatus::SUCCESS)) {
-      if(mOpenedChannels[channelNumber]) {
-          mOpenedChannels[channelNumber] = false;
-          mOpenedchannelCount--;
-      }
+  if(mOpenedChannels[channelNumber]) {
+    mOpenedChannels[channelNumber] = false;
+    mOpenedchannelCount--;
   }
   /*If there are no channels remaining close secureElement*/
   if (mOpenedchannelCount == 0) {
@@ -607,25 +612,21 @@ ESESTATUS SecureElement::seHalInit() {
   phNxpEse_initParams initParams;
   memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
   initParams.initMode = ESE_MODE_NORMAL;
+  initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
 
-  //status = phNxpEse_open(initParams);
-  if (status != ESESTATUS_SUCCESS) {
-    LOG(ERROR) << "%s: SecureElement open failed!!!"<<__func__;
-  } else {
-    status = phNxpEse_SetEndPoint_Cntxt(0);
-     if (status != ESESTATUS_SUCCESS) {
-       LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
-     }
-    status = phNxpEse_init(initParams);
-    if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << "%s: SecureElement init failed!!!"<< __func__;
-    } else {
-        status = phNxpEse_ResetEndPoint_Cntxt(0);
-       if (status != ESESTATUS_SUCCESS) {
-         LOG(ERROR) << "Endpoint set failed";
+  status = phNxpEse_open(initParams);
+  if(ESESTATUS_SUCCESS == status || ESESTATUS_BUSY == status){
+    if(ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0) &&
+       ESESTATUS_SUCCESS == phNxpEse_init(initParams)){
+      if(ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)){
+        mIsEseInitialized = true;
+        LOG(INFO) << "ESE SPI init complete!!!";
+        return ESESTATUS_SUCCESS;
       }
-      mIsEseInitialized = true;
+      phNxpEse_deInit();
     }
+    phNxpEse_close();
+    mIsEseInitialized = false;
   }
   return status;
 }
@@ -633,27 +634,32 @@ ESESTATUS SecureElement::seHalInit() {
 Return<SecureElementStatus>
 SecureElement::seHalDeInit() {
   ESESTATUS status = ESESTATUS_SUCCESS;
+  bool mIsDeInitDone=true;
   SecureElementStatus sestatus = SecureElementStatus::FAILED;
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
     LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+    mIsDeInitDone = false;
   }
-  status = phNxpEse_deInit();
+  if(ESESTATUS_SUCCESS != phNxpEse_deInit())
+    mIsDeInitDone = false;
   status = phNxpEse_ResetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
     LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+    mIsDeInitDone = false;
   }
-  if (status != ESESTATUS_SUCCESS) {
-    sestatus = SecureElementStatus::FAILED;
-  } else {
-    mIsEseInitialized = false;
-    sestatus = SecureElementStatus::SUCCESS;
+  status = phNxpEse_close();
+  if (status == ESESTATUS_SUCCESS && mIsDeInitDone) {
+    sestatus = SecureElementStatus::SUCCESS;;
+  }else {
+    LOG(ERROR) << "seHalDeInit: Failed";
+  }
+  mIsEseInitialized = false;
+  for (uint8_t xx = 0; xx < MAX_LOGICAL_CHANNELS; xx++) {
+    mOpenedChannels[xx] = false;
+  }
+  mOpenedchannelCount = 0;
 
-    for (uint8_t xx = 0; xx < MAX_LOGICAL_CHANNELS; xx++) {
-      mOpenedChannels[xx] = false;
-    }
-    mOpenedchannelCount = 0;
-  }
   return sestatus;
 }
 

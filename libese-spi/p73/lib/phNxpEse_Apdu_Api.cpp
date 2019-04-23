@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -69,7 +69,6 @@ ESESTATUS phNxpEse_7816_Transceive(pphNxpEse_7816_cpdu_t pCmd,
       pCmdTrans.len = cmd_len;
       pCmdTrans.p_data = pCmd_data;
       status = phNxpEse_Transceive(&pCmdTrans, &pRspTrans);
-      // status = phNxpEse_Transceive(cmd_len, pCmd_data);
       if (ESESTATUS_SUCCESS != status) {
         LOG(ERROR) << StringPrintf(" %s phNxpEse_Transceive Failed \n", __FUNCTION__);
         if ((pRspTrans.len > 0) && (pRspTrans.p_data != NULL)) {

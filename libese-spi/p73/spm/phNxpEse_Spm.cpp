@@ -96,6 +96,7 @@ ESESTATUS phNxpEse_SPM_DeInit(void) {
 ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg) {
   int32_t ret = -1;
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
+  spm_state_t current_spm_state = SPM_STATE_INVALID;
 
   if (SPM_POWER_ENABLE == arg) {
     if (phNxpEse_SPM_GetAccess(MAX_ESE_ACCESS_TIME_OUT_MS) !=
@@ -111,6 +112,104 @@ ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg) {
     return ESESTATUS_SUCCESS;
   }
   ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle, arg);
+  switch (arg) {
+    case SPM_POWER_DISABLE: {
+      if (ret < 0) {
+        LOG(ERROR) << StringPrintf("%s : failed errno = 0x%x", __FUNCTION__, errno);
+        wSpmStatus = ESESTATUS_FAILED;
+      } else {
+        if (phNxpEse_SPM_RelAccess() != ESESTATUS_SUCCESS) {
+          LOG(ERROR) << StringPrintf(" %s phNxpEse_SPM_RelAccess : failed \n",
+                          __FUNCTION__);
+        }
+      }
+    } break;
+    case SPM_POWER_ENABLE: {
+      if (ret < 0) {
+        LOG(ERROR) << StringPrintf("%s : failed errno = 0x%x", __FUNCTION__, errno);
+        if (errno == -EBUSY) {
+          wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
+          if (wSpmStatus != ESESTATUS_SUCCESS) {
+            LOG(ERROR) << StringPrintf(" %s : phNxpEse_SPM_GetPwrState Failed",
+                            __FUNCTION__);
+            if (phNxpEse_SPM_RelAccess() != ESESTATUS_SUCCESS) {
+              LOG(ERROR) << StringPrintf(" %s phNxpEse_SPM_RelAccess : failed \n",
+                              __FUNCTION__);
+            }
+            return wSpmStatus;
+          } else {
+            if (current_spm_state & SPM_STATE_DWNLD) {
+              wSpmStatus = ESESTATUS_DWNLD_BUSY;
+            } else {
+              wSpmStatus = ESESTATUS_BUSY;
+            }
+          }
+
+        } else {
+          wSpmStatus = ESESTATUS_FAILED;
+        }
+        if (wSpmStatus != ESESTATUS_SUCCESS) {
+          if (phNxpEse_SPM_RelAccess() != ESESTATUS_SUCCESS) {
+            LOG(ERROR) << StringPrintf(" %s phNxpEse_SPM_RelAccess : failed \n",
+                            __FUNCTION__);
+          }
+        }
+      }
+    } break;
+    case SPM_POWER_RESET: {
+      if (ret < 0) {
+        LOG(ERROR) << StringPrintf("%s : failed errno = 0x%x", __FUNCTION__, errno);
+        if (errno == -EBUSY) {
+          wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
+          if (wSpmStatus != ESESTATUS_SUCCESS) {
+            LOG(ERROR) << StringPrintf(" %s : phNxpEse_SPM_GetPwrState Failed",
+                            __FUNCTION__);
+            return wSpmStatus;
+          } else {
+            if (current_spm_state & SPM_STATE_DWNLD) {
+              wSpmStatus = ESESTATUS_DWNLD_BUSY;
+            } else {
+              wSpmStatus = ESESTATUS_BUSY;
+            }
+          }
+        } else {
+          wSpmStatus = ESESTATUS_FAILED;
+        }
+      }
+    } break;
+    case SPM_POWER_PRIO_ENABLE: {
+      if (ret < 0) {
+        LOG(ERROR) << StringPrintf("%s : failed errno = 0x%x", __FUNCTION__, errno);
+        if (errno == -EBUSY) {
+          wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
+          if (wSpmStatus != ESESTATUS_SUCCESS) {
+            LOG(ERROR) << StringPrintf(" %s : phNxpEse_SPM_GetPwrState Failed",
+                            __FUNCTION__);
+            return wSpmStatus;
+          } else {
+            if (current_spm_state & SPM_STATE_DWNLD) {
+              wSpmStatus = ESESTATUS_DWNLD_BUSY;
+            } else {
+              wSpmStatus = ESESTATUS_BUSY;
+            }
+          }
+
+        } else {
+          wSpmStatus = ESESTATUS_FAILED;
+        }
+      }
+    } break;
+    case SPM_POWER_PRIO_DISABLE: {
+      if (ret < 0) {
+        LOG(ERROR) << StringPrintf("%s : failed errno = 0x%x", __FUNCTION__, errno);
+        wSpmStatus = ESESTATUS_FAILED;
+      }
+    } break;
+    case SPM_RECOVERY_RESET : {
+
+    }
+    break;
+  }
   return wSpmStatus;
 }
 

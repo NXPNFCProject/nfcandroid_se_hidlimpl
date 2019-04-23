@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@
 #define NAME_NXP_P61_JCOP_DEFAULT_INTERFACE "NXP_P61_JCOP_DEFAULT_INTERFACE"
 #define NAME_NXP_ESE_IFSD_VALUE "NXP_ESE_IFSD_VALUE"
 #define NAME_NXP_EUICC_IFSD_VALUE "NXP_EUICC_IFSD_VALUE"
+#define NAME_NXP_P61_COLD_RESET_INTERFACE "NXP_P61_COLD_RESET_INTERFACE"
 #endif
 #endif
 

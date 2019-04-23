@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -38,38 +38,46 @@ static ESESTATUS phNxpEse_GetDataFromList(uint32_t* data_len, uint8_t* pbuff);
 ESESTATUS phNxpEse_GetData(uint32_t* data_len, uint8_t** pbuffer) {
   uint32_t total_data_len = 0;
   uint8_t* pbuff = NULL;
+  ESESTATUS status = ESESTATUS_FAILED;
 
-  if (total_len == 0) {
+  if (total_len > 0) {
+    pbuff = (uint8_t*)phNxpEse_memalloc(total_len);
+    if (NULL != pbuff) {
+      if (ESESTATUS_SUCCESS == phNxpEse_GetDataFromList(&total_data_len, pbuff)) {
+        if(total_data_len == total_len){
+          /***** Success Case *****/
+          *pbuffer = pbuff;
+          *data_len = total_data_len;
+          phNxpEse_DeletList(head);
+          head = NULL;
+          current = NULL;
+          total_len = 0;
+          status = ESESTATUS_SUCCESS;
+        } else {
+          LOG(ERROR) << StringPrintf("%s Mismatch of len total_data_len %d total_len %d",
+                  __FUNCTION__, total_data_len, total_len);
+          phNxpEse_free(pbuff);
+        }
+      } else {
+        LOG(ERROR) << StringPrintf("%s phNxpEse_GetDataFromList failed", __FUNCTION__);
+        phNxpEse_free(pbuff);
+      }
+    } else {
+      LOG(ERROR) << StringPrintf("%s Error in malloc ", __FUNCTION__);
+      status = ESESTATUS_NOT_ENOUGH_MEMORY;
+    }
+  } else {
     LOG(ERROR) << StringPrintf("%s total_len = %d", __FUNCTION__, total_len);
-    return ESESTATUS_FAILED;
-  }
-  pbuff = (uint8_t*)phNxpEse_memalloc(total_len);
-  if (NULL == pbuff) {
-    LOG(ERROR) << StringPrintf("%s Error in malloc ", __FUNCTION__);
-    return ESESTATUS_NOT_ENOUGH_MEMORY;
   }
 
-  if (ESESTATUS_SUCCESS != phNxpEse_GetDataFromList(&total_data_len, pbuff)) {
-    LOG(ERROR) << StringPrintf("%s phNxpEse_GetDataFromList", __FUNCTION__);
-    phNxpEse_free(pbuff);
-    return ESESTATUS_FAILED;
+  if(ESESTATUS_SUCCESS != status){
+    *pbuffer = NULL;
+    *data_len = 0;
   }
-  if (total_data_len != total_len) {
-    LOG(ERROR) << StringPrintf("%s Mismatch of len total_data_len %d total_len %d",
-                    __FUNCTION__, total_data_len, total_len);
-    phNxpEse_free(pbuff);
-    return ESESTATUS_FAILED;
-  }
-
-  *pbuffer = pbuff;
-  *data_len = total_data_len;
-  phNxpEse_DeletList(head);
-  total_len = 0;
-  head = NULL;
-  current = NULL;
-
-  return ESESTATUS_SUCCESS;
+  LOG(INFO) << StringPrintf("%s exit status = %d", __FUNCTION__, status);
+  return status;
 }
+
 /******************************************************************************
  * Function         phNxpEse_StoreDatainList
  *
@@ -84,6 +92,7 @@ ESESTATUS phNxpEse_StoreDatainList(uint32_t data_len, uint8_t* pbuff) {
   newNode = (phNxpEse_sCoreRecvBuff_List_t*)phNxpEse_memalloc(
       sizeof(phNxpEse_sCoreRecvBuff_List_t));
   if (newNode == NULL) {
+    LOG(ERROR) << StringPrintf("%s Error in malloc ", __FUNCTION__);
     return ESESTATUS_NOT_ENOUGH_MEMORY;
   }
   newNode->pNext = NULL;

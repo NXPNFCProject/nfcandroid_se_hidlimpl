@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@
 /*!
  * \brief ESE wakeup delay in case of write error retry
  */
-#define NAD_POLLING_SCALER 10
+#define NAD_POLLING_SCALER 1
 /*!
  * \brief ESE wakeup delay in case of write error retry
  */
@@ -98,7 +98,6 @@
  *
  */
 #define P61_SET_POWER_SCHEME _IOW(P61_MAGIC, 0x08, long)
-
 /*!
  * \brief This function is used to set the ESE jcop
  *  download state.
@@ -110,6 +109,16 @@
  *  state On&Off
  */
 #define P61_INHIBIT_PWR_CNTRL _IOW(P61_MAGIC, 0x0A, long)
+/*!
+ * \brief IOCTL to set the GPIO for the eSE to distinguish
+ *        the logical interface
+ */
+#define ESE_SET_TRUSTED_ACCESS  _IOW(P61_MAGIC, 0x0B, long)
+
+/*!
+ * \brief IOCTL to perform the eSE COLD_RESET  via NFC driver.
+ */
+#define ESE_PERFORM_COLD_RESET  _IOW(P61_MAGIC, 0x0C, long)
 
 /* Function declarations */
 /**

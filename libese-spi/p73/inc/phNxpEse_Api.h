@@ -49,11 +49,21 @@ typedef enum {
 
 /**
  * \ingroup spi_libese
+ * \brief Ese logical interface  i.e. MediaType
+ *
+ */
+typedef enum {
+  ESE_PROTOCOL_MEDIA_SPI  = 0x08, /*!< Secure SPI i.e. Trusted SE */
+  ESE_PROTOCOL_MEDIA_SPI_APDU_GATE =0xD0   /*!< REE */
+} phNxpEse_mediaType;
+/**
+ * \ingroup spi_libese
  * \brief Ese library init parameters to be set while calling phNxpEse_init
  *
  */
 typedef struct phNxpEse_initParams {
   phNxpEse_initMode initMode; /*!< Ese communication mode */
+  phNxpEse_mediaType mediaType; /*!< Logical channel for Ese communication */
 } phNxpEse_initParams;
 
 /*!

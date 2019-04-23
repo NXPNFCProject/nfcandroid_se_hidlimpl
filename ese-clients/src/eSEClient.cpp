@@ -77,10 +77,7 @@ bool SE_Transmit(uint8_t* xmitBuffer, int32_t xmitBufferSize, uint8_t* recvBuffe
 
     recvBufferMaxSize++;
     timeoutMillisec++;
-
-    if (ESESTATUS_SUCCESS != phNxpEse_Transceive(&cmdData, &rspData)) {
-      ALOGE("%s: phNxpEse_Transceive Failed", __FUNCTION__);
-    }
+    phNxpEse_Transceive(&cmdData, &rspData);
 
     recvBufferActualSize = rspData.len;
 
@@ -88,9 +85,8 @@ bool SE_Transmit(uint8_t* xmitBuffer, int32_t xmitBufferSize, uint8_t* recvBuffe
     {
       memcpy(&recvBuffer[0], rspData.p_data, rspData.len);
     }
-        //free (rspData.p_data);
-    //&recvBuffer = rspData.p_data;
-    ALOGE("%s: size = 0x%x recv[0] = 0x%x", __FUNCTION__, recvBufferActualSize, recvBuffer[0]);
+
+    ALOGE("%s: size = 0x%x ", __FUNCTION__, recvBufferActualSize);
     return true;
 }
 
@@ -453,10 +449,7 @@ SESTATUS initializeEse(phNxpEse_initMode mode, SEDomainID Id)
   if (retstat != ESESTATUS_SUCCESS) {
     return status;
   }
-  retstat = phNxpEse_SetEndPoint_Cntxt(Id);
-  if (retstat != ESESTATUS_SUCCESS) {
-    ALOGE("%s:phNxpEse_SetEndPoint_Cntxt failed!!!", __FUNCTION__);
-  }
+  phNxpEse_SetEndPoint_Cntxt(Id);
   retstat = phNxpEse_init(initParams);
   if(retstat != ESESTATUS_SUCCESS)
   {

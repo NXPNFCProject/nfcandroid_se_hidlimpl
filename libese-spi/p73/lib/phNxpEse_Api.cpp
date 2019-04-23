@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -204,6 +204,9 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
 
   /* T=1 Protocol layer open */
   wConfigStatus = phNxpEseProto7816_Open(protoInitParam);
+  if(ESESTATUS_TRANSCEIVE_FAILED == wConfigStatus) {
+    nxpese_ctxt.EseLibStatus = ESE_STATUS_RECOVERY;
+  }
   if (ESESTATUS_FAILED == wConfigStatus) {
     wConfigStatus = ESESTATUS_FAILED;
     LOG(ERROR) << StringPrintf("phNxpEseProto7816_Open failed");
@@ -302,16 +305,15 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   phNxpLog_InitializeLogLevel();
   if (EseConfig::hasKey(NAME_NXP_NAD_POLL_RETRY_TIME)) {
     num = EseConfig::getUnsigned(NAME_NXP_NAD_POLL_RETRY_TIME);
-    /*To avoid se service restart in case of no response from eSE*/
-    if(num > 3)
-        num = 3;
     nxpese_ctxt.nadPollingRetryTime = num;
   }
   else
   {
-    nxpese_ctxt.nadPollingRetryTime = 2;
+    nxpese_ctxt.nadPollingRetryTime = 5;
   }
-  LOG(ERROR) << StringPrintf("Nad poll retry time in ms - %lu ms", nxpese_ctxt.nadPollingRetryTime);
+
+  LOG(INFO) << StringPrintf("Nad poll retry time in us - %lu us",
+          nxpese_ctxt.nadPollingRetryTime * WAKE_UP_DELAY * NAD_POLLING_SCALER);
 
   /*Read device node path*/
   ese_node = EseConfig::getString(NAME_NXP_ESE_DEV_NODE, "/dev/pn81a");
@@ -322,11 +324,19 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   wConfigStatus = phPalEse_open_and_configure(&tPalConfig);
   if (wConfigStatus != ESESTATUS_SUCCESS) {
     LOG(ERROR) << StringPrintf("phPalEse_Init Failed");
+    if(ESESTATUS_DRIVER_BUSY == wConfigStatus)
+      LOG(ERROR) << StringPrintf("Ese Driver is Busy!!!");
     goto clean_and_return;
   }
   /* Copying device handle to ESE Lib context*/
   nxpese_ctxt.pDevHandle = tPalConfig.pDevHandle;
-
+  if(ESE_PROTOCOL_MEDIA_SPI == initParams.mediaType){
+    LOG(INFO) << StringPrintf("Inform eSE about the starting of trusted Mode");
+    wConfigStatus = phPalEse_ioctl(phPalEse_e_SetSecureMode,
+                                     tPalConfig.pDevHandle,0x01);
+    if (ESESTATUS_SUCCESS != wConfigStatus)
+      goto clean_and_return_2;
+  }
 #ifdef SPM_INTEGRATED
   /* Get the Access of ESE*/
   wSpmStatus = phNxpEse_SPM_Init(nxpese_ctxt.pDevHandle);
@@ -431,7 +441,7 @@ clean_and_return_2:
 ESESTATUS phNxpEse_openPrioSession(phNxpEse_initParams initParams) {
   phPalEse_Config_t tPalConfig;
   ESESTATUS wConfigStatus = ESESTATUS_SUCCESS;
-  unsigned long int num = 0;
+  unsigned long int num = 0, tpm_enable = 0;
 
   LOG(ERROR) << StringPrintf("phNxpEse_openPrioSession Enter");
 #ifdef SPM_INTEGRATED
@@ -573,6 +583,14 @@ ESESTATUS phNxpEse_openPrioSession(phNxpEse_initParams initParams) {
   }
   wConfigStatus =
       phPalEse_ioctl(phPalEse_e_EnablePollMode, nxpese_ctxt.pDevHandle, 1);
+  if (tpm_enable) {
+    wConfigStatus = phPalEse_ioctl(phPalEse_e_EnableThroughputMeasurement,
+                                   nxpese_ctxt.pDevHandle, 0);
+    if (wConfigStatus != ESESTATUS_SUCCESS) {
+      LOG(ERROR) << StringPrintf("phPalEse_IoCtl Failed");
+      goto clean_and_return;
+    }
+  }
   if (wConfigStatus != ESESTATUS_SUCCESS) {
     LOG(ERROR) << StringPrintf("phPalEse_IoCtl Failed");
     goto clean_and_return;
@@ -700,10 +718,6 @@ ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp) {
     if (ESESTATUS_SUCCESS != status) {
       LOG(ERROR) << StringPrintf(" %s phNxpEseProto7816_Transceive- Failed \n",
                       __FUNCTION__);
-      if(ESESTATUS_TRANSCEIVE_FAILED == status) {
-        //phPalEse_ioctl(phPalEse_e_ChipPwrRst, nxpese_ctxt.pDevHandle, SPM_POWER_RESET);
-        phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
-      }
     }
     nxpese_ctxt.EseLibStatus = ESE_STATUS_IDLE;
     nxpese_ctxt.rnack_sent = false;
@@ -747,7 +761,7 @@ ESESTATUS phNxpEse_coldReset(void) {
  *                  ESESTATUS_FAILED(1)
  ******************************************************************************/
 ESESTATUS phNxpEse_reset(void) {
-  ESESTATUS status = ESESTATUS_FAILED;
+  ESESTATUS status = ESESTATUS_SUCCESS;
   unsigned long maxTimer = 0;
 #ifdef SPM_INTEGRATED
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
@@ -758,10 +772,9 @@ ESESTATUS phNxpEse_reset(void) {
       << StringPrintf(" %s Enter \n", __FUNCTION__);
   /* Do an interface reset, don't wait to see if JCOP went through a full power
    * cycle or not */
-  status = phNxpEseProto7816_IntfReset(
+  ESESTATUS bStatus = phNxpEseProto7816_IntfReset(
       (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
-  if (!status)
-    LOG(ERROR) << StringPrintf("%s phNxpEseProto7816_IntfReset: failed", __FUNCTION__);
+  if (!bStatus) status = ESESTATUS_FAILED;
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("%s secureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
                   __FUNCTION__, nxpese_ctxt.secureTimerParams.secureTimer1,
@@ -908,11 +921,12 @@ ESESTATUS phNxpEse_EndOfApdu(void) {
  *
  ******************************************************************************/
 ESESTATUS phNxpEse_chipReset(void) {
-  ESESTATUS status = ESESTATUS_FAILED;
+  ESESTATUS status = ESESTATUS_SUCCESS;
   ESESTATUS bStatus = ESESTATUS_FAILED;
   if (nxpese_ctxt.pwr_scheme == PN80T_EXT_PMU_SCHEME) {
     bStatus = phNxpEseProto7816_Reset();
     if (!bStatus) {
+      status = ESESTATUS_FAILED;
       LOG(ERROR) << StringPrintf(
           "Inside phNxpEse_chipReset, phNxpEseProto7816_Reset Failed");
     }
@@ -923,6 +937,7 @@ ESESTATUS phNxpEse_chipReset(void) {
   } else {
     LOG(ERROR) << StringPrintf(
         "phNxpEse_chipReset is not supported in legacy power scheme");
+    status = ESESTATUS_FAILED;
   }
   return status;
 }
@@ -952,9 +967,7 @@ ESESTATUS phNxpEse_deInit(void) {
   {
       status = phNxpEseProto7816_Close(
           (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
-      if (status == ESESTATUS_FAILED) {
-          status = ESESTATUS_FAILED;
-      } else {
+      if (status != ESESTATUS_FAILED) {
           DLOG_IF(INFO, ese_debug_enabled)
           << StringPrintf("%s secureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
                __FUNCTION__, nxpese_ctxt.secureTimerParams.secureTimer1,
@@ -985,7 +998,7 @@ ESESTATUS phNxpEse_deInit(void) {
  ******************************************************************************/
 ESESTATUS phNxpEse_close(void) {
   ESESTATUS status = ESESTATUS_SUCCESS;
-
+  LOG(INFO) << StringPrintf("phNxpEse_close Enter");
   if ((ESE_STATUS_CLOSE == nxpese_ctxt.EseLibStatus)) {
     LOG(ERROR) << StringPrintf(" %s ESE Not Initialized \n", __FUNCTION__);
     return ESESTATUS_NOT_INITIALISED;
@@ -1003,13 +1016,25 @@ ESESTATUS phNxpEse_close(void) {
   } else {
     nxpese_ctxt.spm_power_state = false;
   }
-  wSpmStatus = phNxpEse_SPM_DeInit();
-  if (wSpmStatus != ESESTATUS_SUCCESS) {
-    LOG(ERROR) << StringPrintf("phNxpEse_SPM_DeInit Failed");
-  }
-
 #endif
   if (NULL != nxpese_ctxt.pDevHandle) {
+    if(ESE_PROTOCOL_MEDIA_SPI == nxpese_ctxt.initParams.mediaType){
+    LOG(INFO) << StringPrintf("Inform eSE that trusted Mode is over");
+    status = phPalEse_ioctl(phPalEse_e_SetSecureMode,
+                                  nxpese_ctxt.pDevHandle,0x00);
+    }
+    if(nxpese_ctxt.EseLibStatus == ESE_STATUS_RECOVERY ||
+    (ESESTATUS_SUCCESS != phNxpEseProto7816_CloseAllSessions())) {
+      LOG(INFO) << StringPrintf("eSE not responding perform hard reset");
+      phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
+    }
+#ifdef SPM_INTEGRATED
+    wSpmStatus = phNxpEse_SPM_DeInit();
+    if (wSpmStatus != ESESTATUS_SUCCESS) {
+      LOG(ERROR) << StringPrintf("phNxpEse_SPM_DeInit Failed");
+    }
+#endif
+
     phPalEse_close(nxpese_ctxt.pDevHandle);
     phNxpEse_memset(&nxpese_ctxt, 0x00, sizeof(nxpese_ctxt));
     DLOG_IF(INFO, ese_debug_enabled)
@@ -1089,7 +1114,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
   {
     /*wait based on config option */
     /*(nadPollingRetryTime * WAKE_UP_DELAY * NAD_POLLING_SCALER)*/
-    max_sof_counter = (ESE_POLL_TIMEOUT / nxpese_ctxt.nadPollingRetryTime);
+    max_sof_counter = ((ESE_POLL_TIMEOUT * 1000)/ (nxpese_ctxt.nadPollingRetryTime * WAKE_UP_DELAY * NAD_POLLING_SCALER));
   }
   if(nxpese_ctxt.rnack_sent)
   {
@@ -1290,7 +1315,7 @@ ESESTATUS phNxpEse_WriteFrame(uint32_t data_len, uint8_t* p_data) {
   dwNoBytesWrRd = phPalEse_write(nxpese_ctxt.pDevHandle, nxpese_ctxt.p_cmd_data,
                                  nxpese_ctxt.cmd_len);
   if (-1 == dwNoBytesWrRd) {
-    LOG(ERROR) << StringPrintf(" - Error in SPI Write.....\n");
+    LOG(ERROR) << StringPrintf(" - Error in SPI Write.....%d\n",errno);
     status = ESESTATUS_FAILED;
   } else {
     status = ESESTATUS_SUCCESS;
