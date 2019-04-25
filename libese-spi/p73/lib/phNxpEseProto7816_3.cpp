@@ -1357,6 +1357,7 @@ ESESTATUS phNxpEseProto7816_Close(
     ALOGE("%s TransceiveProcess failed , hard reset to proceed", __FUNCTION__);
     /*Clear response buffer data if transceive failed*/
     phNxpEse_GetData(&data_len, &p_data);
+    phNxpEse_free(p_data);
   }
   phNxpEse_memcpy(pSecureTimerParams,
                   &phNxpEseProto7816_3_Var.secureTimerParams,
@@ -1394,6 +1395,7 @@ ESESTATUS phNxpEseProto7816_IntfReset(
     ALOGE("%s TransceiveProcess failed , hard reset to proceed", __FUNCTION__);
     /*Clear response buffer data if transceive failed*/
     phNxpEse_GetData(&data_len, &p_data);
+    phNxpEse_free(p_data);
   }
   phNxpEse_memcpy(pSecureTimerParam, &phNxpEseProto7816_3_Var.secureTimerParams,
                   sizeof(phNxpEseProto7816SecureTimer_t));

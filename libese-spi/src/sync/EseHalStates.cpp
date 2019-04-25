@@ -36,6 +36,8 @@ bool state_machine_debug = true;
 map<eStates_t, StateBase *> StateBase::sListOfStates;
 IntervalTimer StateBase::sTimerInstance;
 
+StateBase::StateBase() { mLastProcessEventStatus = SM_STATUS_FAILED; }
+
 class StateSpiBusyRfBusy : public StateBase {
 public:
   StateSpiBusyRfBusy() {}

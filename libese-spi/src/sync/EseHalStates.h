@@ -28,7 +28,7 @@ using namespace std;
 
 class StateBase {
 public:
-  StateBase(){};
+  StateBase();
   virtual ~StateBase(){};
   static StateBase *InitializeStates();
   virtual eStates_t GetState() = 0;

@@ -628,7 +628,7 @@ ESESTATUS phNxpEse_reset(void) {
  *                  ESESTATUS_FAILED(1)
  ******************************************************************************/
 ESESTATUS phNxpEse_resetJcopUpdate(void) {
-  ESESTATUS status = ESESTATUS_SUCCESS;
+  ESESTATUS status = ESESTATUS_FAILED;
 
 #ifdef SPM_INTEGRATED
 #ifdef NXP_POWER_SCHEME_SUPPORT
@@ -652,14 +652,12 @@ ESESTATUS phNxpEse_resetJcopUpdate(void) {
       status = phNxpEse_SPM_ConfigPwr(SPM_POWER_RESET);
       if (status != ESESTATUS_SUCCESS) {
         ALOGE("phNxpEse_resetJcopUpdate: reset Failed");
-        status = ESESTATUS_FAILED;
       }
     } else if (num == 3) {
       ALOGD_IF(ese_debug_enabled, " %s Call eSE Chip Reset \n", __FUNCTION__);
       status = phNxpEse_chipReset();
       if (status != ESESTATUS_SUCCESS) {
         ALOGE("phNxpEse_resetJcopUpdate: chip reset Failed");
-        status = ESESTATUS_FAILED;
       }
     } else {
       ALOGD_IF(ese_debug_enabled, " %s Invalid Power scheme \n", __FUNCTION__);
@@ -670,7 +668,6 @@ ESESTATUS phNxpEse_resetJcopUpdate(void) {
     status = phNxpEse_SPM_ConfigPwr(SPM_POWER_RESET);
     if (status != ESESTATUS_SUCCESS) {
       ALOGE("phNxpEse_SPM_ConfigPwr: reset Failed");
-      status = ESESTATUS_FAILED;
     }
   }
 #endif
