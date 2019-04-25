@@ -59,7 +59,7 @@ eseUpdateInfo_t SpiEseUpdater::msEseSpiIntfInfo, SpiEseUpdater::msEseDwpIntfInfo
 *******************************************************************************/
 void* eSEUpdate_SE_SeqHandler(void* data);
 
-SpiEseUpdater::SpiEseUpdater() {}
+SpiEseUpdater::SpiEseUpdater() { mEseUpdaterClientContext = NULL; }
 SpiEseUpdater& SpiEseUpdater::getInstance() { return sEseUpdaterInstance; }
 
 void SpiEseUpdater::checkIfEseClientUpdateReqd() {

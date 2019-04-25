@@ -146,7 +146,9 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
       (ESESTATUS_READ_FAILED == wConfigStatus)) {
     wConfigStatus = ESESTATUS_FAILED;
     ALOGE("phNxpEseProto7816_Open failed");
-    phNxpEse_close();
+    if (ESESTATUS_SUCCESS == phNxpEse_close()) {
+      ALOGE("phNxpEse Close was success");
+    }
   }
   return wConfigStatus;
 }
@@ -366,7 +368,7 @@ bool phNxpEse_isOpen() { return nxpese_ctxt.EseLibStatus != ESE_STATUS_CLOSE; }
 ESESTATUS phNxpEse_openPrioSession(phNxpEse_initParams initParams) {
   phPalEse_Config_t tPalConfig;
   ESESTATUS wConfigStatus = ESESTATUS_SUCCESS;
-  unsigned long int num = 0, tpm_enable = 0;
+  unsigned long int num = 0;
 
   ALOGE("phNxpEse_openPrioSession Enter");
 #ifdef SPM_INTEGRATED
@@ -493,14 +495,6 @@ ESESTATUS phNxpEse_openPrioSession(phNxpEse_initParams initParams) {
   }
   wConfigStatus =
       phPalEse_ioctl(phPalEse_e_EnablePollMode, nxpese_ctxt.pDevHandle, 1);
-  if (tpm_enable) {
-    wConfigStatus = phPalEse_ioctl(phPalEse_e_EnableThroughputMeasurement,
-                                   nxpese_ctxt.pDevHandle, 0);
-    if (wConfigStatus != ESESTATUS_SUCCESS) {
-      ALOGE("phPalEse_IoCtl Failed");
-      goto clean_and_return;
-    }
-  }
   if (wConfigStatus != ESESTATUS_SUCCESS) {
     ALOGE("phPalEse_IoCtl Failed");
     goto clean_and_return;
@@ -587,9 +581,10 @@ ESESTATUS phNxpEse_reset(void) {
   ALOGD_IF(ese_debug_enabled, " %s Enter \n", __FUNCTION__);
   /* Do an interface reset, don't wait to see if JCOP went through a full power
    * cycle or not */
-  ESESTATUS bStatus = phNxpEseProto7816_IntfReset(
-      (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
-  if (!bStatus) status = ESESTATUS_FAILED;
+  status = phNxpEseProto7816_IntfReset(
+      (phNxpEseProto7816SecureTimer_t *)&nxpese_ctxt.secureTimerParams);
+  if (status)
+    status = ESESTATUS_FAILED;
   ALOGD_IF(ese_debug_enabled,
            "%s secureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
            __FUNCTION__, nxpese_ctxt.secureTimerParams.secureTimer1,
@@ -722,12 +717,11 @@ ESESTATUS phNxpEse_EndOfApdu(void) {
  *
  ******************************************************************************/
 ESESTATUS phNxpEse_chipReset(void) {
-  ESESTATUS status = ESESTATUS_SUCCESS;
+  ESESTATUS status = ESESTATUS_FAILED;
   ESESTATUS bStatus = ESESTATUS_FAILED;
   if (nxpese_ctxt.pwr_scheme == PN80T_EXT_PMU_SCHEME) {
     bStatus = phNxpEseProto7816_Reset();
     if (!bStatus) {
-      status = ESESTATUS_FAILED;
       ALOGE("Inside phNxpEse_chipReset, phNxpEseProto7816_Reset Failed");
     }
     status = phPalEse_ioctl(phPalEse_e_ChipRst, nxpese_ctxt.pDevHandle, 6);
@@ -736,7 +730,6 @@ ESESTATUS phNxpEse_chipReset(void) {
     }
   } else {
     ALOGE("phNxpEse_chipReset is not supported in legacy power scheme");
-    status = ESESTATUS_FAILED;
   }
   return status;
 }

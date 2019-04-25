@@ -59,10 +59,10 @@ void getLSScriptSourcePrefix(std::string& prefix) {
         if (c == ' ' || c == '\n' || c == '\r' || c == 0x00) break;
         prefix.push_back(c);
       }
+      fclose(fd);
     } else {
       ALOGD("%s Cannot open file %s\n", __func__, source_path);
     }
-    fclose(fd);
   }
   if (prefix.empty()) {
     prefix.assign(ls_script_source_prefix);

@@ -79,7 +79,9 @@ bool SeChannelCallback::close(__attribute__((unused)) int16_t mHandle) {
 
       recvBufferMaxSize++;
       timeoutMillisec++;
-      phNxpEse_Transceive(&cmdData, &rspData);
+      if (ESESTATUS_SUCCESS != phNxpEse_Transceive(&cmdData, &rspData)) {
+        ALOGE("%s: phNxpEse_Transceive Failed", __FUNCTION__);
+      }
 
       recvBufferActualSize = rspData.len;
 
