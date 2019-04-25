@@ -247,29 +247,28 @@ Return<void> WiredSe::openLogicalChannel(const hidl_vec<uint8_t> &aid,
 
   if (status != WIREDSESTATUS_SUCCESS) {
     /*Transceive failed*/
-    if (rspSelectApdu.size() > 0 && (*(rspSelectApdu.end() - 2) == 0x64 &&
-                                     *(rspSelectApdu.end() - 1) == 0xFF)) {
+    if (rspSelectApdu.size() > 0 && *(rspSelectApdu.rbegin() + 1) == 0x64 &&
+        *(rspSelectApdu.rbegin()) == 0xFF) {
       sestatus = SecureElementStatus::IOERROR;
     } else {
       sestatus = SecureElementStatus::FAILED;
     }
   } else {
     /*Status is success*/
-    if (*(rspSelectApdu.end() - 2) == 0x90 &&
-        *(rspSelectApdu.end() - 1) == 0x00) {
+    if (*(rspSelectApdu.rbegin() + 1) == 0x90 && *(rspSelectApdu.rbegin()) == 0x00) {
       sestatus = SecureElementStatus::SUCCESS;
       resApduBuff.selectResponse.resize(rspSelectApdu.size());
       for (size_t i = 0; i < rspSelectApdu.size(); i++)
         resApduBuff.selectResponse[i] = rspSelectApdu[i];
     }
     /*AID provided doesn't match any applet on the secure element*/
-    else if (*(rspSelectApdu.end() - 2) == 0x6A &&
-             *(rspSelectApdu.end() - 1) == 0x82) {
+    else if (*(rspSelectApdu.rbegin() + 1) == 0x6A &&
+             *(rspSelectApdu.rbegin()) == 0x82) {
       sestatus = SecureElementStatus::NO_SUCH_ELEMENT_ERROR;
     }
     /*Operation provided by the P2 parameter is not permitted by the applet.*/
-    else if (*(rspSelectApdu.end() - 2) == 0x6A &&
-             *(rspSelectApdu.end() - 1) == 0x86) {
+    else if (*(rspSelectApdu.rbegin() + 1) == 0x6A &&
+             *(rspSelectApdu.rbegin()) == 0x86) {
       sestatus = SecureElementStatus::UNSUPPORTED_OPERATION;
     } else {
       sestatus = SecureElementStatus::FAILED;
@@ -329,16 +328,15 @@ Return<void> WiredSe::openBasicChannel(const hidl_vec<uint8_t> &aid, uint8_t p2,
 
   if (status != WIREDSESTATUS_SUCCESS) {
     /*Transceive failed*/
-    if (rspSelectApdu.size() > 0 && (*(rspSelectApdu.end() - 2) == 0x64 &&
-                                     *(rspSelectApdu.end() - 1) == 0xFF)) {
+    if (rspSelectApdu.size() > 0 && (*(rspSelectApdu.rbegin() + 1) == 0x64 &&
+                                     *(rspSelectApdu.rbegin()) == 0xFF)) {
       sestatus = SecureElementStatus::IOERROR;
     } else {
       sestatus = SecureElementStatus::FAILED;
     }
   } else {
     /*Status is success*/
-    if (*(rspSelectApdu.end() - 2) == 0x90 &&
-        *(rspSelectApdu.end() - 1) == 0x00) {
+    if (*(rspSelectApdu.rbegin() + 1) == 0x90 && *(rspSelectApdu.rbegin()) == 0x00) {
       if (!mOpenedChannels[0]) {
         mOpenedChannels[0] = true;
         mOpenedchannelCount++;
@@ -347,13 +345,13 @@ Return<void> WiredSe::openBasicChannel(const hidl_vec<uint8_t> &aid, uint8_t p2,
       sestatus = SecureElementStatus::SUCCESS;
     }
     /*AID provided doesn't match any applet on the secure element*/
-    else if (*(rspSelectApdu.end() - 2) == 0x6A &&
-             *(rspSelectApdu.end() - 1) == 0x82) {
+    else if (*(rspSelectApdu.rbegin() + 1) == 0x6A &&
+             *(rspSelectApdu.rbegin()) == 0x82) {
       sestatus = SecureElementStatus::NO_SUCH_ELEMENT_ERROR;
     }
     /*Operation provided by the P2 parameter is not permitted by the applet.*/
-    else if (*(rspSelectApdu.end() - 2) == 0x6A &&
-             *(rspSelectApdu.end() - 1) == 0x86) {
+    else if (*(rspSelectApdu.rbegin() + 1) == 0x6A &&
+             *(rspSelectApdu.rbegin()) == 0x86) {
       sestatus = SecureElementStatus::UNSUPPORTED_OPERATION;
     } else {
       sestatus = SecureElementStatus::FAILED;
@@ -381,7 +379,7 @@ WiredSe::internalCloseChannel(uint8_t channelNumber) {
     return SecureElementStatus::FAILED;
   }
 
-  if (channelNumber < DEFAULT_BASIC_CHANNEL ||
+  if ((int8_t)channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     ALOGE("%s: invalid channel!!! 0x%02x", __func__, channelNumber);
 
@@ -407,15 +405,10 @@ WiredSe::internalCloseChannel(uint8_t channelNumber) {
       status = WIREDSESTATUS_SUCCESS;
 
     if (status != WIREDSESTATUS_SUCCESS) {
-      if ((rspCloseApdu.size() > 0) && (*(rspCloseApdu.end() - 2) == 0x64) &&
-          (*(rspCloseApdu.end() - 1) == 0xFF)) {
-        sestatus = SecureElementStatus::FAILED;
-      } else {
-        sestatus = SecureElementStatus::FAILED;
-      }
+      sestatus = SecureElementStatus::FAILED;
     } else {
-      if ((*(rspCloseApdu.end() - 2) == 0x90) &&
-          (*(rspCloseApdu.end() - 1) == 0x00)) {
+      if ((*(rspCloseApdu.rbegin() + 1) == 0x90) &&
+          (*(rspCloseApdu.rbegin()) == 0x00)) {
         sestatus = SecureElementStatus::SUCCESS;
       } else {
         sestatus = SecureElementStatus::FAILED;
@@ -449,10 +442,9 @@ WiredSe::closeChannel(uint8_t channelNumber) {
     return SecureElementStatus::FAILED;
   }
 
-  if (channelNumber < DEFAULT_BASIC_CHANNEL ||
+  if ((int8_t)channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
-    ALOGD("%s invalid channel!!! %d for %d", __func__, channelNumber,
-          mOpenedChannels[channelNumber]);
+    ALOGE("%s: invalid channel!!! 0x%02x", __func__, channelNumber);
 
     sestatus = SecureElementStatus::FAILED;
   } else if (channelNumber > DEFAULT_BASIC_CHANNEL) {
@@ -475,15 +467,10 @@ WiredSe::closeChannel(uint8_t channelNumber) {
     else
       status = WIREDSESTATUS_SUCCESS;
     if (status != WIREDSESTATUS_SUCCESS) {
-      if ((rspCloseApdu.size() > 0) && (*(rspCloseApdu.end() - 2) == 0x64) &&
-          (*(rspCloseApdu.end() - 1) == 0xFF)) {
-        sestatus = SecureElementStatus::FAILED;
-      } else {
-        sestatus = SecureElementStatus::FAILED;
-      }
+      sestatus = SecureElementStatus::FAILED;
     } else {
-      if ((*(rspCloseApdu.end() - 2) == 0x90) &&
-          (*(rspCloseApdu.end() - 1) == 0x00)) {
+      if ((*(rspCloseApdu.rbegin() + 1) == 0x90) &&
+          (*(rspCloseApdu.rbegin()) == 0x00)) {
         sestatus = SecureElementStatus::SUCCESS;
       } else {
         sestatus = SecureElementStatus::FAILED;
