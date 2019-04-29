@@ -347,7 +347,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
     }
     /*AID provided doesn't match any applet on the secure element*/
     else if ((rpdu.sw1 == 0x6A && rpdu.sw2 == 0x82 )||
-      (rpdu.sw1 == 0x69 && rpdu.sw2 == 0x99)) {
+      (rpdu.sw1 == 0x69 && (rpdu.sw2 == 0x99 || rpdu.sw2 == 0x85))) {
       sestatus = SecureElementStatus::NO_SUCH_ELEMENT_ERROR;
     }
     /*Operation provided by the P2 parameter is not permitted by the applet.*/
