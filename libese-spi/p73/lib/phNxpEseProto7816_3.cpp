@@ -1314,6 +1314,7 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
 static ESESTATUS TransceiveProcess(void) {
   ESESTATUS status = ESESTATUS_FAILED;
   sFrameInfo_t sFrameInfo;
+  memset(&sFrameInfo, 0, sizeof(sFrameInfo_t));
 
   DLOG_IF(INFO, ese_debug_enabled)
       << StringPrintf("Enter %s ", __FUNCTION__);
