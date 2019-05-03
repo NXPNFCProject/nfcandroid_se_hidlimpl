@@ -42,6 +42,7 @@ protected:
   eStatus_t SendOMAPISessionCloseCmd();
   eStatus_t SendSwpSwitchAllowCmd();
   eStatus_t SendOMAPICommand(uint8_t cmd[], uint8_t cmd_len);
+  eStatus_t NotifyHciEvtProcessComplete();
   static void TimerStart(unsigned long millisecs);
   static void TimerStop();
   static void TimerTimeoutCallback(union sigval);

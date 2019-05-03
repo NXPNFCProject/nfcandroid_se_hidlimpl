@@ -48,6 +48,7 @@ public:
   StateBase *ProcessEvent(eExtEvent_t event) {
     StateBase *PtrNextState = this;
     switch (event) {
+    case EVT_HCI_INIT_COMPLETE:
     case EVT_RF_OFF:
       TimerStop();
       PtrNextState = sListOfStates.find(ST_SPI_BUSY_RF_IDLE)->second;
@@ -88,6 +89,7 @@ public:
       break;
     case EVT_SPI_TX_WTX_RSP:
       break;
+    case EVT_HCI_INIT_COMPLETE:
     case EVT_RF_OFF:
       PtrNextState = sListOfStates.find(ST_SPI_BUSY_RF_IDLE)->second;
       break;
@@ -108,6 +110,8 @@ public:
   StateBase *ProcessEvent(eExtEvent_t event) {
     StateBase *PtrNextState = this;
     switch (event) {
+    case EVT_HCI_INIT_START:
+      [[fallthrough]];
     case EVT_RF_ON:
       PtrNextState = sListOfStates.find(ST_SPI_RX_PENDING_RF_PENDING)->second;
       break;
@@ -139,6 +143,7 @@ public:
   StateBase *ProcessEvent(eExtEvent_t event) {
     StateBase *PtrNextState = this;
     switch (event) {
+    case EVT_HCI_INIT_COMPLETE:
     case EVT_RF_OFF:
       PtrNextState = sListOfStates.find(ST_SPI_CLOSED_RF_IDLE)->second;
       break;
@@ -161,6 +166,9 @@ public:
     switch (event) {
     case EVT_SPI_HW_SERVICE_START:
       break;
+    case EVT_HCI_INIT_START:
+      NotifyHciEvtProcessComplete();
+      [[fallthrough]];
     case EVT_RF_ON:
       PtrNextState = sListOfStates.find(ST_SPI_CLOSED_RF_BUSY)->second;
       break;
@@ -213,6 +221,7 @@ public:
   StateBase *ProcessEvent(eExtEvent_t event) {
     StateBase *PtrNextState = this;
     switch (event) {
+    case EVT_HCI_INIT_COMPLETE:
     case EVT_RF_OFF:
       TimerStop();
       PtrNextState = sListOfStates.find(ST_SPI_OPEN_RF_IDLE)->second;
@@ -250,6 +259,7 @@ public:
   StateBase *ProcessEvent(eExtEvent_t event) {
     StateBase *PtrNextState = this;
     switch (event) {
+    case EVT_HCI_INIT_COMPLETE:
     case EVT_RF_OFF:
       TimerStop();
       PtrNextState = sListOfStates.find(ST_SPI_SESSION_OPEN_RF_IDLE)->second;
@@ -283,6 +293,8 @@ public:
   StateBase *ProcessEvent(eExtEvent_t event) {
     StateBase *PtrNextState = this;
     switch (event) {
+    case EVT_HCI_INIT_START:
+      [[fallthrough]];
     case EVT_RF_ON:
       SendSwpSwitchAllowCmd();
       PtrNextState =
@@ -320,6 +332,8 @@ public:
   StateBase *ProcessEvent(eExtEvent_t event) {
     StateBase *PtrNextState = this;
     switch (event) {
+    case EVT_HCI_INIT_START:
+      [[fallthrough]];
     case EVT_RF_ON:
       SendSwpSwitchAllowCmd();
       PtrNextState = sListOfStates.find(ST_SPI_OPEN_SUSPENDED_RF_BUSY)->second;
@@ -356,6 +370,7 @@ public:
   StateBase *ProcessEvent(eExtEvent_t event) {
     StateBase *PtrNextState = this;
     switch (event) {
+    case EVT_HCI_INIT_COMPLETE:
     case EVT_RF_OFF:
       SendOMAPISessionOpenCmd();
       PtrNextState = sListOfStates.find(ST_SPI_OPEN_RF_IDLE)->second;
@@ -391,6 +406,7 @@ public:
   StateBase *ProcessEvent(eExtEvent_t event) {
     StateBase *PtrNextState = this;
     switch (event) {
+    case EVT_HCI_INIT_COMPLETE:
     case EVT_RF_OFF:
       SendOMAPISessionOpenCmd();
       PtrNextState = sListOfStates.find(ST_SPI_SESSION_OPEN_RF_IDLE)->second;
@@ -420,6 +436,7 @@ public:
   StateBase *ProcessEvent(eExtEvent_t event) {
     StateBase *PtrNextState = this;
     switch (event) {
+    case EVT_HCI_INIT_COMPLETE:
     case EVT_RF_OFF:
       PtrNextState = sListOfStates.find(ST_SPI_BUSY_RF_IDLE)->second;
       break;
@@ -448,6 +465,7 @@ public:
   StateBase *ProcessEvent(eExtEvent_t event) {
     StateBase *PtrNextState = this;
     switch (event) {
+    case EVT_HCI_INIT_COMPLETE:
     case EVT_RF_OFF:
       PtrNextState = sListOfStates.find(ST_SPI_BUSY_RF_IDLE)->second;
       break;
@@ -528,6 +546,15 @@ retry_nfc_access:
     return SM_STATUS_FAILED;
   }
 
+  return SM_STATUS_SUCCESS;
+}
+
+eStatus_t StateBase::NotifyHciEvtProcessComplete() {
+  ese_nxp_IoctlInOutData_t inpOutData;
+  memset(&inpOutData, 0x00, sizeof(ese_nxp_IoctlInOutData_t));
+  ESESTATUS retval =
+      NfcAdaptation::GetInstance().HalIoctl(HAL_NFC_IOCTL_HCI_INIT_STATUS_UPDATE_COMPLETE, &inpOutData);
+  if (retval != ESESTATUS_SUCCESS) return SM_STATUS_FAILED;
   return SM_STATUS_SUCCESS;
 }
 

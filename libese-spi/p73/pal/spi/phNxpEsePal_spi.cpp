@@ -100,6 +100,14 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
   ALOGD_IF(ese_debug_enabled, "phNxpEse_spiIoctl(): ioctlType: %ld",
            (long)ioctlType);
   switch (ioctlType) {
+  case HAL_NFC_IOCTL_HCI_INIT_STATUS_UPDATE: {
+    int hciInitReq = inpOutData->inp.data.nxpCmd.p_cmd[0];
+    if (hciInitReq == 1) {
+      StateMachine::GetInstance().ProcessExtEvent(EVT_HCI_INIT_START);
+    } else {
+      StateMachine::GetInstance().ProcessExtEvent(EVT_HCI_INIT_COMPLETE);
+    }
+  } break;
   case HAL_NFC_IOCTL_RF_STATUS_UPDATE: {
     rf_status = inpOutData->inp.data.nxpCmd.p_cmd[0];
     if (rf_status == 1) {
