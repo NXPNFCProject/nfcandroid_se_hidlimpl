@@ -135,7 +135,7 @@ void phPalEse_spi_close(void* pDevHandle);
  * \ingroup eSe_PAL_Spi
  * \brief Open and configure ESE device
  *
- * \param[in]       pphPalEse_Config_t: Config to open the device
+ * \param[in]       pConfig: Config to open the device
  *
  * \retval  ESESTATUS On Success ESESTATUS_SUCCESS else proper error code
  *
@@ -177,7 +177,6 @@ int phPalEse_spi_write(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToWrite);
  * \param[in]    eControlCode       - phPalEse_ControlCode_t for the respective
  *configs
  * \param[in]    pDevHandle           - valid device handle
- * \param[in]    pBuffer              - buffer for read data
  * \param[in]    level                  - reset level
  *
  * \retval    0   - ioctl operation success

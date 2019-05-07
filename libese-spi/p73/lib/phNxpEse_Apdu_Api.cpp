@@ -125,12 +125,12 @@ ESESTATUS phNxpEse_7816_Transceive(pphNxpEse_7816_cpdu_t pCmd,
  *                  pCmd: 7816 command structure.
  *                  pcmd_data: command buffer pointer.
  *
- * \param[in]       pphNxpEse_7816_cpdu_t pCmd- Structure pointer passed from
+ * \param[in]       pCmd- Structure pointer passed from
  *application
- * \param[in]       uint32_t *cmd_len - Hold the buffer length, update by this
- *function
- * \param[in]       uint8_t **pcmd_data - Hold the allocated memory buffer for
+ * \param[in]        **pcmd_data - Hold the allocated memory buffer for
  *command.
+  * \param[in]        *cmd_len - Hold the buffer length, update by this
+ *function
  *
  * \retval  ESESTATUS_SUCCESS on Success else proper error code
  *

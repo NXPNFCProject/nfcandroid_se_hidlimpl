@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -229,69 +229,67 @@ void phPalEse_sleep(long usec) {
   return;
 }
 
-/**
- * \ingroup eSe_PAL
- * \brief This function updates destination buffer with val
- *                 data in len size
- *
- * \param[in]    buff                - Array to be udpated
- * \param[in]    val                 - value to be updated
- * \param[in]    len                 - length of array to be updated
- *
- * \retval   void
- *
- */
+/*******************************************************************************
+**
+** Function         phPalEse_memset
+**
+** Description
+**
+** Returns          None
+**
+*******************************************************************************/
+
 void* phPalEse_memset(void* buff, int val, size_t len) {
   return memset(buff, val, len);
 }
 
-/**
- * \ingroup eSe_PAL
- * \brief This function copies source buffer to  destination buffer
- *                 data in len size
- *
- * \param[in]    dest                - Destination array to be updated
- * \param[in]    src                 - Source array to be updated
- * \param[in]    len                 - length of array to be updated
- *
- * \retval   void
- *
- */
+/*******************************************************************************
+**
+** Function         phPalEse_memcpy
+**
+** Description
+**
+** Returns          None
+**
+*******************************************************************************/
+
 void* phPalEse_memcpy(void* dest, const void* src, size_t len) {
   return memcpy(dest, src, len);
 }
 
-/**
- * \ingroup eSe_PAL
- * \brief This is utility function for runtime heap memory allocation
- *
- * \param[in]    size                 - number of bytes to be allocated
- *
- * \retval   void
- *
- */
+/*******************************************************************************
+**
+** Function         phPalEse_memalloc
+**
+** Description
+**
+** Returns          None
+**
+*******************************************************************************/
+
 void* phPalEse_memalloc(uint32_t size) { return malloc(size); }
 
-/**
- * \ingroup eSe_PAL
- * \brief This is utility function for runtime heap memory allocation
- *
- * \param[in]    len                 - number of bytes to be allocated
- *
- * \retval   void
- *
- */
+/*******************************************************************************
+**
+** Function         phPalEse_calloc
+**
+** Description
+**
+** Returns          None
+**
+*******************************************************************************/
+
 void* phPalEse_calloc(size_t datatype, size_t size) {
   return calloc(datatype, size);
 }
 
-/**
- * \ingroup eSe_PAL
- * \brief This is utility function for freeeing heap memory allocated
- *
- * \param[in]    ptr                 - Address pointer to previous allocation
- *
- * \retval   void
- *
- */
+/*******************************************************************************
+**
+** Function         phPalEse_free
+**
+** Description
+**
+** Returns          None
+**
+*******************************************************************************/
 void phPalEse_free(void* ptr) { return free(ptr); }

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -62,11 +62,16 @@ typedef enum {
 #define ESE_FW_DWNLD_RETRY_CNT 10 /* Maximum retry count for FW Dwonload*/
 #endif
 
-/* Secure timer values F1, F2, F3 */
+
+/*!
+ * \brief  Secure timer values F1, F2, F3
+ *
+ *
+ */
 typedef struct phNxpEse_SecureTimer {
-  unsigned int secureTimer1;
-  unsigned int secureTimer2;
-  unsigned int secureTimer3;
+  unsigned int secureTimer1;/*!< Secure timer 1 value */
+  unsigned int secureTimer2;/*!< Secure timer 2 value */
+  unsigned int secureTimer3;/*!< Secure timer 3 value */
 } phNxpEse_SecureTimer_t;
 
 typedef enum nadInfoTx {
@@ -82,9 +87,14 @@ typedef enum nadInfoRx {
   EUICC_NAD_RX = 0xB4 /*!< R-frame Negative-Acknowledgement frame indicator */
 } nadInfoRx_t;
 
+/*!
+ * \brief  Node address Info structure
+ *
+ *
+ */
 typedef struct phNxpEseNadInfo {
-	nadInfoTx_t nadTx;
-	nadInfoRx_t nadRx;
+  nadInfoTx_t nadTx;/*!< nod address for tx */
+  nadInfoRx_t nadRx;/*!< nod address for rx */
 }phNxpEseNadInfo_t;
 
 /* JCOP download states */
@@ -96,22 +106,27 @@ typedef enum jcop_dwnld_state {
   JCP_DWP_DWNLD_COMPLETE = 0x8080, /* jcop download complete */
 } phNxpEse_JcopDwnldState;
 
-/* SPI Control structure */
+
+/*!
+ * \brief  SPI Control structure
+ *
+ *
+ */
 typedef struct phNxpEse_Context {
-  void* pDevHandle;
-  long nadPollingRetryTime;
-  long invalidFrame_Rnack_Delay;
-  phNxpEse_LibStatus EseLibStatus; /* Indicate if Ese Lib is open or closed */
-  phNxpEse_initParams initParams;
-  phNxpEse_SecureTimer_t secureTimerParams;
-  phNxpEseNadInfo_t nadInfo;
-  uint8_t p_read_buff[MAX_DATA_LEN];
-  uint8_t p_cmd_data[MAX_DATA_LEN];
-  uint16_t cmd_len;
-  uint8_t pwr_scheme;
-  uint8_t endPointInfo;
-  bool rnack_sent;
-  bool spm_power_state;
+  void* pDevHandle; /*!<device handle */
+  long nadPollingRetryTime;/*!<polling retry for nod address */
+  long invalidFrame_Rnack_Delay;/*!<delay before retrying when rnack is received */
+  phNxpEse_LibStatus EseLibStatus; /*!<Indicate if Ese Lib is open or closed */
+  phNxpEse_initParams initParams;/*!<init params */
+  phNxpEse_SecureTimer_t secureTimerParams;/*!<secure timer params */
+  phNxpEseNadInfo_t nadInfo;/*!<nad info */
+  uint8_t p_read_buff[MAX_DATA_LEN];/*!<read buffer */
+  uint8_t p_cmd_data[MAX_DATA_LEN];/*!<cmd  buffer */
+  uint16_t cmd_len;/*!<cmd buffer length */
+  uint8_t pwr_scheme;/*!<eSE power scheme */
+  uint8_t endPointInfo;/*!<info end point*/
+  bool rnack_sent;/*!<rnack send info */
+  bool spm_power_state;/*!<spm_power_state */
 } phNxpEse_Context_t;
 
 /* Timeout value to wait for response from

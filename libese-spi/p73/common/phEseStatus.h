@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018 - 2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,22 +15,25 @@
  *  limitations under the License.
  *
  ******************************************************************************/
+/**
+* \addtogroup ISO7816-3_protocol_lib_common
+ *
+ * @{ */
 
-/*
- * ESE Status Values - Function Return Codes
- */
+
 
 #ifndef PHESESTATUS_H
 #define PHESESTATUS_H
 
 #include <phEseTypes.h>
 
-/* Internally required by PHESESTVAL. */
+/*! Internally required by PHESESTVAL. */
 #define PHESESTSHL8 (8U)
-/* Required by PHESESTVAL. */
+
+/*! Required by PHESESTVAL. */
 #define PHESESTBLOWER ((ESESTATUS)(0x00FFU))
 
-/*
+/*!
  *  ESE Status Composition Macro
  *
  *  This is the macro which must be used to compose status values.
@@ -51,13 +54,26 @@
        : ((((ESESTATUS)(phEseStatus)) & (PHESESTBLOWER)) | \
           (((uint16_t)(phEseCompID)) << (PHESESTSHL8))))
 
-/*
+/*!
  * PHESESTATUS
  * Get grp_retval from Status Code
  */
 #define PHESESTATUS(phEseStatus) ((phEseStatus)&0x00FFU)
+
+
+/*!
+ * PHESECID
+ * Get grp_retval from Status Code
+ */
+
 #define PHESECID(phEseStatus) (((phEseStatus)&0xFF00U) >> 8)
 
+
+/**
+ * \ingroup ISO7816-3_protocol_lib_common
+ * \brief Ese Channel mode
+ *
+ */
 typedef enum{
   ESESTATUS_SUCCESS = ( 0x0000),
 
@@ -216,3 +232,4 @@ typedef enum{
   ESESTATUS_TRANSCEIVE_FAILED      = ( 0x0048),
 }ESESTATUS;
 #endif /* PHESESTATUS_H */
+/** @} */

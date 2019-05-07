@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -36,6 +36,7 @@ typedef enum spm_power {
   SPM_RECOVERY_RESET
 } spm_power_t;
 
+/*! SPI Power Manager (SPM) possible states */
 typedef enum spm_state {
   SPM_STATE_INVALID = 0x0000,     /*!< Nfc i2c driver misbehaving */
   SPM_STATE_IDLE = 0x0100,        /*!< ESE is free to use */
@@ -50,32 +51,145 @@ typedef enum spm_state {
 #endif
 } spm_state_t;
 
+/**
+ * \ingroup SPI_Power_Management
+ * \brief This function opens the nfc i2c driver to manage power
+ *                  and synchronization for ese secure element.
+ *
+ * \param[in]    pDevHandle       - Device handle to open.
+ *
+ * \retval       -On Success ESESTATUS_SUCCESS else proper error code
+ */
 ESESTATUS phNxpEse_SPM_Init(void* pDevHandle);
 
+/**
+ * \ingroup SPI_Power_Management
+ * \brief TThis function closes the nfc i2c driver node.
+ *
+ *
+ * \retval       -On Success ESESTATUS_SUCCESS else proper error code
+ */
 ESESTATUS phNxpEse_SPM_DeInit(void);
 
+
+/**
+ * \ingroup SPI_Power_Management
+ * \brief This function request to the nfc i2c driver
+ * to enable/disable power to ese. This api should be called
+ *before sending any apdu to ese/once apdu exchange is done.
+ *
+ * \param[in]    arg       -input can be of  type spm_power_t.
+ *
+ * \retval       -On Success ESESTATUS_SUCCESS else proper error code
+ */
 ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg);
 
+
+/**
+ * \ingroup SPI_Power_Management
+ * \brief This function request to the nfc i2c driver
+ *                  to enable power to ese. This api should be called before
+ *                  sending any apdu to ese.
+ *
+ *
+ * \retval       -On Success ESESTATUS_SUCCESS else proper error code
+ */
 ESESTATUS phNxpEse_SPM_EnablePwr(void);
 
+
+/**
+ * \ingroup SPI_Power_Management
+ * \brief This function request to the nfc i2c driver
+ *                  to disable power to ese. This api should be called
+ *                  once apdu exchange is done.
+ *
+ *
+ * \retval       -On Success ESESTATUS_SUCCESS else proper error code
+ */
 ESESTATUS phNxpEse_SPM_DisablePwr(void);
 
+/**
+ * \ingroup SPI_Power_Management
+ * \brief This function gets the current power state of ESE
+ * \param[in]    current_state       -input is of type spm_state_t.
+ *
+ * \retval       -On Success ESESTATUS_SUCCESS else proper error code
+ */
 ESESTATUS phNxpEse_SPM_GetState(spm_state_t* current_state);
 
+/**
+ * \ingroup SPI_Power_Management
+ * \brief  This function request to the nfc i2c driver
+ *                  to reset ese.
+ *
+ * \retval       -On Success ESESTATUS_SUCCESS else proper error code
+ */
 ESESTATUS phNxpEse_SPM_ResetPwr(void);
 
+
+/**
+ * \ingroup SPI_Power_Management
+ * \brief  This function request to get access to eSE
+ *
+ * \param[in]    timeout - timeout to wait for ese access.
+ *
+ * \retval       -On Success ESESTATUS_SUCCESS else proper error code
+ */
 ESESTATUS phNxpEse_SPM_GetAccess(long timeout);
 
 #if (NXP_ESE_JCOP_DWNLD_PROTECTION == true)
+/**
+ * \ingroup SPI_Power_Management
+ * \brief  This function set the SPM power state
+ *
+ * \param[in]    arg - state value.
+ *
+ * \retval       -On Success ESESTATUS_SUCCESS else proper error code
+ */
 ESESTATUS phNxpEse_SPM_SetState(long arg);
 #endif
 
+/**
+ * \ingroup SPI_Power_Management
+ * \brief  phNxpEse_SPM_RelAccess
+ *
+ *
+ * \retval       -On Success ESESTATUS_SUCCESS else proper error code
+ */
 ESESTATUS phNxpEse_SPM_RelAccess(void);
 
+
+/**
+ * \ingroup SPI_Power_Management
+ * \brief   This function request to the nfc i2c driver
+ *                  to set the chip type and power scheme.
+ *
+ * \param[in]    arg - arg.
+ *
+ * \retval       -On Success ESESTATUS_SUCCESS else proper error code
+ */
 ESESTATUS phNxpEse_SPM_SetPwrScheme(long arg);
 
+
+/**
+ * \ingroup SPI_Power_Management
+ * \brief    This function request to the nfc i2c driver
+ *                  to set the chip type and power scheme.
+ *
+ * \param[in]    arg - arg.
+ *
+ * \retval       -On Success ESESTATUS_SUCCESS else proper error code
+ */
 ESESTATUS phNxpEse_SPM_DisablePwrControl(unsigned long arg);
 #if (NXP_ESE_JCOP_DWNLD_PROTECTION == true)
+/**
+ * \ingroup SPI_Power_Management
+ * \brief   This function is used to set the ese Update state.
+ *
+ * \param[in]    arg - arg.
+ *
+ * \retval       -On Success ESESTATUS_SUCCESS else proper error code
+ */
 ESESTATUS phNxpEse_SPM_SetEseClientUpdateState(long arg);
 #endif
 #endif /*  _PHNXPESE_SPM_H    */

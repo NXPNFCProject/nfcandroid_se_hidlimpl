@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -257,6 +257,12 @@ typedef struct phNxpEseProto7816SecureTimer {
   unsigned int secureTimer3;
 } phNxpEseProto7816SecureTimer_t;
 
+
+/*!
+ * \brief  structure to hold the interface reset parameters
+ * secure timer(only for PN8xT products) and atr info.
+ *
+ */
 typedef struct phNxpEseProto7816_IntfResetParams {
   phNxpEseProto7816SecureTimer_t* pSecureTimerParam;
   phNxpEse_data* pAtrData;
@@ -330,10 +336,6 @@ typedef struct phNxpEseProto7816_PCB_bits {
   uint8_t msb : 1;  /*!< PCB: msb */
 } phNxpEseProto7816_PCB_bits_t;
 
-/*!
- * \brief 7816_3 protocol stack instance
- */
-static phNxpEseProto7816_t phNxpEseProto7816_3_Var;
 
 /*!
  * \brief Max. size of the frame that can be sent
@@ -433,36 +435,35 @@ static phNxpEseProto7816_t phNxpEseProto7816_3_Var;
  * \brief 7816-3 for max retry for CRC error
  */
 #define MAX_RNACK_RETRY_LIMIT 0x02
-/*
- * APIs exposed from the 7816-3 protocol layer
+/*!
+ * \brief APIs exposed from the 7816-3 protocol layer
  */
 #define RESET_TYPE_NONE   0x00
-/*
- * APIs exposed from the 7816-3 protocol layer
+/*!
+ * \brief APIs exposed from the 7816-3 protocol layer
  */
 #define EXTENDED_FRAME_MARKER 0xFF
-/*
- * APIs exposed from the 7816-3 protocol layer
+/*!
+ * \brief APIs exposed from the 7816-3 protocol layer
  */
 #define PH_PROTO_CLOSE_ALL_SESSION_INF 0x01
-/*
- * APIs exposed from the 7816-3 protocol layer
+/*!
+ * \brief APIs exposed from the 7816-3 protocol layer
  */
 #define PH_PROTO_CLOSE_ALL_SESSION_LEN 0x01
-/*
- * APIs exposed from the 7816-3 protocol layer
+/*!
+ * \brief APIs exposed from the 7816-3 protocol layer
  */
 #define PH_PROTO_ATR_RSP_VENDOR_ID_LEN 0x05
-/*
- * APIs exposed from the 7816-3 protocol layer
+/*!
+ * \brief APIs exposed from the 7816-3 protocol layer
  */
 #define PH_SE_OS_VERSION_10            0x10
 /**
  * \ingroup ISO7816-3_protocol_lib
  * \brief This function is used to reset just the current interface
  *
- *
- * \retval On success return true or else false.
+ * \param[in]      secureTimerParams - secure timer instance
  *
  */
 ESESTATUS phNxpEseProto7816_IntfReset(
@@ -472,8 +473,7 @@ ESESTATUS phNxpEseProto7816_IntfReset(
  * \ingroup ISO7816-3_protocol_lib
  * \brief This function is used to close the 7816 protocol stack instance
  *
- *
- * \retval On success return true or else false.
+ * \param[in]      secureTimerParams - secure timer instance
  *
  */
 ESESTATUS phNxpEseProto7816_Close(
@@ -483,8 +483,7 @@ ESESTATUS phNxpEseProto7816_Close(
  * \ingroup ISO7816-3_protocol_lib
  * \brief This function is used to open the 7816 protocol stack instance
  *
- * \param[in]      phNxpEseProto7816InitParam_t: Initialization params
- * \retval On success return true or else false.
+ * \param[in]      initParam: Initialization params
  *
  */
 ESESTATUS phNxpEseProto7816_Open(phNxpEseProto7816InitParam_t initParam);
@@ -499,10 +498,9 @@ ESESTATUS phNxpEseProto7816_Open(phNxpEseProto7816InitParam_t initParam);
  *                     store the data.
  *                  3. Get the final complete data and sent back to application
  *
- * \param[in]       phNxpEse_data: Command to ESE
- * \param[out]     phNxpEse_data: Response from ESE
+ * \param[in]       pCmd: Command to ESE
+ * \param[out]     pRsp: Response from ESE
  *
- * \retval On success return true or else false.
  *
  */
 ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp);
@@ -512,7 +510,6 @@ ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp)
  * \brief This function is used to reset the 7816 protocol stack instance
  *
  *
- * \retval On success return true or else false.
  *
  */
 ESESTATUS phNxpEseProto7816_Reset(void);
@@ -521,8 +518,7 @@ ESESTATUS phNxpEseProto7816_Reset(void);
  * \ingroup ISO7816-3_protocol_lib
  * \brief This function is used to set the max T=1 data send size
  *
- * \param[in]   uint16_t IFSC_Size: Max. size of the I-frame
- * \retval On success return true or else false.
+ * \param[in]   IFS_Size: Max. size of the I-frame
  *
  */
 ESESTATUS phNxpEseProto7816_SetIfs(uint16_t IFS_Size);
@@ -530,8 +526,7 @@ ESESTATUS phNxpEseProto7816_SetIfs(uint16_t IFS_Size);
  * \ingroup ISO7816-3_protocol_lib
  * \brief This function is used to set the endpoint
  *
- * \param[in]   uint8_t uEndPoint: Endpoint
- * \retval On success return TRUE or else FALSE.
+ * \param[in]  uEndPoint:   END_POINT_ESE = 0 (eSE services), END_POINT_EUICC =1(UICC services)
  *
 */
 ESESTATUS phNxpEseProto7816_SetEndPoint(uint8_t uEndPoint);
@@ -539,8 +534,7 @@ ESESTATUS phNxpEseProto7816_SetEndPoint(uint8_t uEndPoint);
  * \ingroup ISO7816-3_protocol_lib
  * \brief This function is used to reset the endpoint
  *
- * \param[in]   uint8_t uEndPoint: Endpoint
- * \retval On success return TRUE or else FALSE.
+ * \param[in]  uEndPoint:   END_POINT_ESE = 0 (eSE services), END_POINT_EUICC =1(UICC services)
  *
 */
 ESESTATUS phNxpEseProto7816_ResetEndPoint(uint8_t uEndPoint);
@@ -548,15 +542,14 @@ ESESTATUS phNxpEseProto7816_ResetEndPoint(uint8_t uEndPoint);
  * \ingroup ISO7816-3_protocol_lib
  * \brief This function is used to get ATR bytes for the application
  *
- * \param[out] phNxpEse_data: Response ATR bytes from ESE
- * \retval On success return TRUE or else FALSE.
+ * \param[out] pATRRsp: Response ATR bytes from ESE
  *
 */
 ESESTATUS phNxpEseProto7816_getAtr(phNxpEse_data* pATRRsp);
 
 /**
  * \ingroup ISO7816-3_protocol_lib
- * \brief This function is used to set the max T=1 data send size
+ * \brief This function is used to get the max T=1 data send size
  *
  * \retval Current IFS adjusted value wrt card.
  *
@@ -568,7 +561,6 @@ uint16_t phNxpEseProto7816_GetIfs(void);
  * \brief This function is used to check eSE is alive/responding
  *
  *
- * \retval On responding return true or else false.
  *
  */
 ESESTATUS phNxpEseProto7816_CloseAllSessions(void);

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,6 +25,11 @@
 #define _PHNXPESE_APDU_H
 #include <phEseStatus.h>
 #include <phEseTypes.h>
+
+/**
+ * \brief 7816-4 APDU command Header Size
+ *
+ */
 
 #define MIN_HEADER_LEN 4
 
@@ -79,8 +84,8 @@ typedef phNxpEse_7816_rpdu_t* pphNxpEse_7816_rpdu_t;
  *from the p61.
  * also it parses all required fields of the response PDU.
  *
- * \param[in]       pphNxpEse_7816_cpdu_t - CMD to p61
- * \param[out]      pphNxpEse_7816_rpdu_t  - RSP from p61(all required memory
+ * \param[in]       pCmd - CMD to p61
+ * \param[out]      pRsp - RSP from p61(all required memory
  *allocated by caller)
  *
  * \retval ESESTATUS_SUCCESS - On Success #pphNxpEse_7816_rpdu_t all fields are

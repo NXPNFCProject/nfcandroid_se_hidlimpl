@@ -25,37 +25,245 @@ using android::base::StringPrintf;
  * \addtogroup ISO7816-3_protocol_lib
  *
  * @{ */
-/******************************************************************************
-\section Introduction Introduction
 
- * This module provide the 7816-3 protocol level implementation for ESE
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief   This function is used to reset the 7816 protocol stack instance
  *
- ******************************************************************************/
+ *
+ */
 static ESESTATUS phNxpEseProto7816_ResetProtoParams(void);
+
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief    This internal function is called send the data to ESE
+ *\param[in]     data_len - data len
+ *\param[in]     p_data  -address to raw data
+ *
+ */
 static ESESTATUS phNxpEseProto7816_SendRawFrame(uint32_t data_len,
                                              uint8_t* p_data);
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief    This internal function is called read the data from the ESE
+ *\param[in]     data_len - data len
+ *\param[in]     pp_data  -address to raw data
+ *
+ */
 static ESESTATUS phNxpEseProto7816_GetRawFrame(uint32_t* data_len,
                                             uint8_t** pp_data);
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief   This internal function is called compute the LRC
+ *\param[in]     p_buff - raw data
+ *\param[in]     offset  -address to raw data
+ *\param[in]     length - length of data.
+ *\retval LRC value.
+ *
+ */
 static uint8_t phNxpEseProto7816_ComputeLRC(unsigned char* p_buff,
                                             uint32_t offset, uint32_t length);
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief     This internal function is called compute and compare the
+ *                  received LRC of the received data
+ *\param[in]    data_len - raw data
+ *\param[in]    p_data  -address to raw data
+ *
+ */
 static ESESTATUS phNxpEseProto7816_CheckLRC(uint32_t data_len, uint8_t* p_data);
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief     This internal function is called to send S-frame with all
+ *                   updated 7816-3 headers
+ *\param[in]    sFrameData -S frame APDU
+ *
+ */
 static ESESTATUS phNxpEseProto7816_SendSFrame(sFrameInfo_t sFrameData);
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief      This internal function is called to send I-frame with all
+ *                   updated 7816-3 headers
+ *\param[in]    iFrameData -I frame APDU
+ *
+ */
 static ESESTATUS phNxpEseProto7816_SendIframe(iFrameInfo_t iFrameData);
+
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief        This internal function is called to send R-frame with all
+ *updated 7816-3 headers
+ *\param[in]    rFrameType -R frame APDU
+ *
+ */
 static ESESTATUS phNxpEseProto7816_sendRframe(rFrameTypes_t rFrameType);
+
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief      This internal function is called to set the context for first
+ *I-frame. Not applicable for the first I-frame of the transceive
+ *
+ */
 static ESESTATUS phNxpEseProto7816_SetFirstIframeContxt(void);
+
+
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief      This internal function is called to set the context for next
+ *I-frame. Not applicable for the first I-frame of the transceive
+ *
+ */
 static ESESTATUS phNxpEseProto7816_SetNextIframeContxt(void);
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief      This internal function is called to push I-frame data to internal structure.
+ *\param[in]    p_data -raw data buffer
+ *\param[in]    data_len -data length
+ *
+ */
 static ESESTATUS phNxpEseProro7816_SaveIframeData(uint8_t* p_data,
                                                uint32_t data_len);
+
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief      This internal function is called to do reset the recovery
+ *pareameters
+ *
+ */
 static ESESTATUS phNxpEseProto7816_ResetRecovery(void);
+
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief       This internal function is called when 7816-3 stack failed to
+ *recover after PH_PROTO_7816_FRAME_RETRY_COUNT, and the interface has
+ *to be recovered
+ *
+ */
 static ESESTATUS phNxpEseProto7816_RecoverySteps(void);
+
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief        This internal function is used to
+ *                  1. Identify the received frame
+ *                  2. If the received frame is I-frame with expected sequence
+ number, store it or else send R-NACK
+                    3. If the received frame is R-frame,
+                       3.1 R-ACK with expected seq. number: Send the next
+ chained I-frame
+                       3.2 R-ACK with different sequence number: Send the R-Nack
+                       3.3 R-NACK: Re-send the last frame
+                    4. If the received frame is S-frame, send back the correct
+ S-frame response.
+ *\param[in]    p_data -address of data.
+ *\param[in]    data_len -length of the frame
+ *
+ */
 static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data, uint32_t data_len);
+
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief      This internal function is used to
+ *                  1. Check the LRC
+ *                  2. Initiate decoding of received frame of data.
+ *
+ */
 static ESESTATUS phNxpEseProto7816_ProcessResponse(void);
+
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief      This internal function is used to
+ *                  1. Send the raw data received from application after
+ *computing LRC
+ *                  2. Receive the the response data from ESE, decode, process
+ *and
+ *                     store the data.
+ *
+ */
 static ESESTATUS TransceiveProcess(void);
-//static ESESTATUS phNxpEseProto7816_RSync(void);
+
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief       This function is used to reset the 7816 protocol stack
+ *
+ */
 static ESESTATUS phNxpEseProto7816_ResetProtoParams(void);
+
+
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief       This function is used to send the spi hard reset command
+ *
+ */
 static ESESTATUS phNxpEseProto7816_HardReset(void);
 
-phNxpEseProto7816_t phNxpEseProto7816_ptr[MAX_END_POINTS];
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief      This internal function is to decode the secure timer.
+ *                  value from the payload
+ *\param[in]     frameOffset -To get the L of TLV
+ *\param[in]     secureTimer -V of TLV: Retrieve each byte(4 byte) and push it to get the secure timer
+ * value (unsigned long)
+ * \param[in]    p_data -pointer to data.
+ *
+ */
+static void phNxpEseProto7816_DecodeSecureTimer(uint8_t* frameOffset,
+                                                unsigned int* secureTimer,
+                                                uint8_t* p_data);
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief       This internal function is to decode S-frame payload.
+ *\param[in]    p_data -Raw Data IFS.
+ *
+ */
+static void phNxpEseProto7816_DecodeSFrameIFSData(uint8_t* p_data);
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief       This internal function is to decode S-frame (ATR) payload.
+ *\param[in]    p_data -ATR TLV.
+ *
+ */
+static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data);
+
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief       This internal function is to decode S-frame (secure timer TLV) payload.
+ *\param[in]    p_data -raw data - secure timer  TLV.
+ *
+ */
+static void phNxpEseProto7816_DecodeSFrameSecureTimerData(uint8_t* p_data);
+
+/*!
+ * \brief 7816_3 protocol stack parameter variable instance
+ */
+static phNxpEseProto7816_t phNxpEseProto7816_3_Var;
+
+/*!
+ * \brief 7816_3 protocol stack instance - pointer variable
+ */
+static phNxpEseProto7816_t phNxpEseProto7816_ptr[MAX_END_POINTS];
+
+
 
 /******************************************************************************
  * Function         phNxpEseProto7816_SendRawFrame

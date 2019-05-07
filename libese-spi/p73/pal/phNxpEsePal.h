@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -100,7 +100,7 @@ void phPalEse_close(void* pDevHandle);
  * \ingroup eSe_PAL
  * \brief Open and configure ESE device
  *
- * \param[in]       pphPalEse_Config_t: Config to open the device
+ * \param[in]       pConfig: Config to open the device
  *
  * \retval  ESESTATUS On Success ESESTATUS_SUCCESS else proper error code
  *
@@ -142,7 +142,6 @@ int phPalEse_write(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToWrite);
  * \param[in]    eControlCode       - phPalEse_ControlCode_t for the respective
  *configs
  * \param[in]    pDevHandle         - valid device handle
- * \param[in]    pBuffer            - buffer for read data
  * \param[in]    level              - reset level
  *
  * \retval    0   - ioctl operation success
@@ -221,8 +220,8 @@ void* phPalEse_memalloc(uint32_t size);
  * \ingroup eSe_PAL
  * \brief This is utility function for runtime heap memory allocation
  *
- * \param[in]    len                 - number of bytes to be allocated
- *
+ * \param[in]    dataType                 - type of data
+ * \param[in]    size                         - number of bytes to be allocated
  * \retval   void
  *
  */

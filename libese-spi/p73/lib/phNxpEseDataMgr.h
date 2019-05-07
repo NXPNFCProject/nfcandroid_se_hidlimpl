@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,17 +19,27 @@
 #define _PHNXPESE_RECVMGR_H_
 #include <phNxpEse_Internal.h>
 
+/*!
+ * \brief  eSE Data buffer structure
+ *
+ *
+ */
 typedef struct phNxpEse_DataPacket {
-  uint8_t sbuffer[MAX_DATA_LEN]; /* buffer to be used to store the received
-                                    packet */
-  uint16_t wLen;                 /* hold the length of the buffer */
+  uint8_t sbuffer[MAX_DATA_LEN]; /*!<buffer to be used to store the received packet */
+  uint16_t wLen;                 /*!<hold the length of the buffer */
 } phNxpEse_DataPacket_t;
 
+
+/*!
+ * \brief eSE data receive buffer linkedlist
+ *
+ *
+ */
 typedef struct phNxpEse_sCoreRecvBuff_List {
   phNxpEse_DataPacket_t
-      tData; /* buffer to be used to store the received payload */
+      tData; /*!<buffer to be used to store the received payload */
   struct phNxpEse_sCoreRecvBuff_List*
-      pNext; /* pointer to the next node present in lined list*/
+      pNext; /*!<pointer to the next node present in lined list*/
 } phNxpEse_sCoreRecvBuff_List_t;
 
 ESESTATUS phNxpEse_GetData(uint32_t* data_len, uint8_t** pbuff);

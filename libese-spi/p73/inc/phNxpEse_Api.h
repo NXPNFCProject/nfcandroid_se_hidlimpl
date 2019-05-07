@@ -53,8 +53,8 @@ typedef enum {
  *
  */
 typedef enum {
-  ESE_PROTOCOL_MEDIA_SPI  = 0x08, /*!< Secure SPI i.e. Trusted SE */
-  ESE_PROTOCOL_MEDIA_SPI_APDU_GATE =0xD0   /*!< REE */
+  ESE_PROTOCOL_MEDIA_SPI  = 0x08, /*!< Media Type - SPI legacy  */
+  ESE_PROTOCOL_MEDIA_SPI_APDU_GATE =0xD0   /*!Media Type - APDU Gate */
 } phNxpEse_mediaType;
 /**
  * \ingroup spi_libese
@@ -86,53 +86,59 @@ typedef struct phNxpEse_initParams {
 */
 extern bool ese_debug_enabled;
 
-/******************************************************************************
+/**
  * \ingroup spi_libese
  *
  * \brief  This function is called by Jni/phNxpEse_open during the
- *         initialization of the ESE. It initializes protocol stack instance
- *variables
+ *         initialization of the ESE. It initializes protocol stack instance variables.
+ *
+ * \param[in]    initParams - init parameters to be set while calling phNxpEse_init
  *
  * \retval This function return ESESTATUS_SUCCES (0) in case of success
  *         In case of failure returns other failure value.
  *
- ******************************************************************************/
+ */
 ESESTATUS phNxpEse_init(phNxpEse_initParams initParams);
 
-/******************************************************************************
+/**
  * \ingroup spi_libese
  *
  * \brief  This function is used to communicate from nfc-hal to ese-hal
  *
+ * \param[in]     ioctlType - ioctl cmd
+ *\param[out]    p_data - value read out
+ *
  * \retval This function return ESESTATUS_SUCCES (0) in case of success
  *         In case of failure returns other failure value.
  *
- ******************************************************************************/
+*/
 ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data);
-/******************************************************************************
+/**
  * \ingroup spi_libese
  *
  * \brief  This function is called by hal interface api before any
- *         communication. It sets the end point
- *variables
+ *         communication. It sets the end point variables
+ *
+ *  \param[in]     uEndPoint - select the end point type (  END_POINT_ESE = 0, END_POINT_eUICC =1 ).
  *
  * \retval This function return ESESTATUS_SUCCES (0) in case of success
  *         In case of failure returns other failure value.
  *
- ******************************************************************************/
+ */
 ESESTATUS phNxpEse_SetEndPoint_Cntxt(uint8_t uEndPoint);
 
-/******************************************************************************
+/**
  * \ingroup spi_libese
  *
  * \brief  This function is called by hal interface api before any
- *         communication. It resets the end point
- *variables
+ *         communication. It resets the end point variables
+ *
+ * \param[in]     uEndPoint - select the end point type (  END_POINT_ESE = 0, END_POINT_eUICC =1 ).
  *
  * \retval This function return ESESTATUS_SUCCES (0) in case of success
  *         In case of failure returns other failure value.
  *
- ******************************************************************************/
+ */
 ESESTATUS phNxpEse_ResetEndPoint_Cntxt(uint8_t uEndPoint);
 
 /**
@@ -141,6 +147,7 @@ ESESTATUS phNxpEse_ResetEndPoint_Cntxt(uint8_t uEndPoint);
  *        initialization of the ESE. It opens the physical connection
  *        with ESE () and initializes the protocol stack
  *
+ * \param[in]     initParams - Initialize with init mode ( normal/osu) and media type(SPI- legacy/ APDU type).
  *
  * \retval ESESTATUS_SUCCESS On Success ESESTATUS_SUCCESS else proper error code
  *
@@ -154,6 +161,8 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams);
  *        with ESE () and creates required client thread for
  *        operation.  This will get priority access to ESE for timeout period.
  *
+ * \param[in]     initParams - Initialize with init mode ( normal/osu) and media type(SPI- legacy/ APDU type).
+ *
  * \retval ESESTATUS_SUCCESS On Success ESESTATUS_SUCCESS else proper error code
  *
  */
@@ -165,8 +174,8 @@ ESESTATUS phNxpEse_openPrioSession(phNxpEse_initParams initParams);
  *response from ESE,
  *         decode it and returns data.
  *
- * \param[in]       phNxpEse_data: Command to ESE
- * \param[out]     phNxpEse_data: Response from ESE (Returned data to be freed
+ * \param[in]       pCmd: Command to ESE
+ * \param[out]     pRsp: Response from ESE (Returned data to be freed
  *after copying)
  *
  * \retval ESESTATUS_SUCCESS On Success ESESTATUS_SUCCESS else proper error code
@@ -175,7 +184,7 @@ ESESTATUS phNxpEse_openPrioSession(phNxpEse_initParams initParams);
 
 ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp);
 
-/******************************************************************************
+/**
  * \ingroup spi_libese
  *
  * \brief  This function is called by Jni/phNxpEse_close during the
@@ -185,14 +194,13 @@ ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp);
  * \retval This function return ESESTATUS_SUCCES (0) in case of success
  *         In case of failure returns other failure value.
  *
- ******************************************************************************/
+ */
 ESESTATUS phNxpEse_deInit(void);
 
 /**
  * \ingroup spi_libese
  * \brief This function close the ESE interface and free all resources.
  *
- * \param[in]       void
  *
  * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
  *
@@ -204,7 +212,6 @@ ESESTATUS phNxpEse_close(ESESTATUS deInitStatus);
  * \ingroup spi_libese
  * \brief This function reset the ESE interface and free all
  *
- * \param[in]       void
  *
  * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
  *
@@ -215,7 +222,6 @@ ESESTATUS phNxpEse_reset(void);
  * \ingroup spi_libese
  * \brief This function reset the ESE
  *
- * \param[in]       void
  *
  * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
  *
@@ -226,7 +232,6 @@ ESESTATUS phNxpEse_resetJcopUpdate(void);
  * \ingroup spi_libese
  * \brief This function reset the P73 through ISO RST pin
  *
- * \param[in]       void
  *
  * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
  *
@@ -237,7 +242,7 @@ ESESTATUS phNxpEse_chipReset(void);
  * \ingroup spi_libese
  * \brief This function is used to set IFSC size
  *
- * \param[in]       uint16_t IFSC_Size
+ * \param[in]       IFS_Size
  *
  * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
  *
@@ -247,9 +252,9 @@ ESESTATUS phNxpEse_setIfs(uint16_t IFS_Size);
 
 /**
  * \ingroup spi_libese
- * \brief This function is used to set IFSC size
+ * \brief This function is used to get the ATR data from ESE
  *
- * \param[in]       uint16_t IFSC_Size
+ * \param[out]      pATR
  *
  * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
  *
@@ -260,7 +265,6 @@ ESESTATUS phNxpEse_getAtr(phNxpEse_data* pATR);
  * \ingroup spi_libese
  * \brief This function sends the S-frame to indicate END_OF_APDU
  *
- * \param[in]       void
  *
  * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
  *
@@ -272,7 +276,7 @@ ESESTATUS phNxpEse_EndOfApdu(void);
  * \brief This function  suspends execution of the calling thread for
  *           (at least) usec microseconds
  *
- * \param[in]       void
+ * \param[in]       usec
  *
  * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
  *
@@ -311,7 +315,7 @@ void* phNxpEse_memcpy(void* dest, const void* src, size_t len);
  * \ingroup spi_libese
  * \brief This function  suspends allocate memory
  *
- * \param[in]       uint32_t size
+ * \param[in]       size
  *
  * \retval allocated memory.
  *
@@ -322,7 +326,8 @@ void* phNxpEse_memalloc(uint32_t size);
  * \ingroup spi_libese
  * \brief This is utility function for runtime heap memory allocation
  *
- * \param[in]    len                 - number of bytes to be allocated
+ *\param[in]     dataType          - data type
+ * \param[in]    size                 - number of bytes to be allocated
  *
  * \retval   void
  *
@@ -341,21 +346,20 @@ void* phNxpEse_calloc(size_t dataType, size_t size);
 void phNxpEse_free(void* ptr);
 
 /**
-+ * \ingroup spi_libese
-+ * \brief This function perfroms disbale/enable power control
-+ *
-+ * \param[in]       void
-+ *
-+ * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
-+ *
-+*/
+* \ingroup spi_libese
+* \brief This function perfroms disbale/enable power control
+*
+*
+* \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
+*
+*/
 ESESTATUS phNxpEse_DisablePwrCntrl(void);
 
 /**
  * \ingroup spi_libese
  * \brief This function is used to get the ESE timer status
  *
- * \param[in]       phNxpEse_data timer_buffer
+ * \param[out]       timer_buffer
  *
  * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
  *
@@ -371,7 +375,6 @@ ESESTATUS phNxpEse_GetEseStatus(phNxpEse_data* timer_buffer);
  *        After cold reset, phNxpEse_init need to be called to
  *        reset the host AP T=1 stack parameters
  *
- * \param[in]       void
  *
  * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
  *
