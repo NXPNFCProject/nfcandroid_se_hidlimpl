@@ -320,10 +320,8 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   rpdu.len = 0x02;
   rpdu.pdata = (uint8_t*)phNxpEse_memalloc(cpdu.le * sizeof(uint8_t));
 
-  
   status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
-  
-  
+
   if (status != ESESTATUS_SUCCESS) {
     /*Transceive failed*/
     if (rpdu.len > 0 && (rpdu.sw1 == 0x64 && rpdu.sw2 == 0xFF)) {
