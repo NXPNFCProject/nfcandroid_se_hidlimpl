@@ -513,6 +513,7 @@ SESTATUS eSEUpdate_SeqHandler()
           if(se_intf.sJcopUpdateIntferface == ESE_INTF_SPI) {
             handleJcopOsDownload();
             sendeSEUpdateState(ESE_JCOP_UPDATE_COMPLETED);
+            setJcopUpdateRequired(false);
           }
           else if(se_intf.sJcopUpdateIntferface == ESE_INTF_NFC) {
             return SESTATUS_SUCCESS;
@@ -525,6 +526,7 @@ SESTATUS eSEUpdate_SeqHandler()
           if(se_intf.sLsUpdateIntferface == ESE_INTF_SPI) {
             performLSUpdate();
             sendeSEUpdateState(ESE_LS_UPDATE_COMPLETED);
+            setLsUpdateRequired(false);
           }
           else if(se_intf.sLsUpdateIntferface == ESE_INTF_NFC)
           {
