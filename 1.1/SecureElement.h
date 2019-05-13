@@ -25,6 +25,7 @@
 #include <string>
 
 #include "phNxpEse_Api.h"
+#include <SyncEvent.h>
 
 namespace android {
 namespace hardware {
@@ -74,12 +75,14 @@ struct SecureElement : public V1_1::ISecureElement,
 
 private:
   uint8_t mOpenedchannelCount;
+  Mutex seHalLock;
   bool mOpenedChannels[MAX_LOGICAL_CHANNELS];
   static sp<V1_0::ISecureElementHalCallback> mCallbackV1_0;
   static sp<V1_1::ISecureElementHalCallback> mCallbackV1_1;
   Return<SecureElementStatus> seHalDeInit();
   ESESTATUS seHalInit();
   bool isSeInitialized();
+  Return<SecureElementStatus> internalCloseChannel(uint8_t channelNumber);
 };
 
 }  // namespace implementation

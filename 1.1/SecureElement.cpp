@@ -180,6 +180,7 @@ Return<bool> SecureElement::isCardPresent() { return true; }
 
 Return<void> SecureElement::transmit(const hidl_vec<uint8_t>& data,
                                      transmit_cb _hidl_cb) {
+  AutoMutex guard(seHalLock);
   ESESTATUS status = ESESTATUS_FAILED;
   phNxpEse_data cmdApdu;
   phNxpEse_data rspApdu;
@@ -214,6 +215,7 @@ Return<void> SecureElement::transmit(const hidl_vec<uint8_t>& data,
 Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
                                                uint8_t p2,
                                                openLogicalChannel_cb _hidl_cb) {
+  AutoMutex guard(seHalLock);
   hidl_vec<uint8_t> manageChannelCommand = {0x00, 0x70, 0x00, 0x00, 0x01};
 
   LogicalChannelResponse resApduBuff;
@@ -329,9 +331,9 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
 
   if (sestatus != SecureElementStatus::SUCCESS) {
     SecureElementStatus closeChannelStatus =
-        closeChannel(resApduBuff.channelNumber);
+        internalCloseChannel(resApduBuff.channelNumber);
     if (closeChannelStatus != SecureElementStatus::SUCCESS) {
-      ALOGE("%s: closeChannel Failed", __func__);
+      ALOGE("%s: internalCloseChannel Failed", __func__);
     } else {
       resApduBuff.channelNumber = 0xff;
     }
@@ -346,6 +348,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
 Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
                                              uint8_t p2,
                                              openBasicChannel_cb _hidl_cb) {
+  AutoMutex guard(seHalLock);
   hidl_vec<uint8_t> result;
 
   if (!isSeInitialized()) {
@@ -410,9 +413,9 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
 
   if ((sestatus != SecureElementStatus::SUCCESS) && mOpenedChannels[0]) {
     SecureElementStatus closeChannelStatus =
-        closeChannel(DEFAULT_BASIC_CHANNEL);
+        internalCloseChannel(DEFAULT_BASIC_CHANNEL);
     if (closeChannelStatus != SecureElementStatus::SUCCESS) {
-      ALOGE("%s: closeChannel Failed", __func__);
+      ALOGE("%s: internalCloseChannel Failed", __func__);
     }
   }
   _hidl_cb(result, sestatus);
@@ -422,6 +425,11 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
 }
 
 Return<SecureElementStatus> SecureElement::closeChannel(uint8_t channelNumber) {
+  AutoMutex guard(seHalLock);
+   return internalCloseChannel(channelNumber);
+}
+
+Return<SecureElementStatus> SecureElement::internalCloseChannel(uint8_t channelNumber) {
   ESESTATUS status = ESESTATUS_FAILED;
   SecureElementStatus sestatus = SecureElementStatus::FAILED;
 

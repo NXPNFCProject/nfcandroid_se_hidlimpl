@@ -50,7 +50,6 @@ static unsigned char* phNxpEse_GgetTimerTlvBuffer(unsigned char* timer_buffer,
 phNxpEse_Context_t nxpese_ctxt;
 bool ese_debug_enabled = true;
 SyncEvent gSpiOpenLock;
-Mutex gTransmitLock;
 extern uint8_t gMfcAppSessionCount;
 
 /******************************************************************************
@@ -532,7 +531,6 @@ clean_and_return_2:
  *
  ******************************************************************************/
 ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp) {
-  AutoMutex guard(gTransmitLock);
   ESESTATUS status = ESESTATUS_FAILED;
 
   if ((NULL == pCmd) || (NULL == pRsp)) return ESESTATUS_INVALID_PARAMETER;
