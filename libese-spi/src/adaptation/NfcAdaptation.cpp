@@ -125,7 +125,7 @@ NfcAdaptation& NfcAdaptation::GetInstance() {
 ** Returns:     none
 **
 *******************************************************************************/
-NfcAdaptation::NfcAdaptation() {}
+NfcAdaptation::NfcAdaptation() { mCurrentIoctlData = NULL; }
 
 /*******************************************************************************
 **
