@@ -488,7 +488,6 @@ VirtualISO::internalCloseChannel(uint8_t channelNumber)
   if ((int8_t)channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d",channelNumber);
-    sestatus = SecureElementStatus::FAILED;
   } else if (channelNumber > DEFAULT_BASIC_CHANNEL){
     phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
     phNxpEse_memset(&rpdu, 0x00, sizeof(phNxpEse_7816_rpdu_t));
@@ -504,17 +503,9 @@ VirtualISO::internalCloseChannel(uint8_t channelNumber)
     }
     status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
 
-    if (status != ESESTATUS_SUCCESS) {
-      if (rpdu.len > 0 && (rpdu.sw1 == 0x64 && rpdu.sw2 == 0xFF)) {
-        sestatus = SecureElementStatus::FAILED;
-      } else {
-        sestatus = SecureElementStatus::FAILED;
-      }
-    } else {
+    if (status == ESESTATUS_SUCCESS) {
       if ((rpdu.sw1 == 0x90) && (rpdu.sw2 == 0x00)) {
         sestatus = SecureElementStatus::SUCCESS;
-      } else {
-        sestatus = SecureElementStatus::FAILED;
       }
     }
     status = phNxpEse_ResetEndPoint_Cntxt(1);
@@ -546,7 +537,6 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
   if ((int8_t)channelNumber < DEFAULT_BASIC_CHANNEL ||
       channelNumber >= MAX_LOGICAL_CHANNELS) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d",channelNumber);
-    sestatus = SecureElementStatus::FAILED;
   } else if (channelNumber > DEFAULT_BASIC_CHANNEL){
     phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
     phNxpEse_memset(&rpdu, 0x00, sizeof(phNxpEse_7816_rpdu_t));
@@ -562,17 +552,9 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
     }
     status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
 
-    if (status != ESESTATUS_SUCCESS) {
-      if (rpdu.len > 0 && (rpdu.sw1 == 0x64 && rpdu.sw2 == 0xFF)) {
-        sestatus = SecureElementStatus::FAILED;
-      } else {
-        sestatus = SecureElementStatus::FAILED;
-      }
-    } else {
+    if (status == ESESTATUS_SUCCESS) {
       if ((rpdu.sw1 == 0x90) && (rpdu.sw2 == 0x00)) {
         sestatus = SecureElementStatus::SUCCESS;
-      } else {
-        sestatus = SecureElementStatus::FAILED;
       }
     }
     status = phNxpEse_ResetEndPoint_Cntxt(1);

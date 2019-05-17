@@ -90,6 +90,12 @@ void phPalEse_spi_close(void* pDevHandle) {
   return;
 }
 ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
+  if (!p_data) {
+    DLOG_IF(INFO, ese_debug_enabled) << StringPrintf(
+        "halimpl phNxpEse_spiIoctl p_data is null ioctltyp: %ld",
+        (long)ioctlType);
+    return ESESTATUS_FAILED;
+  }
   nfc_nci_IoctlInOutData_t* inpOutData = (nfc_nci_IoctlInOutData_t*)p_data;
   switch(ioctlType) {
     case HAL_ESE_IOCTL_RF_STATUS_UPDATE:
@@ -102,10 +108,6 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
     else{
       DLOG_IF(INFO, ese_debug_enabled)
         << StringPrintf("******************RF IS OFF*************************************");
-    }
-    if (p_data != NULL){
-      DLOG_IF(INFO, ese_debug_enabled)
-        << StringPrintf("halimpl phNxpEse_spiIoctl p_data is not null ioctltyp: %ld",(long)ioctlType);
     }
     break;
     case HAL_ESE_IOCTL_NFC_JCOP_DWNLD:
