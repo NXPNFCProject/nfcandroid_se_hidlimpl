@@ -549,8 +549,11 @@ void SecureElement::onStateChange(bool result, std::string reason) {
 }
 
 void SecureElement::reInitSeService(const sp<ISecureElement> &seContxt) {
-  if (mCallbackV1_0 != nullptr)
+  if (mCallbackV1_1 != nullptr) {
+    seContxt->init_1_1(mCallbackV1_1);
+  } else if (mCallbackV1_0 != nullptr) {
     seContxt->init(mCallbackV1_0);
+  }
 }
 
 }  // namespace implementation
