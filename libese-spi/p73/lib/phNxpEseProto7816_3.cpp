@@ -1654,9 +1654,17 @@ ESESTATUS phNxpEseProto7816_Close(
       PH_PROTO_7816_VALUE_ZERO;
   phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState = SEND_S_EOS;
   status = TransceiveProcess();
-  if (ESESTATUS_FAILED == status) {
+  if (ESESTATUS_SUCCESS != status) {
     /* reset all the structures */
     LOG(ERROR) << StringPrintf("%s TransceiveProcess failed ", __FUNCTION__);
+    if(status == ESESTATUS_TRANSCEIVE_FAILED &&
+      phNxpEseProto7816_3_Var.atrInfo.len > PH_PROTO_7816_VALUE_ZERO) {
+      if(phNxpEseProto7816_3_Var.atrInfo.vendorID
+        [PH_PROTO_ATR_RSP_VENDOR_ID_LEN-1] != PH_SE_OS_VERSION_10) {
+        LOG(ERROR) << StringPrintf("%s shall trigger recovery", __FUNCTION__);
+        status = ESESTATUS_RESPONSE_TIMEOUT;
+      }
+    }
   }
   phNxpEse_memcpy(pSecureTimerParams,
                   &phNxpEseProto7816_3_Var.secureTimerParams,

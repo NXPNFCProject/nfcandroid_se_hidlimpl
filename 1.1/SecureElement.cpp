@@ -86,16 +86,18 @@ Return<void> SecureElement::init(
 
   status = phNxpEse_open(initParams);
   if (status == ESESTATUS_SUCCESS || ESESTATUS_BUSY == status){
+    ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
     if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0) &&
       ESESTATUS_SUCCESS == phNxpEse_init(initParams)){
       if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)){
         LOG(INFO) << "ESE SPI init complete!!!";
         mIsInitDone = true;
       }
-      if (ESESTATUS_SUCCESS != phNxpEse_deInit())
+      deInitStatus = phNxpEse_deInit();
+      if (ESESTATUS_SUCCESS != deInitStatus)
         mIsInitDone = false;
     }
-    status = phNxpEse_close();
+    status = phNxpEse_close(deInitStatus);
   }
   if (status == ESESTATUS_SUCCESS && mIsInitDone)
   {
@@ -143,16 +145,18 @@ Return<void> SecureElement::init_1_1(
 
  status = phNxpEse_open(initParams);
   if (status == ESESTATUS_SUCCESS || ESESTATUS_BUSY == status){
+    ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
     if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0) &&
       ESESTATUS_SUCCESS == phNxpEse_init(initParams)){
       if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)){
         LOG(INFO) << "ESE SPI init complete!!!";
         mIsInitDone = true;
       }
-      if (ESESTATUS_SUCCESS != phNxpEse_deInit())
+      deInitStatus = phNxpEse_deInit();
+      if (ESESTATUS_SUCCESS != deInitStatus)
         mIsInitDone = false;
     }
-    status = phNxpEse_close();
+    status = phNxpEse_close(deInitStatus);
   }
   if (status == ESESTATUS_SUCCESS)
   {
@@ -571,10 +575,10 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
     if (status != ESESTATUS_SUCCESS) {
       LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     }
-    if(mOpenedChannels[channelNumber]) {
-      mOpenedChannels[channelNumber] = false;
-      mOpenedchannelCount--;
-    }
+  }
+  if(mOpenedChannels[channelNumber]) {
+    mOpenedChannels[channelNumber] = false;
+    mOpenedchannelCount--;
   }
   /*If there are no channels remaining close secureElement*/
   if (mOpenedchannelCount == 0) {
@@ -594,13 +598,15 @@ SecureElement::closeChannel(uint8_t channelNumber) {
 
 void SecureElement::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
     LOG(ERROR) << " SecureElement serviceDied!!!";
+    ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
     mIsEseInitialized = false;
-    phNxpEse_deInit();
-    phNxpEse_close();
+    deInitStatus = phNxpEse_deInit();
+    phNxpEse_close(deInitStatus);
   }
 ESESTATUS SecureElement::seHalInit() {
   ESESTATUS status = ESESTATUS_SUCCESS;
   phNxpEse_initParams initParams;
+  ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
   memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
   initParams.initMode = ESE_MODE_NORMAL;
   initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
@@ -614,9 +620,9 @@ ESESTATUS SecureElement::seHalInit() {
         LOG(INFO) << "ESE SPI init complete!!!";
         return ESESTATUS_SUCCESS;
       }
-      phNxpEse_deInit();
+      deInitStatus = phNxpEse_deInit();
     }
-    phNxpEse_close();
+    phNxpEse_close(deInitStatus);
     mIsEseInitialized = false;
   }
   return status;
@@ -625,6 +631,7 @@ ESESTATUS SecureElement::seHalInit() {
 Return<SecureElementStatus>
 SecureElement::seHalDeInit() {
   ESESTATUS status = ESESTATUS_SUCCESS;
+  ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
   bool mIsDeInitDone=true;
   SecureElementStatus sestatus = SecureElementStatus::FAILED;
   status = phNxpEse_SetEndPoint_Cntxt(0);
@@ -632,14 +639,15 @@ SecureElement::seHalDeInit() {
     LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     mIsDeInitDone = false;
   }
-  if(ESESTATUS_SUCCESS != phNxpEse_deInit())
+  deInitStatus = phNxpEse_deInit();
+  if(ESESTATUS_SUCCESS != deInitStatus)
     mIsDeInitDone = false;
   status = phNxpEse_ResetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
     LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     mIsDeInitDone = false;
   }
-  status = phNxpEse_close();
+  status = phNxpEse_close(deInitStatus);
   if (status == ESESTATUS_SUCCESS && mIsDeInitDone) {
     sestatus = SecureElementStatus::SUCCESS;;
   }else {
