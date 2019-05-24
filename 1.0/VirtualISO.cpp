@@ -55,6 +55,7 @@ Return<void> VirtualISO::init(
         ::android::hardware::secure_element::V1_0::ISecureElementHalCallback>&
         clientCallback) {
   ESESTATUS status = ESESTATUS_SUCCESS;
+  ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
   bool mIsInitDone = false;
   phNxpEse_initParams initParams;
   LOG(INFO) << "Virtual ISO::init Enter";
@@ -89,10 +90,11 @@ Return<void> VirtualISO::init(
         LOG(INFO) << "VISO init complete!!!";
         mIsInitDone = true;
       }
-      if (ESESTATUS_SUCCESS != phNxpEse_deInit())
+      deInitStatus = phNxpEse_deInit();
+      if (ESESTATUS_SUCCESS != deInitStatus)
         mIsInitDone = false;
     }
-    status = phNxpEse_close();
+    status = phNxpEse_close(deInitStatus);
   }
   if (status == ESESTATUS_SUCCESS && mIsInitDone)
   {
@@ -535,6 +537,7 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
 }
 ESESTATUS VirtualISO::seHalInit() {
   ESESTATUS status = ESESTATUS_SUCCESS;
+  ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
   phNxpEse_initParams initParams;
   memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
   initParams.initMode = ESE_MODE_NORMAL;
@@ -549,9 +552,9 @@ ESESTATUS VirtualISO::seHalInit() {
         LOG(INFO) << "VISO init complete!!!";
         return ESESTATUS_SUCCESS;
       }
-      phNxpEse_deInit();
+      deInitStatus = phNxpEse_deInit();
     }
-    phNxpEse_close();
+    phNxpEse_close(deInitStatus);
     mIsEseInitialized = false;
   }
   return status;
@@ -560,6 +563,7 @@ ESESTATUS VirtualISO::seHalInit() {
 Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
 VirtualISO::seHalDeInit() {
   ESESTATUS status = ESESTATUS_SUCCESS;
+  ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
   bool mIsDeInitDone=true;
   SecureElementStatus sestatus = SecureElementStatus::FAILED;
   status = phNxpEse_SetEndPoint_Cntxt(1);
@@ -567,14 +571,15 @@ VirtualISO::seHalDeInit() {
     LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     mIsDeInitDone = false;
   }
-  if(ESESTATUS_SUCCESS != phNxpEse_deInit())
+  deInitStatus = phNxpEse_deInit();
+  if(ESESTATUS_SUCCESS != deInitStatus)
     mIsDeInitDone = false;
   status = phNxpEse_ResetEndPoint_Cntxt(1);
   if (status != ESESTATUS_SUCCESS) {
     LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     mIsDeInitDone = false;
   }
-  status = phNxpEse_close();
+  status = phNxpEse_close(deInitStatus);
   if (status == ESESTATUS_SUCCESS && mIsDeInitDone) {
     sestatus = SecureElementStatus::SUCCESS;;
   }else {

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright (C) 2018 NXP Semiconductors
+ *  Copyright (C) 2018-2019 NXP Semiconductors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -42,6 +42,7 @@ static android::sp<ISecureElementHalCallback> virtualISOCallback;
   }
   void NxpEse::initSEService() {
     ESESTATUS status = ESESTATUS_SUCCESS;
+    ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
     phNxpEse_initParams initParams;
     memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
     initParams.initMode = ESE_MODE_NORMAL;
@@ -70,9 +71,9 @@ static android::sp<ISecureElementHalCallback> virtualISOCallback;
 
     LOG(INFO) << "ESE SPI init complete !!!";
 exit2:
-    phNxpEse_deInit();
+    deInitStatus = phNxpEse_deInit();
 exit1:
-    status = phNxpEse_close();
+    status = phNxpEse_close(deInitStatus);
     exit:
     if (status == ESESTATUS_SUCCESS)
     {
@@ -88,6 +89,7 @@ exit1:
   void NxpEse::initVIrtualISOService() {
     ESESTATUS status = ESESTATUS_SUCCESS;
     phNxpEse_initParams initParams;
+    ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
     memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
     initParams.initMode = ESE_MODE_NORMAL;
     initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
@@ -110,9 +112,9 @@ exit1:
 
     LOG(INFO) << "ESE SPI init complete !!!";
 exit2:
-    phNxpEse_deInit();
+    deInitStatus = phNxpEse_deInit();
 exit1:
-    status = phNxpEse_close();
+    status = phNxpEse_close(deInitStatus);
 
     if (status == ESESTATUS_SUCCESS)
     {
