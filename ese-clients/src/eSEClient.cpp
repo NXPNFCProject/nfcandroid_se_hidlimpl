@@ -177,6 +177,7 @@ SESTATUS ESE_ChannelInit(IChannel *ch)
     ch->open = SE_Open;
     ch->close = SE_Close;
     ch->transceive = SE_Transmit;
+    ch->transceiveRaw = SE_Transmit;
     ch->doeSE_Reset = SE_Reset;
     ch->doeSE_JcopDownLoadReset = SE_JcopDownLoadReset;
     ch->getInterfaceInfo = SE_getInterfaceInfo;
