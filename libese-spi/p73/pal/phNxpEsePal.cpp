@@ -22,8 +22,8 @@
  * Project: Trusted ESE Linux
  *
  */
-#include <android-base/stringprintf.h>
-#include <base/logging.h>
+#define LOG_TAG "NxpEseHal"
+#include <log/log.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -36,7 +36,6 @@
 #include <phNxpEsePal_spi.h>
 #include <string.h>
 
-using android::base::StringPrintf;
 
 /*!
  * \brief Normal mode header length
@@ -170,12 +169,12 @@ int phPalEse_write(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToWrite) {
 ESESTATUS phPalEse_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
                    long level) {
   ESESTATUS ret = ESESTATUS_FAILED;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("phPalEse_spi_ioctl(), ioctl %x , level %lx", eControlCode,
-               level);
-
-  if (NULL == pDevHandle) {
-    //return ESESTATUS_IOCTL_FAILED;
+  ALOGD_IF(ese_debug_enabled, "phPalEse_spi_ioctl(), ioctl %x , level %lx",
+           eControlCode, level);
+  if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
+    if (NULL == pDevHandle) {
+      return ESESTATUS_IOCTL_FAILED;
+    }
   }
 #ifdef SPI_ENABLED
   ret = phPalEse_spi_ioctl(eControlCode, pDevHandle, level);
@@ -204,11 +203,11 @@ void phPalEse_print_packet(const char* pString, const uint8_t* p_data,
     snprintf(&print_buffer[i * 2], 3, "%02X", p_data[i]);
   }
   if (0 == memcmp(pString, "SEND", 0x04)) {
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("NxpEseDataX len = %3d > %s", len, print_buffer);
+    ALOGD_IF(ese_debug_enabled, "NxpEseDataX len = %3d > %s", len,
+             print_buffer);
   } else if (0 == memcmp(pString, "RECV", 0x04)) {
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("NxpEseDataR len = %3d > %s", len, print_buffer);
+    ALOGD_IF(ese_debug_enabled, "NxpEseDataR len = %3d > %s", len,
+             print_buffer);
   }
 
   return;
@@ -292,4 +291,10 @@ void* phPalEse_calloc(size_t datatype, size_t size) {
 ** Returns          None
 **
 *******************************************************************************/
-void phPalEse_free(void* ptr) { return free(ptr); }
+void phPalEse_free(void* ptr) {
+  if (ptr != NULL) {
+    free(ptr);
+    ptr = NULL;
+  }
+  return;
+}

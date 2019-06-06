@@ -23,7 +23,6 @@
 
 #include <config.h>
 
-#ifdef ESE_DEBUG_UTILS_INCLUDED
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
@@ -45,7 +44,7 @@
 #define NAME_NXP_ESE_IFSD_VALUE "NXP_ESE_IFSD_VALUE"
 #define NAME_NXP_EUICC_IFSD_VALUE "NXP_EUICC_IFSD_VALUE"
 #define NAME_NXP_P61_COLD_RESET_INTERFACE "NXP_P61_COLD_RESET_INTERFACE"
-#endif
+#define NAME_NXP_OS_VERSION "NXP_OS_VERSION"
 #endif
 
 class EseConfig {

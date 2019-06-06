@@ -24,31 +24,29 @@
 #ifndef _PHNXPESE_SPM_H
 #define _PHNXPESE_SPM_H
 
-#include <phEseTypes.h>
 #include <phEseStatus.h>
+#include <phNxpEseFeatures.h>
 /*! SPI Power Manager (SPM) possible error codes */
 typedef enum spm_power {
-  SPM_POWER_ENABLE = 0,
-  SPM_POWER_DISABLE,     /*!< SPM power disable */
-  SPM_POWER_RESET,       /*!< SPM Reset pwer */
-  SPM_POWER_PRIO_ENABLE, /*!< SPM prio mode enable */
+  SPM_POWER_DISABLE = 0,
+  SPM_POWER_ENABLE,       /*!< SPM power disable */
+  SPM_POWER_RESET,        /*!< SPM Reset pwer */
+  SPM_POWER_PRIO_ENABLE,  /*!< SPM prio mode enable */
   SPM_POWER_PRIO_DISABLE, /*!< SPM prio mode disable */
   SPM_RECOVERY_RESET
 } spm_power_t;
 
 /*! SPI Power Manager (SPM) possible states */
 typedef enum spm_state {
-  SPM_STATE_INVALID = 0x0000,     /*!< Nfc i2c driver misbehaving */
-  SPM_STATE_IDLE = 0x0100,        /*!< ESE is free to use */
-  SPM_STATE_WIRED = 0x0200,       /*!< p61 is being accessed by DWP (NFCC)*/
-  SPM_STATE_SPI = 0x0400,         /*!< ESE is being accessed by SPI */
-  SPM_STATE_DWNLD = 0x0800,       /*!< NFCC fw download is in progress */
-  SPM_STATE_SPI_PRIO = 0x1000,    /*!< Start of p61 access by SPI on priority*/
-  SPM_STATE_SPI_PRIO_END = 0x2000 /*!< End of p61 access by SPI on priority*/
-#if (NXP_ESE_JCOP_DWNLD_PROTECTION == true)
-  ,
+  SPM_STATE_INVALID = 0x0000,      /*!< Nfc i2c driver misbehaving */
+  SPM_STATE_IDLE = 0x0100,         /*!< ESE is free to use */
+  SPM_STATE_WIRED = 0x0200,        /*!< p61 is being accessed by DWP (NFCC)*/
+  SPM_STATE_SPI = 0x0400,          /*!< ESE is being accessed by SPI */
+  SPM_STATE_DWNLD = 0x0800,        /*!< NFCC fw download is in progress */
+  SPM_STATE_SPI_PRIO = 0x1000,     /*!< Start of p61 access by SPI on priority*/
+  SPM_STATE_SPI_PRIO_END = 0x2000, /*!< End of p61 access by SPI on priority*/
+  SPM_STATE_SPI_FAILED = 0x0010,   /*SPI open/close failed*/
   SPM_STATE_JCOP_DWNLD = 0x8000 /*!< P73 state JCOP Download*/
-#endif
 } spm_state_t;
 
 /**
@@ -137,7 +135,7 @@ ESESTATUS phNxpEse_SPM_ResetPwr(void);
  */
 ESESTATUS phNxpEse_SPM_GetAccess(long timeout);
 
-#if (NXP_ESE_JCOP_DWNLD_PROTECTION == true)
+
 /**
  * \ingroup SPI_Power_Management
  * \brief  This function set the SPM power state
@@ -147,7 +145,6 @@ ESESTATUS phNxpEse_SPM_GetAccess(long timeout);
  * \retval       -On Success ESESTATUS_SUCCESS else proper error code
  */
 ESESTATUS phNxpEse_SPM_SetState(long arg);
-#endif
 
 /**
  * \ingroup SPI_Power_Management
@@ -164,7 +161,7 @@ ESESTATUS phNxpEse_SPM_RelAccess(void);
  * \brief   This function request to the nfc i2c driver
  *                  to set the chip type and power scheme.
  *
- * \param[in]    arg - arg.
+ * \param[in]    arg - set power scheme from config.
  *
  * \retval       -On Success ESESTATUS_SUCCESS else proper error code
  */
@@ -181,16 +178,25 @@ ESESTATUS phNxpEse_SPM_SetPwrScheme(long arg);
  * \retval       -On Success ESESTATUS_SUCCESS else proper error code
  */
 ESESTATUS phNxpEse_SPM_DisablePwrControl(unsigned long arg);
-#if (NXP_ESE_JCOP_DWNLD_PROTECTION == true)
 /**
  * \ingroup SPI_Power_Management
  * \brief   This function is used to set the ese Update state.
  *
- * \param[in]    arg - arg.
+ * \param[in]    arg - eSE update status started/completed.
  *
  * \retval       -On Success ESESTATUS_SUCCESS else proper error code
  */
 ESESTATUS phNxpEse_SPM_SetEseClientUpdateState(long arg);
-#endif
+
+/**
+ * \ingroup SPI_Power_Management
+ * \brief   This function is used to set the ese Update state.
+ *
+ * \param[in]    arg -  JCOP update status started/completed..
+ *
+ * \retval       -On Success ESESTATUS_SUCCESS else proper error code
+ */
+ESESTATUS phNxpEse_SPM_SetJcopDwnldState(long arg);
+
 #endif /*  _PHNXPESE_SPM_H    */
 /** @} */

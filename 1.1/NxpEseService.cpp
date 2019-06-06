@@ -16,8 +16,7 @@
  *
  ******************************************************************************/
 #define LOG_TAG "nxpese@1.0-service"
-#include <android-base/stringprintf.h>
-#include <base/logging.h>
+#include <log/log.h>
 #include <android/hardware/secure_element/1.1/ISecureElement.h>
 #include <vendor/nxp/nxpese/1.0/INxpEse.h>
 #include "VirtualISO.h"
@@ -59,7 +58,7 @@ int main() {
   ALOGI("Secure Element HAL Service 1.1 is starting.");
   se_service = new SecureElement();
   if (se_service == nullptr) {
-    LOG(ERROR) << StringPrintf("Can not create an instance of Secure Element HAL Iface, exiting.");
+    ALOGE("Can not create an instance of Secure Element HAL Iface, exiting.");
     goto shutdown;
   }
   configureRpcThreadpool(1, true /*callerWillJoin*/);
@@ -73,7 +72,7 @@ int main() {
     status = se_service->registerAsService(terminalID);
 
     if (status != OK) {
-      LOG(ERROR) << StringPrintf("Could not register service for Secure Element HAL Iface (%d).",status);
+      ALOGE("Could not register service for Secure Element HAL Iface (%d).",status);
       goto shutdown;
     }
     ALOGI("Secure Element Service is ready");
@@ -81,12 +80,12 @@ int main() {
     ALOGI("NXP Secure Element Extn Service 1.0 is starting.");
     nxp_se_service = new NxpEse();
     if (nxp_se_service == nullptr) {
-      LOG(ERROR) << StringPrintf("Can not create an instance of NXP Secure Element Extn Iface,exiting.");
+      ALOGE("Can not create an instance of NXP Secure Element Extn Iface,exiting.");
       goto shutdown;
     }
     status = nxp_se_service->registerAsService();
     if (status != OK) {
-      LOG(ERROR) << StringPrintf("Could not register service for Power Secure Element Extn Iface (%d).",status);
+      ALOGE("Could not register service for Power Secure Element Extn Iface (%d).",status);
       goto shutdown;
     }
     ALOGI("Secure Element Service is ready");
@@ -95,7 +94,7 @@ int main() {
   ALOGI("Virtual ISO HAL Service 1.0 is starting.");
   virtual_iso_service = new VirtualISO();
   if (virtual_iso_service == nullptr) {
-    LOG(ERROR) << StringPrintf("Can not create an instance of Virtual ISO HAL Iface, exiting.");
+    ALOGE("Can not create an instance of Virtual ISO HAL Iface, exiting.");
     goto shutdown;
   }
   ret = geteUICCTerminalId(terminalID);
@@ -103,7 +102,7 @@ int main() {
   {
     status = virtual_iso_service->registerAsService(terminalID);
     if (status != OK) {
-      LOG(ERROR) << StringPrintf("Could not register service for Virtual ISO HAL Iface (%d).",
+      ALOGE("Could not register service for Virtual ISO HAL Iface (%d).",
             status);
       goto shutdown;
     }
@@ -115,6 +114,6 @@ int main() {
 // Should not pass this line
 shutdown:
   // In normal operation, we don't expect the thread pool to exit
-  LOG(ERROR) << StringPrintf("Secure Element Service is shutting down");
+  ALOGE("Secure Element Service is shutting down");
   return 1;
 }

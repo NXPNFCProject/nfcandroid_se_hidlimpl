@@ -24,7 +24,6 @@
 #define _PHNXPESE_PAL_SPI_H
 
 /* Basic type definitions */
-#include <phEseTypes.h>
 #include <phNxpEsePal.h>
 
 /*!
@@ -32,22 +31,34 @@
  */
 #define SEND_PACKET_SOF 0x5A
 /*!
- * \brief ESE Poll timeout (max 1.3 seconds)
+ * \brief ESE Poll timeout (max 2 seconds)
  */
-#define ESE_POLL_TIMEOUT (2000)
+#define ESE_POLL_TIMEOUT (2 * 1000)
 /*!
  * \brief ESE Max Poll retry count
  */
-#define ESE_NAD_POLLING_MAX (1000)
+
+#define ESE_NAD_POLLING_MAX (2000)
 
 /*!
  * \brief ESE wakeup delay in case of write error retry
  */
-#define WAKE_UP_DELAY 100
+
+#define WAKE_UP_DELAY_USECS 100
+
+#define GET_WAKE_UP_DELAY()                                          \
+  ((GET_CHIP_OS_VERSION() != OS_VERSION_4_0) ? (WAKE_UP_DELAY_USECS) \
+                                             : (10 * WAKE_UP_DELAY_USECS))
+
 /*!
  * \brief ESE wakeup delay in case of write error retry
  */
+
 #define NAD_POLLING_SCALER 1
+
+#define GET_NAD_POLLING_SCALER()                                    \
+  ((GET_CHIP_OS_VERSION() != OS_VERSION_4_0) ? (NAD_POLLING_SCALER) \
+                                             : (10 * NAD_POLLING_SCALER))
 /*!
  * \brief ESE wakeup delay in case of write error retry
  */
@@ -183,8 +194,8 @@ int phPalEse_spi_write(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToWrite);
  * \retval   -1  - ioctl operation failure
  *
  */
-ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
-                       long level);
+ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
+                             void* pDevHandle, long level);
 
 /**
  * \ingroup eSe_PAL_Spi

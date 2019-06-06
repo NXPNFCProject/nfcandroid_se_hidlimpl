@@ -103,6 +103,16 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams);
 /**
  * \ingroup spi_libese
  *
+ * \brief  Check if libese has opened
+ *
+ * \retval return false if it is close, otherwise true.
+ *
+ */
+bool phNxpEse_isOpen();
+
+/**
+ * \ingroup spi_libese
+ *
  * \brief  This function is used to communicate from nfc-hal to ese-hal
  *
  * \param[in]     ioctlType - ioctl cmd
@@ -111,7 +121,7 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams);
  * \retval This function return ESESTATUS_SUCCES (0) in case of success
  *         In case of failure returns other failure value.
  *
-*/
+ */
 ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data);
 /**
  * \ingroup spi_libese
@@ -206,7 +216,7 @@ ESESTATUS phNxpEse_deInit(void);
  *
  */
 
-ESESTATUS phNxpEse_close(ESESTATUS deInitStatus);
+ESESTATUS phNxpEse_close(ESESTATUS deInitStatus = ESESTATUS_SUCCESS);
 
 /**
  * \ingroup spi_libese

@@ -15,12 +15,11 @@
  *  limitations under the License.
  *
  ******************************************************************************/
-#include <android-base/stringprintf.h>
-#include <base/logging.h>
+#define LOG_TAG "NxpEseHal"
+#include <log/log.h>
 #include <phNxpEseDataMgr.h>
 #include <phNxpEsePal.h>
 
-using android::base::StringPrintf;
 
 static phNxpEse_sCoreRecvBuff_List_t *head = NULL, *current = NULL;
 static uint32_t total_len = 0;
@@ -54,27 +53,29 @@ ESESTATUS phNxpEse_GetData(uint32_t* data_len, uint8_t** pbuffer) {
           total_len = 0;
           status = ESESTATUS_SUCCESS;
         } else {
-          LOG(ERROR) << StringPrintf("%s Mismatch of len total_data_len %d total_len %d",
-                  __FUNCTION__, total_data_len, total_len);
+          ALOGD_IF(ese_debug_enabled,
+                   "%s Mismatch of len total_data_len %d total_len %d",
+                   __FUNCTION__, total_data_len, total_len);
           phNxpEse_free(pbuff);
         }
       } else {
-        LOG(ERROR) << StringPrintf("%s phNxpEse_GetDataFromList failed", __FUNCTION__);
+        ALOGE("%s phNxpEse_GetDataFromList failed",
+                 __FUNCTION__);
         phNxpEse_free(pbuff);
       }
     } else {
-      LOG(ERROR) << StringPrintf("%s Error in malloc ", __FUNCTION__);
+      ALOGE( "%s Error in malloc ", __FUNCTION__);
       status = ESESTATUS_NOT_ENOUGH_MEMORY;
     }
   } else {
-    LOG(ERROR) << StringPrintf("%s total_len = %d", __FUNCTION__, total_len);
+    ALOGD_IF(ese_debug_enabled, "%s total_len = %d", __FUNCTION__, total_len);
   }
 
   if(ESESTATUS_SUCCESS != status){
     *pbuffer = NULL;
     *data_len = 0;
   }
-  LOG(INFO) << StringPrintf("%s exit status = %d", __FUNCTION__, status);
+  ALOGD_IF(ese_debug_enabled, "%s exit status = %d", __FUNCTION__, status);
   return status;
 }
 
@@ -92,7 +93,7 @@ ESESTATUS phNxpEse_StoreDatainList(uint32_t data_len, uint8_t* pbuff) {
   newNode = (phNxpEse_sCoreRecvBuff_List_t*)phNxpEse_memalloc(
       sizeof(phNxpEse_sCoreRecvBuff_List_t));
   if (newNode == NULL) {
-    LOG(ERROR) << StringPrintf("%s Error in malloc ", __FUNCTION__);
+    ALOGE( "%s Error in malloc ", __FUNCTION__);
     return ESESTATUS_NOT_ENOUGH_MEMORY;
   }
   newNode->pNext = NULL;
@@ -120,8 +121,7 @@ ESESTATUS phNxpEse_StoreDatainList(uint32_t data_len, uint8_t* pbuff) {
 static ESESTATUS phNxpEse_GetDataFromList(uint32_t* data_len, uint8_t* pbuff) {
   phNxpEse_sCoreRecvBuff_List_t* new_node;
   uint32_t offset = 0;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s Enter ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "%s Enter ", __FUNCTION__);
   if (head == NULL || pbuff == NULL) {
     return ESESTATUS_FAILED;
   }
@@ -134,8 +134,7 @@ static ESESTATUS phNxpEse_GetDataFromList(uint32_t* data_len, uint8_t* pbuff) {
     new_node = new_node->pNext;
   }
   *data_len = offset;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s Exit ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "%s Exit ", __FUNCTION__);
   return ESESTATUS_SUCCESS;
 }
 

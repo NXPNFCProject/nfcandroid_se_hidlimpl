@@ -25,8 +25,6 @@
 #ifndef PHESESTATUS_H
 #define PHESESTATUS_H
 
-#include <phEseTypes.h>
-
 /*! Internally required by PHESESTVAL. */
 #define PHESESTSHL8 (8U)
 
@@ -59,14 +57,6 @@
  * Get grp_retval from Status Code
  */
 #define PHESESTATUS(phEseStatus) ((phEseStatus)&0x00FFU)
-
-
-/*!
- * PHESECID
- * Get grp_retval from Status Code
- */
-
-#define PHESECID(phEseStatus) (((phEseStatus)&0xFF00U) >> 8)
 
 
 /**

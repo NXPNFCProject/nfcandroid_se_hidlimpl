@@ -19,12 +19,10 @@
  * \addtogroup ISO7816-4_application_protocol_implementation
  *
  * @{ */
-#include <android-base/stringprintf.h>
-#include <base/logging.h>
+#define LOG_TAG "NxpEseHal"
+#include <log/log.h>
 #include <phNxpEse_Apdu_Api.h>
 #include <phNxpEse_Api.h>
-
-using android::base::StringPrintf;
 
 static ESESTATUS phNxpEse_7816_FrameCmd(pphNxpEse_7816_cpdu_t pCmd,
                                         uint8_t** pcmd_data, uint32_t* cmd_len);
@@ -42,8 +40,7 @@ static ESESTATUS phNxpEse_7816_FrameCmd(pphNxpEse_7816_cpdu_t pCmd,
 ESESTATUS phNxpEse_7816_Transceive(pphNxpEse_7816_cpdu_t pCmd,
                                    pphNxpEse_7816_rpdu_t pRsp) {
   ESESTATUS status = ESESTATUS_FAILED;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf(" %s Enter \n", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, " %s Enter \n", __FUNCTION__);
 
   uint32_t cmd_len = 0;
   uint8_t* pCmd_data = NULL;
@@ -53,15 +50,15 @@ ESESTATUS phNxpEse_7816_Transceive(pphNxpEse_7816_cpdu_t pCmd,
   phNxpEse_memset(&pRspTrans, 0x00, sizeof(phNxpEse_data));
 
   if (NULL == pCmd || NULL == pRsp) {
-    LOG(ERROR) << StringPrintf(" %s Invalid prameter \n", __FUNCTION__);
+    ALOGE(" %s Invalid prameter \n", __FUNCTION__);
     status = ESESTATUS_INVALID_PARAMETER;
   } else if (pCmd->cpdu_type > 1) {
-    LOG(ERROR) << StringPrintf(" %s Invalid cpdu type \n", __FUNCTION__);
+    ALOGE(" %s Invalid cpdu type \n", __FUNCTION__);
     status = ESESTATUS_INVALID_CPDU_TYPE;
   } else if (0 < pCmd->le_type && NULL == pRsp->pdata) {
     /* if response is requested, but no valid res buffer
      * provided by application */
-    LOG(ERROR) << StringPrintf(" %s Invalid response buffer \n", __FUNCTION__);
+    ALOGE(" %s Invalid response buffer \n", __FUNCTION__);
     status = ESESTATUS_INVALID_BUFFER;
   } else {
     status = phNxpEse_7816_FrameCmd(pCmd, &pCmd_data, &cmd_len);
@@ -70,7 +67,7 @@ ESESTATUS phNxpEse_7816_Transceive(pphNxpEse_7816_cpdu_t pCmd,
       pCmdTrans.p_data = pCmd_data;
       status = phNxpEse_Transceive(&pCmdTrans, &pRspTrans);
       if (ESESTATUS_SUCCESS != status) {
-        LOG(ERROR) << StringPrintf(" %s phNxpEse_Transceive Failed \n", __FUNCTION__);
+        ALOGE(" %s phNxpEse_Transceive Failed \n", __FUNCTION__);
         if ((pRspTrans.len > 0) && (pRspTrans.p_data != NULL)) {
           pRsp->sw2 = *(pRspTrans.p_data + (pRspTrans.len - 1));
           pRspTrans.len--;
@@ -85,8 +82,7 @@ ESESTATUS phNxpEse_7816_Transceive(pphNxpEse_7816_cpdu_t pCmd,
           pRsp->sw1 = *(pRspTrans.p_data + (pRspTrans.len - 1));
           pRspTrans.len--;
           pRsp->len = pRspTrans.len;
-          DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("pRsp->len %d", pRsp->len);
+          ALOGD_IF(ese_debug_enabled, "pRsp->len %d", pRsp->len);
           if (pRspTrans.len > 0 && NULL != pRsp->pdata) {
             phNxpEse_memcpy(pRsp->pdata, pRspTrans.p_data, pRspTrans.len);
             status = ESESTATUS_SUCCESS;
@@ -94,28 +90,25 @@ ESESTATUS phNxpEse_7816_Transceive(pphNxpEse_7816_cpdu_t pCmd,
             status = ESESTATUS_SUCCESS;
           } else {
             /* if application response buffer is null and data is present */
-            LOG(ERROR) << StringPrintf("Invalid Res buffer");
+            ALOGE("Invalid Res buffer");
             status = ESESTATUS_FAILED;
           }
-          DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Freeing memroy pRspTrans.p_data ");
+          ALOGD_IF(ese_debug_enabled, "Freeing memroy pRspTrans.p_data ");
           phNxpEse_free(pRspTrans.p_data);
           pRspTrans.p_data = NULL;
           pRspTrans.len = 0;
         } else {
-          LOG(ERROR) << StringPrintf("pRspTrans.len error = %d", pRspTrans.len);
+          ALOGE("pRspTrans.len error = %d", pRspTrans.len);
           status = ESESTATUS_FAILED;
         }
       }
       if (pCmd_data != NULL) {
-        DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Freeing memory pCmd_data");
+        ALOGD_IF(ese_debug_enabled, "Freeing memory pCmd_data");
         phNxpEse_free(pCmd_data);
       }
     }
   }
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf(" %s Exit status 0x%x \n", __FUNCTION__, status);
+  ALOGD_IF(ese_debug_enabled, " %s Exit status 0x%x \n", __FUNCTION__, status);
   return status;
 }
 
@@ -145,9 +138,8 @@ static ESESTATUS phNxpEse_7816_FrameCmd(pphNxpEse_7816_cpdu_t pCmd,
   uint8_t lc_len = 0;
   uint8_t le_len = 0;
 
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s  pCmd->lc = %d, pCmd->le_type = %d", __FUNCTION__,
-                  pCmd->lc, pCmd->le_type);
+  ALOGD_IF(ese_debug_enabled, "%s  pCmd->lc = %d, pCmd->le_type = %d",
+           __FUNCTION__, pCmd->lc, pCmd->le_type);
   /* calculate the total buffer length */
   if (pCmd->lc > 0) {
     if (pCmd->cpdu_type == 0) {
@@ -160,15 +152,13 @@ static ESESTATUS phNxpEse_7816_FrameCmd(pphNxpEse_7816_cpdu_t pCmd,
 
     cmd_total_len += pCmd->lc; /* add data length */
     if (pCmd->pdata == NULL) {
-      LOG(ERROR) << StringPrintf("%s Invalide data buffer from application ",
-                      __FUNCTION__);
+      ALOGE("%s Invalide data buffer from application ", __FUNCTION__);
       return ESESTATUS_INVALID_BUFFER;
     }
   } else {
     lc_len = 0;
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s lc (data) field is not present %d", __FUNCTION__,
-                    pCmd->lc);
+    ALOGD_IF(ese_debug_enabled, "%s lc (data) field is not present %d",
+             __FUNCTION__, pCmd->lc);
   }
 
   if (pCmd->le_type > 0) {
@@ -186,28 +176,24 @@ static ESESTATUS phNxpEse_7816_FrameCmd(pphNxpEse_7816_cpdu_t pCmd,
         cmd_total_len += 2; /* 2 byte LE */
         le_len = 2;
       } else {
-        LOG(ERROR) << StringPrintf("%s wrong LE type  %d", __FUNCTION__, pCmd->le_type);
+        ALOGE("%s wrong LE type  %d", __FUNCTION__, pCmd->le_type);
         cmd_total_len += pCmd->le_type;
         le_len = pCmd->le_type;
       }
     } else {
-      LOG(ERROR) << StringPrintf("%s wrong cpdu_type value %d", __FUNCTION__,
-                      pCmd->cpdu_type);
+      ALOGE("%s wrong cpdu_type value %d", __FUNCTION__, pCmd->cpdu_type);
       return ESESTATUS_INVALID_CPDU_TYPE;
     }
   } else {
     le_len = 0;
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s le field is not present", __FUNCTION__);
+    ALOGD_IF(ese_debug_enabled, "%s le field is not present", __FUNCTION__);
   }
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s cmd_total_len = %d, le_len = %d, lc_len = %d",
-                  __FUNCTION__, cmd_total_len, le_len, lc_len);
+  ALOGD_IF(ese_debug_enabled, "%s cmd_total_len = %d, le_len = %d, lc_len = %d",
+           __FUNCTION__, cmd_total_len, le_len, lc_len);
 
   pbuff = (uint8_t*)phNxpEse_calloc(cmd_total_len, sizeof(uint8_t));
   if (pbuff == NULL) {
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s Error allocating memory", __FUNCTION__);
+    ALOGE("%s Error allocating memory", __FUNCTION__);
     return ESESTATUS_INSUFFICIENT_RESOURCES;
   }
   *cmd_len = cmd_total_len;
@@ -277,9 +263,8 @@ static ESESTATUS phNxpEse_7816_FrameCmd(pphNxpEse_7816_cpdu_t pCmd,
       }
     }
   }
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Exit %s cmd_total_len = %d, index = %d", __FUNCTION__, index,
-                  cmd_total_len);
+  ALOGD_IF(ese_debug_enabled, "Exit %s cmd_total_len = %d, index = %d",
+           __FUNCTION__, index, cmd_total_len);
   return ESESTATUS_SUCCESS;
 }
 /** @} */

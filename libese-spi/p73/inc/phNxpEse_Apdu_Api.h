@@ -24,7 +24,6 @@
 #ifndef _PHNXPESE_APDU_H
 #define _PHNXPESE_APDU_H
 #include <phEseStatus.h>
-#include <phEseTypes.h>
 
 /**
  * \brief 7816-4 APDU command Header Size

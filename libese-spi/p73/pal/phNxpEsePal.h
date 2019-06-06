@@ -26,16 +26,14 @@
 
 /* Basic type definitions */
 #include <errno.h>
-#include <phEseTypes.h>
+#include <phEseStatus.h>
+#include <phNxpEseFeatures.h>
+#include <stdint.h>
 /*!
  * \brief Value indicates to reset device
  */
 #define PH_PALESE_RESETDEVICE (0x00008001)
 
-/*!
-* \brief eSE debugging log Level
-*/
-extern bool ese_debug_enabled;
 
 /*!
  * \ingroup eSe_PAL
@@ -54,13 +52,11 @@ typedef enum {
   phPalEse_e_EnableThroughputMeasurement, /*!< Enable throughput measurement */
   phPalEse_e_SetPowerScheme,              /*!< Set power scheme */
   phPalEse_e_GetSPMStatus,                /*!< Get SPM(power mgt) status */
-  phPalEse_e_DisablePwrCntrl
-#if (NXP_ESE_JCOP_DWNLD_PROTECTION == true)
-  ,
+  phPalEse_e_DisablePwrCntrl,
+  phPalEse_e_SetJcopDwnldState,    /*!< Set Jcop Download state */
   phPalEse_e_SetClientUpdateState, /*!< Set Jcop Download state */
-#endif
-   phPalEse_e_SetSecureMode, /*!< Set the Trusted SE Mode */
-} phPalEse_ControlCode_t; /*!< Control code for IOCTL call */
+  phPalEse_e_SetSecureMode, /*!< Set the Trusted SE Mode */
+} phPalEse_ControlCode_t;   /*!< Control code for IOCTL call */
 
 /*!
  * \ingroup eSe_PAL

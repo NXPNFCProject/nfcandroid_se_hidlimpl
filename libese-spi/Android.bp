@@ -38,8 +38,14 @@ cc_library_shared {
 
     cflags: [
         "-DANDROID",
+        "-DJCOP_VER_3_1=1",
+        "-DJCOP_VER_3_2=2",
+        "-DJCOP_VER_3_3=3",
+        "-DJCOP_VER_4_0=4",
+        "-DJCOP_VER_5_x=5",
         "-DBUILDCFG=1",
         "-DNXP_EXTNS=TRUE",
+        "-DNFC_NXP_ESE_VER=JCOP_VER_5_x",
         "-Wall",
         "-Werror",
     ],

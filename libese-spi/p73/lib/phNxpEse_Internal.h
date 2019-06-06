@@ -54,13 +54,9 @@ typedef enum {
 #define SECOND_TO_MILLISECOND(X) X * 1000
 #define CONVERT_TO_PERCENTAGE(X, Y) X* Y / 100
 #define ADDITIONAL_SECURE_TIME_PERCENTAGE 5
-#if (NXP_ESE_JCOP_DWNLD_PROTECTION == true)
 #define ESE_JCOP_OS_DWNLD_RETRY_CNT \
   10 /* Maximum retry count for ESE JCOP OS Dwonload*/
-#endif
-#if (NXP_NFCC_SPI_FW_DOWNLOAD_SYNC == true)
 #define ESE_FW_DWNLD_RETRY_CNT 10 /* Maximum retry count for FW Dwonload*/
-#endif
 
 
 /*!
@@ -97,6 +93,7 @@ typedef struct phNxpEseNadInfo {
   nadInfoRx_t nadRx;/*!< nod address for rx */
 }phNxpEseNadInfo_t;
 
+
 /* JCOP download states */
 typedef enum jcop_dwnld_state {
   JCP_DWNLD_IDLE = SPM_STATE_JCOP_DWNLD, /* jcop dwnld is not ongoing*/
@@ -105,7 +102,6 @@ typedef enum jcop_dwnld_state {
   JCP_SPI_DWNLD_COMPLETE = 0x8040, /* jcop download complete in spi interface*/
   JCP_DWP_DWNLD_COMPLETE = 0x8080, /* jcop download complete */
 } phNxpEse_JcopDwnldState;
-
 
 /*!
  * \brief  SPI Control structure
@@ -141,5 +137,6 @@ static nadInfoTx_t nadInfoTx_ptr[MAX_END_POINTS] = {ESE_NAD_TX, EUICC_NAD_TX};
 static nadInfoRx_t nadInfoRx_ptr[MAX_END_POINTS] = {ESE_NAD_RX, EUICC_NAD_RX};
 ESESTATUS phNxpEse_WriteFrame(uint32_t data_len, uint8_t* p_data);
 ESESTATUS phNxpEse_read(uint32_t* data_len, uint8_t** pp_data);
+void phNxpEse_setOsVersion(phNxpEse_OsVersion_t chipType);
 
 #endif /* _PHNXPSPILIB_H_ */

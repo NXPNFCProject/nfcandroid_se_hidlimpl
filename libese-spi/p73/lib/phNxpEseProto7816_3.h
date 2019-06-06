@@ -345,9 +345,15 @@ typedef struct phNxpEseProto7816_PCB_bits {
  * \brief Delay to be used before sending the next frame, after error reported
  * by ESE
  */
-#define DELAY_ERROR_RECOVERY 10000
+#define DELAY_ERROR_RECOVERY_1_MS 1000
+
+#define GET_DELAY_ERROR_RECOVERY()           \
+  ((GET_CHIP_OS_VERSION() != OS_VERSION_4_0) \
+       ? (10 * DELAY_ERROR_RECOVERY_1_MS)    \
+       : (3.5 * DELAY_ERROR_RECOVERY_1_MS))
 /*!
- * \brief 7816-3 protocol frame header length
+ * \brief 7816-3 protocol frame
+ * header length
  */
 #define PH_PROTO_7816_HEADER_LEN 0x03
 /*!
@@ -414,7 +420,15 @@ typedef struct phNxpEseProto7816_PCB_bits {
 /*!
  * \brief 7816-3 protocol max. error retry counter
  */
-#define PH_PROTO_7816_FRAME_RETRY_COUNT 03
+#define PH_PROTO_7816_FRAME_RETRY 01
+/*!
+ * \brief 7816-3 protocol max. error retry counter based on OS version
+ */
+#define GET_FRAME_RETRY_COUNT()              \
+  ((GET_CHIP_OS_VERSION() != OS_VERSION_4_0) \
+       ? (3 * PH_PROTO_7816_FRAME_RETRY)     \
+       : (10 * PH_PROTO_7816_FRAME_RETRY))
+
 /*!
  * \brief 7816-3 protocol max. WTX default count
  */
@@ -459,6 +473,7 @@ typedef struct phNxpEseProto7816_PCB_bits {
  * \brief APIs exposed from the 7816-3 protocol layer
  */
 #define PH_SE_OS_VERSION_10            0x10
+
 /**
  * \ingroup ISO7816-3_protocol_lib
  * \brief This function is used to reset just the current interface

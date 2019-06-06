@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -23,16 +23,24 @@
 #ifndef NXP_ESE_FEATURES_H
 #define NXP_ESE_FEATURES_H
 
-#define NFC_NXP_CHIP_TYPE PN81B
-#define NFC_NXP_ESE_VER JCOP_VER_4_0_1
 #define ESE_DEBUG_UTILS_INCLUDED true
 
 #define NXP_POWER_SCHEME_SUPPORT true
-#define NXP_ESE_P73_ISO_RST true
 #define NXP_ESE_END_OF_SESSION true
+
 #define NXP_ESE_WTX_RES_DELAY true
-#define NXP_ESE_JCOP_DWNLD_PROTECTION true
-#define NXP_NFCC_SPI_FW_DOWNLOAD_SYNC true
-#define NXP_SECURE_TIMER_SESSION true
+#define NXP_ESE_P73_ISO_RST true
+
+typedef enum OS_VERSION {
+  OS_VERSION_DEFAULT = 0,
+  OS_VERSION_4_0 = 1,
+  OS_VERSION_5_1 = 2,
+  OS_VERSION_5_2 = 3,
+  INVALID_OS_VERSION = 0xFF,
+} phNxpEse_OsVersion_t;
+
+extern phNxpEse_OsVersion_t phNxpEse_getOsVersion();
+extern bool ese_debug_enabled;
+#define GET_CHIP_OS_VERSION() phNxpEse_getOsVersion()
 
 #endif /* end of #ifndef NXP_ESE_FEATURES_H */

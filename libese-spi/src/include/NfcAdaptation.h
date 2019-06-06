@@ -24,6 +24,7 @@
 #include "hal_nxpnfc.h"
 #include "hal_nxpese.h"
 #include <phEseStatus.h>
+#include <phNxpEseFeatures.h>
 using vendor::nxp::nxpnfc::V1_0::INxpNfc;
 
 class ThreadMutex {

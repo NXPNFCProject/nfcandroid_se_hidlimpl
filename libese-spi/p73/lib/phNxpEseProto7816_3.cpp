@@ -15,11 +15,10 @@
  *  limitations under the License.
  *
  ******************************************************************************/
-#include <android-base/stringprintf.h>
-#include <base/logging.h>
+#define LOG_TAG "NxpEseHal"
+#include <log/log.h>
 #include <phNxpEseProto7816_3.h>
 
-using android::base::StringPrintf;
 
 /**
  * \addtogroup ISO7816-3_protocol_lib
@@ -197,6 +196,14 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void);
  */
 static ESESTATUS TransceiveProcess(void);
 
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief      This internal function is used to
+ *                  1. Send propreitary S-Frame command for resynch
+ *T=1 sequence at slave
+ *
+ */
+static ESESTATUS phNxpEseProto7816_RSync(void);
 
 /**
  * \ingroup ISO7816-3_protocol_lib
@@ -276,17 +283,15 @@ static phNxpEseProto7816_t phNxpEseProto7816_ptr[MAX_END_POINTS];
 static ESESTATUS phNxpEseProto7816_SendRawFrame(uint32_t data_len,
                                              uint8_t* p_data) {
   ESESTATUS status = ESESTATUS_FAILED;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Enter %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
   status = phNxpEse_WriteFrame(data_len, p_data);
   if (ESESTATUS_SUCCESS != status) {
-    LOG(ERROR) << StringPrintf("%s Error phNxpEse_WriteFrame\n", __FUNCTION__);
+    ALOGE("%s Error phNxpEse_WriteFrame\n", __FUNCTION__);
   } else {
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s phNxpEse_WriteFrame Success \n", __FUNCTION__);
+    ALOGD_IF(ese_debug_enabled, "%s phNxpEse_WriteFrame Success \n",
+             __FUNCTION__);
   }
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Exit %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Exit %s ", __FUNCTION__);
   return status;
 }
 
@@ -304,8 +309,7 @@ static ESESTATUS phNxpEseProto7816_GetRawFrame(uint32_t* data_len,
 
   status = phNxpEse_read(data_len, pp_data);
   if (ESESTATUS_SUCCESS != status) {
-    LOG(ERROR) << StringPrintf("%s phNxpEse_read failed , status : 0x%x", __FUNCTION__,
-                    status);
+    ALOGE("%s phNxpEse_read failed , status : 0x%x", __FUNCTION__, status);
   }
   return status;
 }
@@ -321,13 +325,11 @@ static ESESTATUS phNxpEseProto7816_GetRawFrame(uint32_t* data_len,
 static uint8_t phNxpEseProto7816_ComputeLRC(unsigned char* p_buff,
                                             uint32_t offset, uint32_t length) {
   uint32_t LRC = 0, i = 0;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Enter %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
   for (i = offset; i < length; i++) {
     LRC = LRC ^ p_buff[i];
   }
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Exit %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Exit %s ", __FUNCTION__);
   return (uint8_t)LRC;
 }
 
@@ -344,25 +346,23 @@ static ESESTATUS phNxpEseProto7816_CheckLRC(uint32_t data_len, uint8_t* p_data) 
   ESESTATUS status = ESESTATUS_SUCCESS;
   uint8_t calc_crc = 0;
   uint8_t recv_crc = 0;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Enter %s len %d", __FUNCTION__, data_len);
+  ALOGD_IF(ese_debug_enabled, "Enter %s len %d", __FUNCTION__, data_len);
   if(data_len > 0) {
     recv_crc = p_data[data_len - 1];
 
     /* calculate the CRC after excluding CRC  */
     calc_crc = phNxpEseProto7816_ComputeLRC(p_data, 1, (data_len - 1));
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Received LRC:0x%x Calculated LRC:0x%x", recv_crc, calc_crc);
+    ALOGD_IF(ese_debug_enabled, "Received LRC:0x%x Calculated LRC:0x%x",
+             recv_crc, calc_crc);
     if (recv_crc != calc_crc) {
       status = ESESTATUS_FAILED;
-      LOG(ERROR) << StringPrintf("%s LRC failed", __FUNCTION__);
+      ALOGE("%s LRC failed", __FUNCTION__);
     }
   } else {
     status = ESESTATUS_FAILED;
-    LOG(ERROR) << StringPrintf("%s LRC failed length = 0", __FUNCTION__);
+    ALOGE("%s LRC failed length = 0", __FUNCTION__);
   }
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Exit %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Exit %s ", __FUNCTION__);
   return status;
 }
 
@@ -381,8 +381,7 @@ static ESESTATUS phNxpEseProto7816_SendSFrame(sFrameInfo_t sFrameData) {
   uint8_t* p_framebuff = NULL;
   uint8_t pcb_byte = 0;
   uint8_t lenIFS = 0;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Enter %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
   sFrameInfo_t sframeData = sFrameData;
   /* This update is helpful in-case a R-NACK is transmitted from the MW */
   phNxpEseProto7816_3_Var.lastSentNonErrorframeType = SFRAME;
@@ -490,7 +489,7 @@ static ESESTATUS phNxpEseProto7816_SendSFrame(sFrameInfo_t sFrameData) {
       pcb_byte |= ATR_REQ;
       break;
     default:
-      LOG(ERROR) << StringPrintf("Invalid S-block");
+      ALOGE("Invalid S-block");
       break;
   }
   if (NULL != p_framebuff) {
@@ -500,15 +499,13 @@ static ESESTATUS phNxpEseProto7816_SendSFrame(sFrameInfo_t sFrameData) {
 
     p_framebuff[frame_len - 1] =
         phNxpEseProto7816_ComputeLRC(p_framebuff, 0, (frame_len - 1));
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("S-Frame PCB: %x\n", p_framebuff[1]);
+    ALOGD_IF(ese_debug_enabled, "S-Frame PCB: %x\n", p_framebuff[1]);
     status = phNxpEseProto7816_SendRawFrame(frame_len, p_framebuff);
     phNxpEse_free(p_framebuff);
   } else {
-    LOG(ERROR) << StringPrintf("Invalid S-block or malloc for s-block failed");
+    ALOGE("Invalid S-block or malloc for s-block failed");
   }
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Exit %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Exit %s ", __FUNCTION__);
   return status;
 }
 
@@ -535,8 +532,7 @@ static ESESTATUS phNxpEseProto7816_sendRframe(rFrameTypes_t rFrameType) {
   recv_ack[1] |=
       ((phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.seqNo ^ 1)
        << 4);
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s recv_ack[1]:0x%x", __FUNCTION__, recv_ack[1]);
+  ALOGD_IF(ese_debug_enabled, "%s recv_ack[1]:0x%x", __FUNCTION__, recv_ack[1]);
   recv_ack[3] =
       phNxpEseProto7816_ComputeLRC(recv_ack, 0x00, (sizeof(recv_ack) - 1));
   status = phNxpEseProto7816_SendRawFrame(sizeof(recv_ack), recv_ack);
@@ -557,10 +553,9 @@ static ESESTATUS phNxpEseProto7816_SendIframe(iFrameInfo_t iFrameData) {
   uint32_t frame_len = 0;
   uint8_t* p_framebuff = NULL;
   uint8_t pcb_byte = 0;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Enter %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
   if (0 == iFrameData.sendDataLen) {
-    LOG(ERROR) << StringPrintf("I frame Len is 0, INVALID");
+    ALOGE("I frame Len is 0, INVALID");
     return ESESTATUS_FAILED;
   }
   /* This update is helpful in-case a R-NACK is transmitted from the MW */
@@ -570,7 +565,7 @@ static ESESTATUS phNxpEseProto7816_SendIframe(iFrameInfo_t iFrameData) {
 
   p_framebuff = (uint8_t*)phNxpEse_memalloc(frame_len * sizeof(uint8_t));
   if (NULL == p_framebuff) {
-    LOG(ERROR) << StringPrintf("Heap allocation failed");
+    ALOGE("Heap allocation failed");
     return ESESTATUS_FAILED;
   }
 
@@ -612,8 +607,7 @@ static ESESTATUS phNxpEseProto7816_SendIframe(iFrameInfo_t iFrameData) {
   status = phNxpEseProto7816_SendRawFrame(frame_len, p_framebuff);
 
   phNxpEse_free(p_framebuff);
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Exit %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Exit %s ", __FUNCTION__);
   return status;
 }
 
@@ -628,8 +622,7 @@ static ESESTATUS phNxpEseProto7816_SendIframe(iFrameInfo_t iFrameData) {
  *
  ******************************************************************************/
 static ESESTATUS phNxpEseProto7816_SetFirstIframeContxt(void) {
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Enter %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.dataOffset = 0;
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = IFRAME;
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.seqNo =
@@ -648,13 +641,10 @@ static ESESTATUS phNxpEseProto7816_SetFirstIframeContxt(void) {
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.totalDataLen;
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.isChained = false;
   }
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf(
-      "I-Frame Data Len: %d Seq. no:%d",
-      phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.sendDataLen,
-      phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.seqNo);
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Exit %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "I-Frame Data Len: %d Seq. no:%d",
+           phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.sendDataLen,
+           phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.seqNo);
+  ALOGD_IF(ese_debug_enabled, "Exit %s ", __FUNCTION__);
   return ESESTATUS_SUCCESS;
 }
 
@@ -669,8 +659,7 @@ static ESESTATUS phNxpEseProto7816_SetFirstIframeContxt(void) {
  *
  ******************************************************************************/
 static ESESTATUS phNxpEseProto7816_SetNextIframeContxt(void) {
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Enter %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
   /* Expecting to reach here only after first of chained I-frame is sent and
    * before the last chained is sent */
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = IFRAME;
@@ -689,8 +678,7 @@ static ESESTATUS phNxpEseProto7816_SetNextIframeContxt(void) {
   // if  chained
   if (phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.totalDataLen >
       phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.currentDataLenIFS) {
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Process Chained Frame");
+    ALOGD_IF(ese_debug_enabled, "Process Chained Frame");
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.isChained = true;
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.sendDataLen =
         phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.currentDataLenIFS;
@@ -702,12 +690,9 @@ static ESESTATUS phNxpEseProto7816_SetNextIframeContxt(void) {
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.sendDataLen =
         phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.totalDataLen;
   }
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf(
-      "I-Frame Data Len: %d",
-      phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.sendDataLen);
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Exit %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "I-Frame Data Len: %d",
+           phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.sendDataLen);
+  ALOGD_IF(ese_debug_enabled, "Exit %s ", __FUNCTION__);
   return ESESTATUS_SUCCESS;
 }
 
@@ -723,18 +708,15 @@ static ESESTATUS phNxpEseProto7816_SetNextIframeContxt(void) {
 static ESESTATUS phNxpEseProro7816_SaveIframeData(uint8_t* p_data,
                                                uint32_t data_len) {
   ESESTATUS status = ESESTATUS_FAILED;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Enter %s ", __FUNCTION__);
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Data[0]=0x%x len=%d Data[%d]=0x%x", p_data[0], data_len,
-                  data_len - 1, p_data[data_len - 1]);
+  ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Data[0]=0x%x len=%d Data[%d]=0x%x", p_data[0],
+           data_len, data_len - 1, p_data[data_len - 1]);
   if (ESESTATUS_SUCCESS != phNxpEse_StoreDatainList(data_len, p_data)) {
-    LOG(ERROR) << StringPrintf("%s - Error storing chained data in list", __FUNCTION__);
+    ALOGE("%s - Error storing chained data in list", __FUNCTION__);
   } else {
     status = ESESTATUS_SUCCESS;
   }
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Exit %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Exit %s ", __FUNCTION__);
   return status;
 }
 
@@ -764,8 +746,7 @@ static ESESTATUS phNxpEseProto7816_ResetRecovery(void) {
  *
  ******************************************************************************/
 static ESESTATUS phNxpEseProto7816_RecoverySteps(void) {
-  if (phNxpEseProto7816_3_Var.recoveryCounter <=
-      PH_PROTO_7816_FRAME_RETRY_COUNT) {
+  if (phNxpEseProto7816_3_Var.recoveryCounter <= GET_FRAME_RETRY_COUNT()) {
     phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
         INTF_RESET_REQ;
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
@@ -775,6 +756,7 @@ static ESESTATUS phNxpEseProto7816_RecoverySteps(void) {
         SEND_S_INTF_RST;
   } else { /* If recovery fails */
     phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState = IDLE_STATE;
+    ALOGE("%s Recovery failed", __FUNCTION__);
   }
   return ESESTATUS_SUCCESS;
 }
@@ -825,13 +807,15 @@ static void phNxpEseProto7816_DecodeSFrameIFSData(uint8_t* p_data) {
   if(ifsd_data == phNxpEseProto7816_3_Var.currentIFSDSize) {
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS =
       phNxpEseProto7816_3_Var.currentIFSDSize;
-    DLOG_IF(INFO, ese_debug_enabled)
-          << StringPrintf("%s IFS adjustment: Max DataLen=%d \n", __FUNCTION__,
-            phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS);
+    ALOGD_IF(ese_debug_enabled, "%s IFS adjustment: Max DataLen=%d \n",
+             __FUNCTION__,
+             phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo
+                 .currentDataLenIFS);
   } else {
-    DLOG_IF(ERROR, ese_debug_enabled)
-          << StringPrintf("%s ERROR IFS adjustment: Max DataLen=%d \n", __FUNCTION__,
-            phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS);
+    ALOGE("%s ERROR IFS adjustment: Max DataLen=%d \n",
+             __FUNCTION__,
+             phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo
+                 .currentDataLenIFS);
   }
 }
 
@@ -860,45 +844,46 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
   phNxpEse_memcpy(&phNxpEseProto7816_3_Var.atrInfo.len, &p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET],
        sizeof(phNxpEseProto7816_ATR_Info_t));
 
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s Max DataLen=%d Current DataLen=%d Default DataLen=%d \n", __FUNCTION__,
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC,
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS,
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.defaultDataLenIFSC);
-  DLOG_IF(INFO, ese_debug_enabled)
-        << StringPrintf("ATR Data Follows");
-  DLOG_IF(INFO, ese_debug_enabled)
-          << StringPrintf("======================");
-  DLOG_IF(INFO, ese_debug_enabled)
-        << StringPrintf("ATR Length = %d", phNxpEseProto7816_3_Var.atrInfo.len);
-  DLOG_IF(INFO, ese_debug_enabled)
-          << StringPrintf("Vendor ID = 0x%.2x%.2x%.2x%.2x%.2x", phNxpEseProto7816_3_Var.atrInfo.vendorID[0]
-  , phNxpEseProto7816_3_Var.atrInfo.vendorID[1], phNxpEseProto7816_3_Var.atrInfo.vendorID[2]
-  , phNxpEseProto7816_3_Var.atrInfo.vendorID[3], phNxpEseProto7816_3_Var.atrInfo.vendorID[4]);
-  DLOG_IF(INFO, ese_debug_enabled)
-        << StringPrintf("DLL-IC = supports T%d", phNxpEseProto7816_3_Var.atrInfo.dll_IC);
-  DLOG_IF(INFO, ese_debug_enabled)
-          << StringPrintf("BGT = %d ms", (phNxpEseProto7816_3_Var.atrInfo.bgt[0]<<8)
-  | (phNxpEseProto7816_3_Var.atrInfo.bgt[1]));
-  DLOG_IF(INFO, ese_debug_enabled)
-          << StringPrintf("BWT = %d ms",phNxpEseProto7816_3_Var.atrInfo.bwt[0]<<8
-  | phNxpEseProto7816_3_Var.atrInfo.bwt[1]);
-  DLOG_IF(INFO, ese_debug_enabled)
-          << StringPrintf("Max supported frequency = %d Hz",phNxpEseProto7816_3_Var.atrInfo.maxFreq[0]<<8
-  |phNxpEseProto7816_3_Var.atrInfo.maxFreq[1]);
-  DLOG_IF(INFO, ese_debug_enabled)
-          << StringPrintf("Checksum LRC(0)/CRC(1) supports = 0x%x",phNxpEseProto7816_3_Var.atrInfo.checksum);
-  DLOG_IF(INFO, ese_debug_enabled)
-          << StringPrintf("DefaultIFSC = %d bytes",phNxpEseProto7816_3_Var.atrInfo.defaultIFSC);
-  DLOG_IF(INFO, ese_debug_enabled)
-          << StringPrintf("Max IFSC = %d bytes",phNxpEseProto7816_3_Var.atrInfo.maxIFSC[0]<<8
-  | phNxpEseProto7816_3_Var.atrInfo.maxIFSC[1]);
-  DLOG_IF(INFO, ese_debug_enabled)
-          << StringPrintf("Capabilities = 0x%x",phNxpEseProto7816_3_Var.atrInfo.capbilities[0]<<8
-  |phNxpEseProto7816_3_Var.atrInfo.capbilities[1]);
-  DLOG_IF(INFO, ese_debug_enabled)
-          << StringPrintf("======================");
-
+  ALOGD_IF(
+      ese_debug_enabled,
+      "%s Max DataLen=%d Current DataLen=%d Default DataLen=%d \n",
+      __FUNCTION__,
+      phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC,
+      phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS,
+      phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo
+          .defaultDataLenIFSC);
+  ALOGD_IF(ese_debug_enabled, "ATR Data Follows");
+  ALOGD_IF(ese_debug_enabled, "======================");
+  ALOGD_IF(ese_debug_enabled, "ATR Length = %d",
+           phNxpEseProto7816_3_Var.atrInfo.len);
+  ALOGD_IF(ese_debug_enabled, "Vendor ID = 0x%.2x%.2x%.2x%.2x%.2x",
+           phNxpEseProto7816_3_Var.atrInfo.vendorID[0],
+           phNxpEseProto7816_3_Var.atrInfo.vendorID[1],
+           phNxpEseProto7816_3_Var.atrInfo.vendorID[2],
+           phNxpEseProto7816_3_Var.atrInfo.vendorID[3],
+           phNxpEseProto7816_3_Var.atrInfo.vendorID[4]);
+  ALOGD_IF(ese_debug_enabled, "DLL-IC = supports T%d",
+           phNxpEseProto7816_3_Var.atrInfo.dll_IC);
+  ALOGD_IF(ese_debug_enabled, "BGT = %d ms",
+           (phNxpEseProto7816_3_Var.atrInfo.bgt[0] << 8) |
+               (phNxpEseProto7816_3_Var.atrInfo.bgt[1]));
+  ALOGD_IF(ese_debug_enabled, "BWT = %d ms",
+           phNxpEseProto7816_3_Var.atrInfo.bwt[0] << 8 |
+               phNxpEseProto7816_3_Var.atrInfo.bwt[1]);
+  ALOGD_IF(ese_debug_enabled, "Max supported frequency = %d Hz",
+           phNxpEseProto7816_3_Var.atrInfo.maxFreq[0] << 8 |
+               phNxpEseProto7816_3_Var.atrInfo.maxFreq[1]);
+  ALOGD_IF(ese_debug_enabled, "Checksum LRC(0)/CRC(1) supports = 0x%x",
+           phNxpEseProto7816_3_Var.atrInfo.checksum);
+  ALOGD_IF(ese_debug_enabled, "DefaultIFSC = %d bytes",
+           phNxpEseProto7816_3_Var.atrInfo.defaultIFSC);
+  ALOGD_IF(ese_debug_enabled, "Max IFSC = %d bytes",
+           phNxpEseProto7816_3_Var.atrInfo.maxIFSC[0] << 8 |
+               phNxpEseProto7816_3_Var.atrInfo.maxIFSC[1]);
+  ALOGD_IF(ese_debug_enabled, "Capabilities = 0x%x",
+           phNxpEseProto7816_3_Var.atrInfo.capbilities[0] << 8 |
+               phNxpEseProto7816_3_Var.atrInfo.capbilities[1]);
+  ALOGD_IF(ese_debug_enabled, "======================");
 }
 
 /******************************************************************************
@@ -919,9 +904,8 @@ static void phNxpEseProto7816_DecodeSFrameSecureTimerData(uint8_t* p_data) {
   while (maxSframeLen > frameOffset) {
     frameOffset += 1; /* To get the Type (TLV) */
     dataType = p_data[frameOffset];
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s frameoffset=%d value=0x%x\n", __FUNCTION__, frameOffset,
-                    p_data[frameOffset]);
+    ALOGD_IF(ese_debug_enabled, "%s frameoffset=%d value=0x%x\n", __FUNCTION__,
+             frameOffset, p_data[frameOffset]);
     switch (dataType) /* Type (TLV) */
     {
       case PH_PROPTO_7816_SFRAME_TIMER1:
@@ -945,11 +929,10 @@ static void phNxpEseProto7816_DecodeSFrameSecureTimerData(uint8_t* p_data) {
         break;
     }
   }
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("secure timer t1 = 0x%x t2 = 0x%x t3 = 0x%x",
-                  phNxpEseProto7816_3_Var.secureTimerParams.secureTimer1,
-                  phNxpEseProto7816_3_Var.secureTimerParams.secureTimer2,
-                  phNxpEseProto7816_3_Var.secureTimerParams.secureTimer3);
+  ALOGD_IF(ese_debug_enabled, "secure timer t1 = 0x%x t2 = 0x%x t3 = 0x%x",
+           phNxpEseProto7816_3_Var.secureTimerParams.secureTimer1,
+           phNxpEseProto7816_3_Var.secureTimerParams.secureTimer2,
+           phNxpEseProto7816_3_Var.secureTimerParams.secureTimer3);
   return;
 }
 
@@ -975,11 +958,9 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
   ESESTATUS status = ESESTATUS_SUCCESS;
   uint8_t pcb;
   phNxpEseProto7816_PCB_bits_t pcb_bits;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Enter %s ", __FUNCTION__);
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Retry Counter = %d\n",
-                  phNxpEseProto7816_3_Var.recoveryCounter);
+  ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Retry Counter = %d\n",
+           phNxpEseProto7816_3_Var.recoveryCounter);
   pcb = p_data[PH_PROPTO_7816_PCB_OFFSET];
   // memset(&phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.rcvPcbBits, 0x00,
   // sizeof(struct PCB_BITS));
@@ -988,16 +969,14 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
 
   if (0x00 == pcb_bits.msb) /* I-FRAME decoded should come here */
   {
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s I-Frame Received", __FUNCTION__);
+    ALOGD_IF(ese_debug_enabled, "%s I-Frame Received", __FUNCTION__);
     phNxpEseProto7816_3_Var.wtx_counter = 0;
     phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdFrameType = IFRAME;
     if (phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.seqNo !=
         pcb_bits.bit7)  //   != pcb_bits->bit7)
     {
-      DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s I-Frame lastRcvdIframeInfo.seqNo:0x%x", __FUNCTION__,
-                      pcb_bits.bit7);
+      ALOGD_IF(ese_debug_enabled, "%s I-Frame lastRcvdIframeInfo.seqNo:0x%x",
+               __FUNCTION__, pcb_bits.bit7);
       phNxpEseProto7816_ResetRecovery();
       phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.seqNo = 0x00;
       phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.seqNo |=
@@ -1030,9 +1009,8 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         }
       }
     } else {
-      phNxpEse_Sleep(DELAY_ERROR_RECOVERY);
-      if (phNxpEseProto7816_3_Var.recoveryCounter <
-          PH_PROTO_7816_FRAME_RETRY_COUNT) {
+      phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
+      if (phNxpEseProto7816_3_Var.recoveryCounter < GET_FRAME_RETRY_COUNT()) {
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = RFRAME;
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.RframeInfo.errCode =
             OTHER_ERROR;
@@ -1047,8 +1025,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
   } else if ((0x01 == pcb_bits.msb) &&
              (0x00 == pcb_bits.bit7)) /* R-FRAME decoded should come here */
   {
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s R-Frame Received", __FUNCTION__);
+    ALOGD_IF(ese_debug_enabled, "%s R-Frame Received", __FUNCTION__);
     phNxpEseProto7816_3_Var.wtx_counter = 0;
     phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdFrameType = RFRAME;
     phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.seqNo =
@@ -1074,7 +1051,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
              ((pcb_bits.lsb == 0x00) && (pcb_bits.bit2 == 0x01)) ||
              /* Error handling 3 : Frame Missing error */
              ((pcb_bits.lsb == 0x01) && (pcb_bits.bit2 == 0x01))) {
-      phNxpEse_Sleep(DELAY_ERROR_RECOVERY);
+      phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
       if ((pcb_bits.lsb == 0x00) && (pcb_bits.bit2 == 0x01)) {
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.errCode =
             OTHER_ERROR;
@@ -1087,8 +1064,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.errCode =
             SOF_MISSED_ERROR;
       }
-      if (phNxpEseProto7816_3_Var.recoveryCounter <
-          PH_PROTO_7816_FRAME_RETRY_COUNT) {
+      if (phNxpEseProto7816_3_Var.recoveryCounter < GET_FRAME_RETRY_COUNT()) {
         if (phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.FrameType == IFRAME) {
             /*Only for R-NACK other issue re sync*/
             if((pcb_bits.lsb == 0x00) && (pcb_bits.bit2 == 0x01)) {
@@ -1177,9 +1153,8 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
 #ifdef PROP_FRAME_MISSING_ERROR
     /* Error handling 3 */
     else if ((pcb_bits.lsb == 0x01) && (pcb_bits.bit2 == 0x01)) {
-      phNxpEse_Sleep(DELAY_ERROR_RECOVERY);
-      if (phNxpEseProto7816_3_Var.recoveryCounter <
-          PH_PROTO_7816_FRAME_RETRY_COUNT) {
+      phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
+      if (phNxpEseProto7816_3_Var.recoveryCounter < GET_FRAME_RETRY_COUNT()) {
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.errCode =
             SOF_MISSED_ERROR;
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx =
@@ -1193,9 +1168,8 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
 #endif
     else /* Error handling 4 */
     {
-      phNxpEse_Sleep(DELAY_ERROR_RECOVERY);
-      if (phNxpEseProto7816_3_Var.recoveryCounter <
-          PH_PROTO_7816_FRAME_RETRY_COUNT) {
+      phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
+      if (phNxpEseProto7816_3_Var.recoveryCounter < GET_FRAME_RETRY_COUNT()) {
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.errCode =
             UNDEFINED_ERROR;
         phNxpEseProto7816_3_Var.recoveryCounter++;
@@ -1207,8 +1181,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
   } else if ((0x01 == pcb_bits.msb) &&
              (0x01 == pcb_bits.bit7)) /* S-FRAME decoded should come here */
   {
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s S-Frame Received", __FUNCTION__);
+    ALOGD_IF(ese_debug_enabled, "%s S-Frame Received", __FUNCTION__);
     int32_t frameType = (int32_t)(pcb & 0x3F); /*discard upper 2 bits */
     phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdFrameType = SFRAME;
     if (frameType != WTX_REQ) {
@@ -1272,22 +1245,21 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         break;
       case WTX_REQ:
         phNxpEseProto7816_3_Var.wtx_counter++;
-        DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s Wtx_counter value - %lu", __FUNCTION__,
-                        phNxpEseProto7816_3_Var.wtx_counter);
-        DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s Wtx_counter wtx_counter_limit - %lu", __FUNCTION__,
-                        phNxpEseProto7816_3_Var.wtx_counter_limit);
-#ifdef SFRAME_WTX_SUPPORT
+        ALOGD_IF(ese_debug_enabled, "%s Wtx_counter value - %lu", __FUNCTION__,
+                 phNxpEseProto7816_3_Var.wtx_counter);
+        ALOGD_IF(ese_debug_enabled, "%s Wtx_counter wtx_counter_limit - %lu",
+                 __FUNCTION__, phNxpEseProto7816_3_Var.wtx_counter_limit);
+
         /* Previous sent frame is some S-frame but not WTX response S-frame */
-        if (phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.sFrameType !=
+        if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0 &&
+            phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.sFrameType !=
                 WTX_RSP &&
-            phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.FrameType ==
-                SFRAME) { /* Goto recovery if it keep coming here for more than
-                             recovery counter max. value */
+            phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.FrameType == SFRAME) {
+          /* Goto recovery if it
+          keep coming here for more than recovery counter max. value */
           if (phNxpEseProto7816_3_Var.recoveryCounter <
-              PH_PROTO_7816_FRAME_RETRY_COUNT) { /* Re-transmitting the previous
-                                                    sent S-frame */
+              GET_FRAME_RETRY_COUNT()) { /* Re-transmitting the previous
+                                                  sent S-frame */
             phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx =
                 phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx;
             phNxpEseProto7816_3_Var.recoveryCounter++;
@@ -1295,34 +1267,49 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
             phNxpEseProto7816_RecoverySteps();
             phNxpEseProto7816_3_Var.recoveryCounter++;
           }
-        } else
-#endif
-        { /* Checking for WTX counter with max. allowed WTX count */
+        } else {
+          /* Checking for WTX counter with max. allowed WTX count */
           if (phNxpEseProto7816_3_Var.wtx_counter ==
               phNxpEseProto7816_3_Var.wtx_counter_limit) {
             phNxpEseProto7816_3_Var.wtx_counter = 0;
-
-            if(phNxpEseProto7816_3_Var.reset_type != INTF_RESET_REQ)
-            {
-              phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo
-                .sFrameType = INTF_RESET_REQ;
-              phNxpEseProto7816_3_Var.reset_type = INTF_RESET_REQ;
-              phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
-              phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.sFrameType =
-                INTF_RESET_REQ;
-              phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
-                SEND_S_INTF_RST;
-              LOG(ERROR) << StringPrintf("%s Interface Reset to eSE wtx count reached!!!",
-                            __FUNCTION__);
+            if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
+              if (phNxpEseProto7816_3_Var.reset_type != INTF_RESET_REQ) {
+                phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo
+                    .sFrameType = INTF_RESET_REQ;
+                phNxpEseProto7816_3_Var.reset_type = INTF_RESET_REQ;
+                phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
+                phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo
+                    .sFrameType = INTF_RESET_REQ;
+                phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+                    SEND_S_INTF_RST;
+                ALOGD_IF(ese_debug_enabled,
+                         "%s Interface Reset to eSE wtx "
+                         "count reached!!!",
+                         __FUNCTION__);
+              } else {
+                ALOGD_IF(ese_debug_enabled,
+                         "%s Power cycle to eSE  max "
+                         "WTX received",
+                         __FUNCTION__);
+                phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+                    IDLE_STATE;
+                status = ESESTATUS_TRANSCEIVE_FAILED;
+              }
             } else {
-              LOG(ERROR) << StringPrintf("%s Power cycle to eSE  max WTX received",
-                            __FUNCTION__);
+              phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo
+                  .sFrameType = INTF_RESET_REQ;
+              phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
+              phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo
+                  .sFrameType = INTF_RESET_REQ;
               phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
-                IDLE_STATE;
-              status = ESESTATUS_TRANSCEIVE_FAILED;
+                  SEND_S_INTF_RST;
+              ALOGD_IF(ese_debug_enabled,
+                       "%s Interface Reset to eSE wtx"
+                       " count reached!!!",
+                       __FUNCTION__);
             }
           } else {
-            phNxpEse_Sleep(DELAY_ERROR_RECOVERY);
+            phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
             phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo
                 .sFrameType = WTX_REQ;
             phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
@@ -1345,8 +1332,24 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         phNxpEseProto7816_ResetProtoParams();
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
             INTF_RESET_RSP;
-        if (p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] > 0)
+        if (p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] > 0) {
           phNxpEseProto7816_DecodeSFrameATRData(p_data);
+          if (phNxpEseProto7816_3_Var.atrInfo
+                  .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] ==
+              PH_SE_OS_VERSION_10) {
+            phNxpEse_setOsVersion(OS_VERSION_5_2);
+          } else if(phNxpEseProto7816_3_Var.atrInfo
+                  .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] ==
+                  PH_PROTO_7816_VALUE_ZERO){
+            phNxpEse_setOsVersion(OS_VERSION_5_1);
+          }
+          else {
+            phNxpEse_setOsVersion(INVALID_OS_VERSION);
+            ALOGE("%s Invalid OS version ", __FUNCTION__);
+          }
+        } else {
+          phNxpEse_setOsVersion(OS_VERSION_4_0);
+        }
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = UNKNOWN;
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
@@ -1394,14 +1397,13 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
             IDLE_STATE;
         break;
       default:
-        LOG(ERROR) << StringPrintf("%s Wrong S-Frame Received", __FUNCTION__);
+        ALOGE("%s Wrong S-Frame Received", __FUNCTION__);
         break;
     }
   } else {
-    LOG(ERROR) << StringPrintf("%s Wrong-Frame Received", __FUNCTION__);
+    ALOGD_IF(ese_debug_enabled, "%s Wrong-Frame Received", __FUNCTION__);
   }
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Exit %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Exit %s ", __FUNCTION__);
   return status;
 }
 
@@ -1418,12 +1420,10 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
   uint32_t data_len = 0;
   uint8_t* p_data = NULL;
   ESESTATUS status = ESESTATUS_FAILED;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Enter %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
   status = phNxpEseProto7816_GetRawFrame(&data_len, &p_data);
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s p_data ----> %p len ----> 0x%x", __FUNCTION__, p_data,
-                  data_len);
+  ALOGD_IF(ese_debug_enabled, "%s p_data ----> %p len ----> 0x%x", __FUNCTION__,
+           p_data, data_len);
   if (ESESTATUS_SUCCESS == status) {
     /* Resetting the timeout counter */
     phNxpEseProto7816_3_Var.timeoutCounter = PH_PROTO_7816_VALUE_ZERO;
@@ -1434,7 +1434,7 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
       phNxpEseProto7816_3_Var.rnack_retry_counter = PH_PROTO_7816_VALUE_ZERO;
       status = phNxpEseProto7816_DecodeFrame(p_data, data_len);
     } else {
-      LOG(ERROR) << StringPrintf("%s LRC Check failed", __FUNCTION__);
+      ALOGE("%s LRC Check failed", __FUNCTION__);
       if (phNxpEseProto7816_3_Var.rnack_retry_counter <
           phNxpEseProto7816_3_Var.rnack_retry_limit) {
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdFrameType = INVALID;
@@ -1447,7 +1447,9 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             SEND_R_NACK;
         phNxpEseProto7816_3_Var.rnack_retry_counter++;
-        phNxpEse_Sleep(DELAY_ERROR_RECOVERY);
+        if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
+          phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
+        }
       } else {
         phNxpEseProto7816_3_Var.rnack_retry_counter = PH_PROTO_7816_VALUE_ZERO;
         /* Re-transmission failed completely, Going to exit */
@@ -1457,7 +1459,8 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
       }
     }
   } else {
-    LOG(ERROR) << StringPrintf("%s phNxpEseProto7816_GetRawFrame failed", __FUNCTION__);
+    ALOGD_IF(ese_debug_enabled, "%s phNxpEseProto7816_GetRawFrame failed",
+             __FUNCTION__);
     if ((SFRAME == phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.FrameType) &&
         ((WTX_RSP ==
           phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.sFrameType) ||
@@ -1483,27 +1486,30 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
         phNxpEseProto7816_3_Var.timeoutCounter = PH_PROTO_7816_VALUE_ZERO;
       }
     } else {
-      phNxpEse_Sleep(DELAY_ERROR_RECOVERY);
+      phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
       /* re transmit the frame */
       if (phNxpEseProto7816_3_Var.timeoutCounter <
           PH_PROTO_7816_TIMEOUT_RETRY_COUNT) {
         phNxpEseProto7816_3_Var.timeoutCounter++;
-        LOG(ERROR) << StringPrintf("%s re-transmitting the previous frame", __FUNCTION__);
+        ALOGD_IF(ese_debug_enabled, "%s re-transmitting the previous frame",
+                 __FUNCTION__);
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx =
             phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx;
       } else {
-        /* Re-transmission failed completely, Going to exit */ 
+        /* Re-transmission failed completely, Going to exit */
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
-        status = ESESTATUS_TRANSCEIVE_FAILED;
+        if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
+          status = ESESTATUS_TRANSCEIVE_FAILED;
+        }
         phNxpEseProto7816_3_Var.timeoutCounter = PH_PROTO_7816_VALUE_ZERO;
-        LOG(ERROR) << StringPrintf("%s calling phNxpEse_StoreDatainList", __FUNCTION__);
+        ALOGD_IF(ese_debug_enabled, "%s calling phNxpEse_StoreDatainList",
+                 __FUNCTION__);
         phNxpEse_StoreDatainList(data_len, p_data);
       }
     }
   }
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Exit %s Status 0x%x", __FUNCTION__, status);
+  ALOGD_IF(ese_debug_enabled, "Exit %s Status 0x%x", __FUNCTION__, status);
   return status;
 }
 
@@ -1524,14 +1530,11 @@ static ESESTATUS TransceiveProcess(void) {
   sFrameInfo_t sFrameInfo;
   memset(&sFrameInfo, 0, sizeof(sFrameInfo_t));
 
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Enter %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
   while (phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState !=
          IDLE_STATE) {
-    DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf(
-        "%s nextTransceiveState %x", __FUNCTION__,
-        phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState);
+    ALOGD_IF(ese_debug_enabled, "%s nextTransceiveState %x", __FUNCTION__,
+             phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState);
     switch (phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState) {
       case SEND_IFRAME:
         status = phNxpEseProto7816_SendIframe(
@@ -1542,7 +1545,9 @@ static ESESTATUS TransceiveProcess(void) {
         break;
       case SEND_R_NACK:
         status = phNxpEseProto7816_sendRframe(RNACK);
-        phNxpEse_Sleep(DELAY_ERROR_RECOVERY);
+        if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
+          phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
+        }
         break;
       case SEND_S_RSYNC:
         sFrameInfo.sFrameType = RESYNCH_REQ;
@@ -1585,15 +1590,12 @@ static ESESTATUS TransceiveProcess(void) {
                       sizeof(phNxpEseProto7816_NextTx_Info_t));
       status = phNxpEseProto7816_ProcessResponse();
     } else {
-      DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s Transceive send failed, going to recovery!",
-                      __FUNCTION__);
+      ALOGE("%s Transceive send failed, going to recovery!", __FUNCTION__);
       phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
           IDLE_STATE;
     }
   };
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Exit %s Status 0x%x", __FUNCTION__, status);
+  ALOGD_IF(ese_debug_enabled, "Exit %s Status 0x%x", __FUNCTION__, status);
   return status;
 }
 
@@ -1611,12 +1613,12 @@ static ESESTATUS TransceiveProcess(void) {
  * Returns          On success return true or else false.
  *
  ******************************************************************************/
-ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp) {
+ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd,
+                                       phNxpEse_data* pRsp) {
   ESESTATUS status = ESESTATUS_FAILED;
   ESESTATUS wStatus = ESESTATUS_FAILED;
   phNxpEse_data pRes;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Enter %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
   if ((NULL == pCmd) || (NULL == pRsp) ||
       (phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState !=
        PH_NXP_ESE_PROTO_7816_IDLE))
@@ -1628,29 +1630,28 @@ ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp)
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.p_data = pCmd->p_data;
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.totalDataLen =
       pCmd->len;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Transceive data ptr 0x%p len:%d", pCmd->p_data, pCmd->len);
+  ALOGD_IF(ese_debug_enabled, "Transceive data ptr 0x%p len:%d", pCmd->p_data,
+           pCmd->len);
   status = phNxpEseProto7816_SetFirstIframeContxt();
   status = TransceiveProcess();
   if (ESESTATUS_FAILED == status || ESESTATUS_TRANSCEIVE_FAILED == status) {
     /* ESE hard reset to be done */
-    LOG(ERROR) << StringPrintf("Transceive failed, hard reset to proceed");
+    ALOGE("Transceive failed, hard reset to proceed");
     wStatus = phNxpEse_GetData(&pRes.len, &pRes.p_data);
     if (ESESTATUS_SUCCESS == wStatus) {
-      LOG(ERROR) << StringPrintf(
-          "%s Data successfully received at 7816, packaging to "
-          "send upper layers: DataLen = %d",
-          __FUNCTION__, pRes.len);
+      ALOGD_IF(ese_debug_enabled,
+               "%s Data successfully received at 7816, packaging to "
+               "send upper layers: DataLen = %d",
+               __FUNCTION__, pRes.len);
     }
   } else {
     // fetch the data info and report to upper layer.
     wStatus = phNxpEse_GetData(&pRes.len, &pRes.p_data);
     if (ESESTATUS_SUCCESS == wStatus) {
-      DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf(
-          "%s Data successfully received at 7816, packaging to "
-          "send upper layers: DataLen = %d",
-          __FUNCTION__, pRes.len);
+      ALOGD_IF(ese_debug_enabled,
+               "%s Data successfully received at 7816, packaging to "
+               "send upper layers: DataLen = %d",
+               __FUNCTION__, pRes.len);
     } else
       status = ESESTATUS_FAILED;
   }
@@ -1662,11 +1663,10 @@ ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp)
   phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
       PH_NXP_ESE_PROTO_7816_IDLE;
   phNxpEseProto7816_3_Var.reset_type = RESET_TYPE_NONE;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Exit %s Status 0x%x", __FUNCTION__, status);
+  ALOGD_IF(ese_debug_enabled, "Exit %s Status 0x%x", __FUNCTION__, status);
   return status;
 }
-#if 0
+
 /******************************************************************************
  * Function         phNxpEseProto7816_RSync
  *
@@ -1689,7 +1689,6 @@ static ESESTATUS phNxpEseProto7816_RSync(void) {
       PH_NXP_ESE_PROTO_7816_IDLE;
   return status;
 }
-#endif
 
 /******************************************************************************
  * Function         phNxpEseProto7816_HardReset
@@ -1781,17 +1780,16 @@ ESESTATUS phNxpEseProto7816_Reset(void) {
   ESESTATUS status = ESESTATUS_FAILED;
   /* Resetting host protocol instance */
   phNxpEseProto7816_ResetProtoParams();
-#if(TRUE == TRUE)
-  status = phNxpEseProto7816_HardReset();
-#else
-  /* Resynchronising ESE protocol instance */
-  status = phNxpEseProto7816_RSync();
-#endif
-
-  /* Updating the ATR information(IFS,..) to 7816 stack */
-  phNxpEse_data atrRsp;
-  phNxpEseProto7816_getAtr(&atrRsp);
-  phNxpEse_free(atrRsp.p_data);
+  if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
+    status = phNxpEseProto7816_HardReset();
+    /* Updating the ATR information(IFS,..) to 7816 stack */
+    phNxpEse_data atrRsp;
+    phNxpEseProto7816_getAtr(&atrRsp);
+    phNxpEse_free(atrRsp.p_data);
+  } else {
+    /* Resynchronising ESE protocol instance */
+    status = phNxpEseProto7816_RSync();
+  }
   return status;
 }
 
@@ -1807,8 +1805,8 @@ ESESTATUS phNxpEseProto7816_Reset(void) {
 ESESTATUS phNxpEseProto7816_Open(phNxpEseProto7816InitParam_t initParam) {
   ESESTATUS status = ESESTATUS_FAILED;
   status = phNxpEseProto7816_ResetProtoParams();
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("%s: First open completed, Congratulations", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "%s: First open completed, Congratulations",
+           __FUNCTION__);
   /* Update WTX max. limit */
   phNxpEseProto7816_3_Var.wtx_counter_limit = initParam.wtx_counter_limit;
   phNxpEseProto7816_3_Var.rnack_retry_limit = initParam.rnack_retry_limit;
@@ -1822,15 +1820,15 @@ ESESTATUS phNxpEseProto7816_Open(phNxpEseProto7816InitParam_t initParam) {
     }
   } else /* Initialisation condition to achieve usecases like JCOP download */
   {
-#if(TRUE == TRUE)
-    status = phNxpEseProto7816_HardReset();
-#else
-    status = phNxpEseProto7816_RSync();
-#endif
-    /* Updating the ATR information (Eg: IFS,..) to 7816 stack */
-    phNxpEse_data atrRsp;
-    phNxpEseProto7816_getAtr(&atrRsp);
-    phNxpEse_free(atrRsp.p_data);
+    if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
+      status = phNxpEseProto7816_HardReset();
+      /* Updating the ATR information (Eg: IFS,..) to 7816 stack */
+      phNxpEse_data atrRsp;
+      phNxpEseProto7816_getAtr(&atrRsp);
+      phNxpEse_free(atrRsp.p_data);
+    } else {
+      status = phNxpEseProto7816_RSync();
+    }
   }
   return status;
 }
@@ -1864,12 +1862,12 @@ ESESTATUS phNxpEseProto7816_Close(
   status = TransceiveProcess();
   if (ESESTATUS_SUCCESS != status) {
     /* reset all the structures */
-    LOG(ERROR) << StringPrintf("%s TransceiveProcess failed ", __FUNCTION__);
+    ALOGE("%s TransceiveProcess failed ", __FUNCTION__);
     if(status == ESESTATUS_TRANSCEIVE_FAILED &&
       phNxpEseProto7816_3_Var.atrInfo.len > PH_PROTO_7816_VALUE_ZERO) {
       if(phNxpEseProto7816_3_Var.atrInfo.vendorID
         [PH_PROTO_ATR_RSP_VENDOR_ID_LEN-1] != PH_SE_OS_VERSION_10) {
-        LOG(ERROR) << StringPrintf("%s shall trigger recovery", __FUNCTION__);
+        ALOGD_IF(ese_debug_enabled, "%s shall trigger recovery", __FUNCTION__);
         status = ESESTATUS_RESPONSE_TIMEOUT;
       }
     }
@@ -1914,14 +1912,14 @@ ESESTATUS phNxpEseProto7816_CloseAllSessions(void) {
       status = TransceiveProcess();
       if (ESESTATUS_FAILED == status) {
         /* reset all the structures */
-        LOG(ERROR) << StringPrintf("%s EndOfSession failed ", __FUNCTION__);
+        ALOGD_IF(ese_debug_enabled, "%s EndOfSession failed ", __FUNCTION__);
       }
       phNxpEse_free(buffer);
       phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
         PH_NXP_ESE_PROTO_7816_IDLE;
     }
   } else {
-    LOG(ERROR) << StringPrintf("%s Function not supported ", __FUNCTION__);
+    ALOGD_IF(ese_debug_enabled, "%s Function not supported ", __FUNCTION__);
     status = ESESTATUS_SUCCESS;
   }
   return status;
@@ -1938,8 +1936,7 @@ ESESTATUS phNxpEseProto7816_CloseAllSessions(void) {
 ESESTATUS phNxpEseProto7816_IntfReset(
     phNxpEseProto7816SecureTimer_t* pSecureTimerParam) {
   ESESTATUS status = ESESTATUS_FAILED;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Enter %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
   phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
       PH_NXP_ESE_PROTO_7816_TRANSCEIVE;
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
@@ -1950,14 +1947,13 @@ ESESTATUS phNxpEseProto7816_IntfReset(
   status = TransceiveProcess();
   if (ESESTATUS_FAILED == status) {
     /* reset all the structures */
-    LOG(ERROR) << StringPrintf("%s TransceiveProcess failed ", __FUNCTION__);
+    ALOGE("%s TransceiveProcess failed ", __FUNCTION__);
   }
   phNxpEse_memcpy(pSecureTimerParam, &phNxpEseProto7816_3_Var.secureTimerParams,
                   sizeof(phNxpEseProto7816SecureTimer_t));
   phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
       PH_NXP_ESE_PROTO_7816_IDLE;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Exit %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Exit %s ", __FUNCTION__);
   return status;
 }
 
@@ -1972,11 +1968,11 @@ ESESTATUS phNxpEseProto7816_IntfReset(
 ESESTATUS phNxpEseProto7816_SetIfs(uint16_t IFS_Size) {
   //phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = IFSC_Size;
   ESESTATUS status = ESESTATUS_FAILED;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Enter %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
   /* IFSD > IFSC not allowed, card will reject by R-NACK so not sending */
   if(IFS_Size > phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC) {
-    LOG(ERROR) << StringPrintf("%s ERROR: IFSD > IFSC, NOT ALLOWED", __FUNCTION__);
+    ALOGD_IF(ese_debug_enabled, "%s ERROR: IFSD > IFSC, NOT ALLOWED",
+             __FUNCTION__);
   } else {
     phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
         PH_NXP_ESE_PROTO_7816_TRANSCEIVE;
@@ -1989,12 +1985,11 @@ ESESTATUS phNxpEseProto7816_SetIfs(uint16_t IFS_Size) {
     status = TransceiveProcess();
     if (ESESTATUS_FAILED == status) {
       /* reset all the structures */
-      LOG(ERROR) << StringPrintf("%s TransceiveProcess failed ", __FUNCTION__);
+      ALOGE( "%s TransceiveProcess failed ", __FUNCTION__);
     }
     phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
         PH_NXP_ESE_PROTO_7816_IDLE;
-    DLOG_IF(INFO, ese_debug_enabled)
-        << StringPrintf("Exit %s ", __FUNCTION__);
+    ALOGD_IF(ese_debug_enabled, "Exit %s ", __FUNCTION__);
   }
   return status;
 }
@@ -2008,10 +2003,11 @@ ESESTATUS phNxpEseProto7816_SetIfs(uint16_t IFS_Size) {
  *
  ******************************************************************************/
 uint16_t phNxpEseProto7816_GetIfs(void) {
-  DLOG_IF(INFO, ese_debug_enabled)
-    << StringPrintf("Enter %s current IFSC = %d", __FUNCTION__,
+  ALOGD_IF(
+      ese_debug_enabled, "Enter %s current IFSC = %d", __FUNCTION__,
       phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS);
-    return phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS;
+  return phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo
+      .currentDataLenIFS;
 }
 
 /******************************************************************************
@@ -2023,15 +2019,13 @@ uint16_t phNxpEseProto7816_GetIfs(void) {
  *
  ******************************************************************************/
 ESESTATUS phNxpEseProto7816_getAtr(phNxpEse_data* pATRRsp) {
-  //phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = IFSC_Size;
   ESESTATUS status = ESESTATUS_FAILED;
-  UNUSED(pATRRsp);
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Enter %s ", __FUNCTION__);
+
+  ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
   phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
       PH_NXP_ESE_PROTO_7816_TRANSCEIVE;
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
-  //phNxpEseProto7816_3_Var.currentIFSDSize = IFS_Size;
+
   phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.sFrameType =
       ATR_REQ;
   phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
@@ -2039,22 +2033,20 @@ ESESTATUS phNxpEseProto7816_getAtr(phNxpEse_data* pATRRsp) {
   status = TransceiveProcess();
   if (ESESTATUS_FAILED == status) {
     /* reset all the structures */
-    LOG(ERROR) << StringPrintf("%s TransceiveProcess failed ", __FUNCTION__);
+    ALOGD_IF(ese_debug_enabled, "%s TransceiveProcess failed ", __FUNCTION__);
   }
 
   status = phNxpEse_GetData(&(pATRRsp->len), &(pATRRsp->p_data));
   if (ESESTATUS_SUCCESS == status) {
-    DLOG_IF(INFO, ese_debug_enabled)
-    << StringPrintf(
-        "%s Data successfully received at 7816, packaging to "
-        "send upper layers: DataLen = %d",
-        __FUNCTION__, pATRRsp->len);
+    ALOGD_IF(ese_debug_enabled,
+             "%s Data successfully received at 7816, packaging to "
+             "send upper layers: DataLen = %d",
+             __FUNCTION__, pATRRsp->len);
   } else
     status = ESESTATUS_FAILED;
   phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
       PH_NXP_ESE_PROTO_7816_IDLE;
-  DLOG_IF(INFO, ese_debug_enabled)
-      << StringPrintf("Exit %s ", __FUNCTION__);
+  ALOGD_IF(ese_debug_enabled, "Exit %s ", __FUNCTION__);
   return status;
 }
 
