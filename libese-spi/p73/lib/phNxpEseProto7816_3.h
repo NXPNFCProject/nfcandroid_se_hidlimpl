@@ -154,6 +154,8 @@ typedef struct iFrameInfo {
  */
 typedef struct sFrameInfo {
   sFrameTypes_t sFrameType; /*!< S-frame: Type of S-frame cmd/rsp */
+  uint8_t* p_data; /*!< S-frame: Actual data (Information field (INF)) */
+  uint8_t len; /*!< S-frame: the length of the I-frame actual data */
 } sFrameInfo_t;
 
 /*!
@@ -167,6 +169,36 @@ typedef struct rFrameInfo {
   uint8_t seqNo; /*!< R-frame: Sequence number of the expected I-frame */
   rFrameErrorTypes_t errCode; /*!< R-frame: Error type */
 } rFrameInfo_t;
+
+/*!
+ * \brief ATRInfo: ISO7816 ATR Information bytes
+ *
+ * This structure holds ATR information bytes
+ *
+ */
+typedef struct phNxpEseProto7816_ATR_Info {
+  uint8_t len;          /*!< ATR: ATR length in bytes */
+  uint8_t vendorID[5];  /*!< ATR: VendorID according to ISO7816-5 */
+  uint8_t dll_IC;       /*!< ATR: Data Link Layer - Interface Character */
+  uint8_t bgt[2];         /*!< ATR: Minimum guard time in milliseconds for
+                        T=1 blocks sent in opposite directions */
+  uint8_t bwt[2];         /*!< ATR: Maximum allowed command processing
+                        time in milliseconds before card has sent either
+                        command response or S(WTX) requesting processing time extension */
+  uint8_t maxFreq[2];     /*!< ATR: Max supported  clock frequency in kHz  */
+  uint8_t checksum;     /*!< ATR: Checksum (0 = LRC / 1 = CRC) */
+  uint8_t defaultIFSC;  /*!< ATR: Default IFS size */
+  uint8_t numChannels;  /*!< ATR: Number of logical connections supported */
+  uint8_t maxIFSC[2];     /*!< ATR: Maximum size of IFS supported */
+  uint8_t capbilities[2]; /*!< ATR: Bitmap to indicate various features supported by SE
+                        Bit-1: SE Data Available Line supported.
+                        Bit-2: SE Data available polarity. 1 - Data available GPIO will be pulled HIGH when SE response is ready
+                        Bit 3: SE chip reset S-blk command supported
+                        Bit-4: Extended frame length feature supported
+                        Bit-5: Support for more than one logical channel
+                        Bit 6 to 16: Reserved for future use
+                        */
+} phNxpEseProto7816_ATR_Info_t;
 
 /*!
  * \brief Next/Last Tx information structure holding transceive data
@@ -262,6 +294,7 @@ typedef struct phNxpEseProto7816 {
   phNxpEseProto7816SecureTimer_t secureTimerParams;
   unsigned long int reset_type;
   uint32_t currentIFSDSize;
+  phNxpEseProto7816_ATR_Info_t atrInfo;
 } phNxpEseProto7816_t;
 
 /*!
@@ -379,7 +412,7 @@ static phNxpEseProto7816_t phNxpEseProto7816_3_Var;
 /*!
  * \brief 7816-3 protocol max. error retry counter
  */
-#define PH_PROTO_7816_FRAME_RETRY_COUNT 10
+#define PH_PROTO_7816_FRAME_RETRY_COUNT 03
 /*!
  * \brief 7816-3 protocol max. WTX default count
  */
@@ -408,7 +441,22 @@ static phNxpEseProto7816_t phNxpEseProto7816_3_Var;
  * APIs exposed from the 7816-3 protocol layer
  */
 #define EXTENDED_FRAME_MARKER 0xFF
-
+/*
+ * APIs exposed from the 7816-3 protocol layer
+ */
+#define PH_PROTO_CLOSE_ALL_SESSION_INF 0x01
+/*
+ * APIs exposed from the 7816-3 protocol layer
+ */
+#define PH_PROTO_CLOSE_ALL_SESSION_LEN 0x01
+/*
+ * APIs exposed from the 7816-3 protocol layer
+ */
+#define PH_PROTO_ATR_RSP_VENDOR_ID_LEN 0x05
+/*
+ * APIs exposed from the 7816-3 protocol layer
+ */
+#define PH_SE_OS_VERSION_10            0x10
 /**
  * \ingroup ISO7816-3_protocol_lib
  * \brief This function is used to reset just the current interface
@@ -514,5 +562,15 @@ ESESTATUS phNxpEseProto7816_getAtr(phNxpEse_data* pATRRsp);
  *
  */
 uint16_t phNxpEseProto7816_GetIfs(void);
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief This function is used to check eSE is alive/responding
+ *
+ *
+ * \retval On responding return true or else false.
+ *
+ */
+ESESTATUS phNxpEseProto7816_CloseAllSessions(void);
 /** @} */
 #endif /* _PHNXPESEPROTO7816_3_H_ */

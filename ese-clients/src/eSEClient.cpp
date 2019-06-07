@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018-2019 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -85,9 +85,8 @@ bool SE_Transmit(uint8_t* xmitBuffer, int32_t xmitBufferSize, uint8_t* recvBuffe
     {
       memcpy(&recvBuffer[0], rspData.p_data, rspData.len);
     }
-        //free (rspData.p_data);
-    //&recvBuffer = rspData.p_data;
-    ALOGE("%s: size = 0x%x recv[0] = 0x%x", __FUNCTION__, recvBufferActualSize, recvBuffer[0]);
+
+    ALOGE("%s: size = 0x%x ", __FUNCTION__, recvBufferActualSize);
     return true;
 }
 
@@ -270,8 +269,8 @@ void* eSEClientUpdate_ThreadHandler(void* data) {
     if(mHalNxpNfc == nullptr)
       ALOGD(": Failed to retrieve the NXP NFC HAL!");
     if(mHalNxpNfc != nullptr) {
-	ALOGD("INxpNfc::getService() returned %p (%s)",
-		  mHalNxpNfc.get(),
+    	ALOGD("INxpNfc::getService() returned %p (%s)",
+    		  mHalNxpNfc.get(),
                (mHalNxpNfc->isRemote() ? "remote" : "local"));
     }
     usleep(100*1000);
@@ -297,11 +296,11 @@ void* eSEClientUpdate_ThreadHandler(void* data) {
     ALOGD("Ioctl Completed for Type result = %d", pInpOutData->out.data.status);
     if(!se_intf.isJcopUpdateRequired && (pInpOutData->out.data.status & 0xFF))
     {
-	  se_intf.isJcopUpdateRequired = true;
+  	  se_intf.isJcopUpdateRequired = true;
     }
     if(!se_intf.isLSUpdateRequired && ((pInpOutData->out.data.status >> 8) & 0xFF))
     {
-	  se_intf.isLSUpdateRequired = true;
+  	  se_intf.isLSUpdateRequired = true;
     }
   }
 
@@ -514,6 +513,7 @@ SESTATUS eSEUpdate_SeqHandler()
           if(se_intf.sJcopUpdateIntferface == ESE_INTF_SPI) {
             handleJcopOsDownload();
             sendeSEUpdateState(ESE_JCOP_UPDATE_COMPLETED);
+            setJcopUpdateRequired(false);
           }
           else if(se_intf.sJcopUpdateIntferface == ESE_INTF_NFC) {
             return SESTATUS_SUCCESS;
@@ -526,6 +526,7 @@ SESTATUS eSEUpdate_SeqHandler()
           if(se_intf.sLsUpdateIntferface == ESE_INTF_SPI) {
             performLSUpdate();
             sendeSEUpdateState(ESE_LS_UPDATE_COMPLETED);
+            setLsUpdateRequired(false);
           }
           else if(se_intf.sLsUpdateIntferface == ESE_INTF_NFC)
           {
