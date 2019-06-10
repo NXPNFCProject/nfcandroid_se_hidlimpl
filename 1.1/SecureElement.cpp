@@ -390,7 +390,7 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
     uint8_t sw2 = rspApdu.p_data[rspApdu.len - 1];
     /*Return response on success, empty vector on failure*/
     /*Status is success*/
-    if ((sw1 == 0x90) && (sw2 == 0x00)) {
+    if ((sw1 == 0x90 && sw2 == 0x00) || (sw1 == 0x62) || (sw1 == 0x63)) {
       /*Copy the response including status word*/
       result.resize(rspApdu.len);
       memcpy(&result[0], rspApdu.p_data, rspApdu.len);
