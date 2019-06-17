@@ -320,14 +320,6 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   status = phNxpEse_Transceive(&cmdApdu, &rspApdu);
   if (status != ESESTATUS_SUCCESS) {
     resApduBuff.channelNumber = 0xff;
-    if ( NULL != rspApdu.p_data && rspApdu.len > 0){
-      if (rspApdu.p_data[0] == 0x64 && rspApdu.p_data[1] == 0xFF) {
-        sestatus = SecureElementStatus::IOERROR;
-      }
-    }
-    if(SecureElementStatus::IOERROR != sestatus) {
-      sestatus = SecureElementStatus::FAILED;
-    }
   } else if (rspApdu.p_data[rspApdu.len - 2] == 0x6A &&
              rspApdu.p_data[rspApdu.len - 1] == 0x81) {
     resApduBuff.channelNumber = 0xff;
