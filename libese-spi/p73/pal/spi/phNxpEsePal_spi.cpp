@@ -56,7 +56,7 @@ extern bool ese_debug_enabled;
 extern SyncEvent gSpiTxLock;
 extern SyncEvent gSpiOpenLock;
 
-static int rf_status;
+static bool gIsRfStateOn; /*RF ON-True, RF-Off-False updated after debounce timer expiry*/
 unsigned long configNum1, configNum2, gFelicaAppTimeout;
 unsigned long gRfOffDebounceTimeout;
 
@@ -109,12 +109,13 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
     }
   } break;
   case HAL_NFC_IOCTL_RF_STATUS_UPDATE: {
-    rf_status = inpOutData->inp.data.nxpCmd.p_cmd[0];
-    if (rf_status == 1) {
+    int isRfNtfForOn = inpOutData->inp.data.nxpCmd.p_cmd[0];
+    if (isRfNtfForOn == 1) {
       ALOGD_IF(
           ese_debug_enabled,
           "*******************RF IS ON*************************************");
       phPalEse_spi_stop_debounce_timer();
+      gIsRfStateOn = true;
       if (gMfcAppSessionCount) {
         StateMachine::GetInstance().ProcessExtEvent(EVT_RF_ON_FELICA_APP);
       } else {
@@ -164,7 +165,7 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
                                        inpOutData->inp.data.nxpCmd.cmd_len);
     if (!phPalEse_spi_match_app_signatures(signature)) {
       ALOGD_IF(ese_debug_enabled, "******GET SESSION:SIGNATURE MATCHED******");
-      if (rf_status) {
+      if (gIsRfStateOn) {
         ALOGD_IF(ese_debug_enabled, "**GET SESSION:SIGNATURE MATCHED RF ON**");
         status = ESESTATUS_NOT_ALLOWED;
       } else {
@@ -452,6 +453,7 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
 *******************************************************************************/
 void phPalEse_spi_rf_off_timer_expired_cb(union sigval) {
   ALOGD_IF(true, "RF debounce timer expired...");
+  gIsRfStateOn = false;
   StateMachine::GetInstance().ProcessExtEvent(EVT_RF_OFF);
   // just to be sure that we acquired dwp channel before allowing any activity
   // on SPI
