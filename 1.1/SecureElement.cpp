@@ -568,6 +568,8 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
     if (status != ESESTATUS_SUCCESS) {
       LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     }
+  }
+  if(channelNumber < MAX_LOGICAL_CHANNELS) {
     if(mOpenedChannels[channelNumber]) {
       mOpenedChannels[channelNumber] = false;
       mOpenedchannelCount--;
