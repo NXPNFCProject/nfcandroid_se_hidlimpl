@@ -16,7 +16,7 @@
  *
  ******************************************************************************/
 #define LOG_TAG "NxpEseHal"
-#define MAX_INIT_RETRY_CNT 5
+#define MAX_INIT_RETRY_CNT 2
 #include <log/log.h>
 
 #include "LsClient.h"
