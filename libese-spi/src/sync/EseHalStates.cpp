@@ -351,7 +351,7 @@ public:
     case EVT_SPI_SESSION_CLOSE:
       ALOGE("Unexpected: SPI SESSION CLOSE evt RECVD!! ");
       SendOMAPISessionCloseCmd();
-      PtrNextState = sListOfStates.find(ST_SPI_CLOSED_RF_BUSY)->second;
+      PtrNextState = sListOfStates.find(ST_SPI_CLOSED_RF_IDLE)->second;
       break;
     default:
       break;

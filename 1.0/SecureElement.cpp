@@ -361,7 +361,7 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
 Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
 SecureElement::closeChannel(uint8_t channelNumber) {
   ESESTATUS status = ESESTATUS_FAILED;
-  SecureElementStatus sestatus = SecureElementStatus::FAILED;
+  SecureElementStatus sestatus = SecureElementStatus::SUCCESS;
 
   phNxpEse_data cmdApdu;
   phNxpEse_data rspApdu;
@@ -370,8 +370,9 @@ SecureElement::closeChannel(uint8_t channelNumber) {
       (channelNumber >= MAX_LOGICAL_CHANNELS) ||
       (mOpenedChannels[channelNumber] == false)) {
     ALOGE("%s: invalid channel!!!", __func__);
-    sestatus = SecureElementStatus::FAILED;
-  } else if (channelNumber > DEFAULT_BASIC_CHANNEL) {
+    return SecureElementStatus::FAILED;
+  }
+  if (channelNumber > DEFAULT_BASIC_CHANNEL) {
     phNxpEse_memset(&cmdApdu, 0x00, sizeof(phNxpEse_data));
     phNxpEse_memset(&rspApdu, 0x00, sizeof(phNxpEse_data));
     cmdApdu.p_data = (uint8_t*)phNxpEse_memalloc(5 * sizeof(uint8_t));
@@ -399,17 +400,18 @@ SecureElement::closeChannel(uint8_t channelNumber) {
     phNxpEse_free(rspApdu.p_data);
   }
 
-  if ((channelNumber == DEFAULT_BASIC_CHANNEL) ||
-      (sestatus == SecureElementStatus::SUCCESS)) {
-    if(mOpenedChannels[channelNumber] != false)
-      mOpenedchannelCount--;
-    mOpenedChannels[channelNumber] = false;
-    /*If there are no channels remaining close secureElement*/
-    if (mOpenedchannelCount == 0) {
-      sestatus = seHalDeInit();
-    } else {
-      sestatus = SecureElementStatus::SUCCESS;
-    }
+  if (sestatus != SecureElementStatus::SUCCESS) {
+    ALOGE("%s: failed to close a logical channel", __func__);
+  }
+
+  if(mOpenedChannels[channelNumber] != false)
+    mOpenedchannelCount--;
+  mOpenedChannels[channelNumber] = false;
+  /*If there are no channels remaining close secureElement*/
+  if (mOpenedchannelCount == 0) {
+    sestatus = seHalDeInit();
+  } else {
+    sestatus = SecureElementStatus::SUCCESS;
   }
   return sestatus;
 }
