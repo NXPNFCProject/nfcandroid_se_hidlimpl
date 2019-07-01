@@ -64,8 +64,9 @@ int16_t SE_Open()
 
 void SE_Reset()
 {
-    //SESTATUS_SUCCESS;
+  phNxpEse_coldReset();
 }
+
 bool SE_Transmit(uint8_t* xmitBuffer, int32_t xmitBufferSize, uint8_t* recvBuffer,
                      int32_t recvBufferMaxSize, int32_t& recvBufferActualSize, int32_t timeoutMillisec)
 {
