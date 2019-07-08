@@ -158,8 +158,7 @@ Return<void> SecureElement::init_1_1(
     }
     status = phNxpEse_close(deInitStatus);
   }
-  if (status == ESESTATUS_SUCCESS)
-  {
+  if (status == ESESTATUS_SUCCESS && mIsInitDone) {
     clientCallback->onStateChange_1_1(true, "NXP SE HAL init ok");
     mCallbackV1_1 = clientCallback;
   }

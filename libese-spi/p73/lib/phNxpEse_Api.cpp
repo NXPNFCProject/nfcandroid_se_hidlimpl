@@ -211,39 +211,40 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
       nxpese_ctxt.EseLibStatus = ESE_STATUS_RECOVERY;
     }
   }
-  if (ESESTATUS_FAILED == wConfigStatus) {
-    wConfigStatus = ESESTATUS_FAILED;
-    ALOGE("phNxpEseProto7816_Open failed");
+
+  if (ESESTATUS_SUCCESS == wConfigStatus) {
+    ALOGD_IF(ese_debug_enabled, "phNxpEseProto7816_Open completed >>>>>");
+    /* Retrieving the IFS-D value configured in the config file and applying to
+     * Card */
+    if ((nxpese_ctxt.endPointInfo == END_POINT_ESE) &&
+        (EseConfig::hasKey(NAME_NXP_ESE_IFSD_VALUE))) {
+      ifsd_value = EseConfig::getUnsigned(NAME_NXP_ESE_IFSD_VALUE);
+      if ((0xFFFF > ifsd_value) && (ifsd_value > 0)) {
+        ALOGD_IF(ese_debug_enabled,
+                 "phNxpEseProto7816_SetIFS IFS adjustment requested with %ld",
+                 ifsd_value);
+        phNxpEse_setIfs(ifsd_value);
+      } else {
+        ALOGD_IF(ese_debug_enabled,
+                 "phNxpEseProto7816_SetIFS IFS adjustment argument invalid");
+      }
+    } else if ((nxpese_ctxt.endPointInfo == END_POINT_EUICC) &&
+               (EseConfig::hasKey(NAME_NXP_EUICC_IFSD_VALUE))) {
+      ifsd_value = EseConfig::getUnsigned(NAME_NXP_EUICC_IFSD_VALUE);
+      if ((0xFFFF > ifsd_value) && (ifsd_value > 0)) {
+        ALOGD_IF(ese_debug_enabled,
+                 "phNxpEseProto7816_SetIFS IFS adjustment requested with %ld",
+                 ifsd_value);
+        phNxpEse_setIfs(ifsd_value);
+      } else {
+        ALOGD_IF(ese_debug_enabled,
+                 "phNxpEseProto7816_SetIFS IFS adjustment argument invalid");
+      }
+    }
+  } else {
+    ALOGE("phNxpEseProto7816_Open failed with status = %x", wConfigStatus);
   }
 
-  ALOGD_IF(ese_debug_enabled, "phNxpEseProto7816_Open completed >>>>>");
-  /* Retrieving the IFS-D value configured in the config file and applying to Card */
-  if ((nxpese_ctxt.endPointInfo == END_POINT_ESE) && (EseConfig::hasKey(NAME_NXP_ESE_IFSD_VALUE))) {
-    ifsd_value = EseConfig::getUnsigned(NAME_NXP_ESE_IFSD_VALUE);
-    if((0xFFFF > ifsd_value) &&
-      (ifsd_value > 0)) {
-      ALOGD_IF(ese_debug_enabled,
-               "phNxpEseProto7816_SetIFS IFS adjustment requested with %ld",
-               ifsd_value);
-      phNxpEse_setIfs(ifsd_value);
-    } else {
-      ALOGD_IF(ese_debug_enabled,
-               "phNxpEseProto7816_SetIFS IFS adjustment argument invalid");
-    }
-  }
-  else if ((nxpese_ctxt.endPointInfo == END_POINT_EUICC) && (EseConfig::hasKey(NAME_NXP_EUICC_IFSD_VALUE))) {
-    ifsd_value = EseConfig::getUnsigned(NAME_NXP_EUICC_IFSD_VALUE);
-    if((0xFFFF > ifsd_value) &&
-      (ifsd_value > 0)) {
-      ALOGD_IF(ese_debug_enabled,
-               "phNxpEseProto7816_SetIFS IFS adjustment requested with %ld",
-               ifsd_value);
-      phNxpEse_setIfs(ifsd_value);
-    } else {
-      ALOGD_IF(ese_debug_enabled,
-               "phNxpEseProto7816_SetIFS IFS adjustment argument invalid");
-    }
-  }
   return wConfigStatus;
 }
 
