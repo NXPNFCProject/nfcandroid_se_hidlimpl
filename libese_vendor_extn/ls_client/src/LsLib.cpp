@@ -246,17 +246,18 @@ tLSC_STATUS LSC_OpenChannel(Lsc_ImageInfo_t* Os_info, tLSC_STATUS status,
         memcpy(&lsExecuteResp[2], &rspApdu.p_data[rspApdu.len - 2], 2);
       status = STATUS_FAILED;
       ALOGE("%s: SE transceive failed status = 0x%X", fn, status);
-    } else if (((rspApdu.p_data[rspApdu.len - 2] != 0x90) &&
-                (rspApdu.p_data[rspApdu.len - 1] != 0x00))) {
-      memcpy(&lsExecuteResp[2], &rspApdu.p_data[rspApdu.len - 2], 2);
-      status = STATUS_FAILED;
-      ALOGE("%s: invalid response = 0x%X", fn, status);
-    } else {
+    } else if ((rspApdu.len >= 0x03) &&
+               ((rspApdu.p_data[rspApdu.len - 2] == 0x90) &&
+                (rspApdu.p_data[rspApdu.len - 1] == 0x00))) {
       uint8_t cnt = Os_info->channel_cnt;
       Os_info->Channel_Info[cnt].channel_id = rspApdu.p_data[rspApdu.len - 3];
       Os_info->Channel_Info[cnt].isOpend = true;
       Os_info->channel_cnt++;
       status = STATUS_OK;
+    } else {
+      memcpy(&lsExecuteResp[2], &rspApdu.p_data[rspApdu.len - 2], 2);
+      status = STATUS_FAILED;
+      ALOGE("%s: invalid response = 0x%X", fn, status);
     }
     phLS_free(cmdApdu.p_data);
   }
