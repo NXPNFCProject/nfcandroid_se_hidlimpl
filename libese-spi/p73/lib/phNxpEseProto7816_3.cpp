@@ -980,6 +980,7 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
         phNxpEseProto7816_3_Var.timeoutCounter = PH_PROTO_7816_VALUE_ZERO;
+        StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_RX);
         ALOGE("%s calling phNxpEse_StoreDatainList", __FUNCTION__);
         phNxpEse_StoreDatainList(data_len, p_data);
       }
@@ -999,8 +1000,9 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
 static bool IsTransceiveAllowed(void) {
   bool isCmdAllowedInAllEseStates = false;
 
-  if (phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState ==
-      SEND_S_EOS) {
+  if ((phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState == SEND_S_EOS) ||
+      (phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState == SEND_S_INTF_RST) ||
+      (phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState == SEND_S_RSYNC)) {
     isCmdAllowedInAllEseStates = true;
   } else if (phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState ==
              SEND_IFRAME) {

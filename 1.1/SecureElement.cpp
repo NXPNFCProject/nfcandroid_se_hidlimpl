@@ -411,7 +411,7 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
     }
   }
 
-  if ((sestatus != SecureElementStatus::SUCCESS) && mOpenedChannels[0]) {
+  if (sestatus != SecureElementStatus::SUCCESS) {
     SecureElementStatus closeChannelStatus =
         internalCloseChannel(DEFAULT_BASIC_CHANNEL);
     if (closeChannelStatus != SecureElementStatus::SUCCESS) {
@@ -437,8 +437,7 @@ Return<SecureElementStatus> SecureElement::internalCloseChannel(uint8_t channelN
   phNxpEse_data rspApdu;
 
   if (((int8_t)channelNumber < DEFAULT_BASIC_CHANNEL) ||
-      (channelNumber >= MAX_LOGICAL_CHANNELS) ||
-      (mOpenedChannels[channelNumber] == false)) {
+      (channelNumber >= MAX_LOGICAL_CHANNELS)) {
     ALOGE("%s: invalid channel!!!", __func__);
     return SecureElementStatus::FAILED;
   }
