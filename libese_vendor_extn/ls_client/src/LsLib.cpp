@@ -295,10 +295,18 @@ tLSC_STATUS LSC_SelectLsc(Lsc_ImageInfo_t* Os_info, tLSC_STATUS status,
 
   if(semsPresent)
   {
-    cmdApdu.len = (int32_t)(sizeof(SelectSEMS) + 1);
-    cmdApdu.p_data = (uint8_t*)phLS_memalloc(cmdApdu.len * sizeof(uint8_t));
-    cmdApdu.p_data[0] = Os_info->Channel_Info[0].channel_id;
-    memcpy(&(cmdApdu.p_data[1]), SelectSEMS, sizeof(SelectSEMS));
+    if (Os_info->isUpdaterMode) {
+      cmdApdu.len = (int32_t)(AID_ARRAY[0]);
+      cmdApdu.p_data = (uint8_t *)phLS_memalloc(cmdApdu.len * sizeof(uint8_t));
+      cmdApdu.p_data[0] = Os_info->Channel_Info[0].channel_id;
+      memcpy(&(cmdApdu.p_data[1]), &AID_ARRAY[2], cmdApdu.len - 1);
+      Os_info->isUpdaterMode = false;
+    } else {
+      cmdApdu.len = (int32_t)(sizeof(SelectSEMS) + 1);
+      cmdApdu.p_data = (uint8_t *)phLS_memalloc(cmdApdu.len * sizeof(uint8_t));
+      cmdApdu.p_data[0] = Os_info->Channel_Info[0].channel_id;
+      memcpy(&(cmdApdu.p_data[1]), SelectSEMS, sizeof(SelectSEMS));
+    }
   }
   else
   {
@@ -1141,7 +1149,7 @@ tLSC_STATUS LSC_ProcessResp(Lsc_ImageInfo_t* image_info, int32_t recvlen,
     memcpy(&AID_ARRAY[6], &RecvData[0], recvlen - 2);
     //memcpy(&ArrayOfAIDs[2][0], &AID_ARRAY[0], recvlen + 4);
     memcpy(&ArrayOfAIDs[LS_SELF_UPDATE_AID_IDX][0], &AID_ARRAY[0], recvlen + 4);
-
+    image_info->isUpdaterMode = true;
     fAID_MEM = fopen(AID_MEM_PATH[gpLsc_Dwnld_Context->
       mchannel->getInterfaceInfo()], "w");
 
