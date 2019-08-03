@@ -1971,26 +1971,27 @@ ESESTATUS phNxpEseProto7816_SetIfs(uint16_t IFS_Size) {
   ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
   /* IFSD > IFSC not allowed, card will reject by R-NACK so not sending */
   if(IFS_Size > phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC) {
-    ALOGD_IF(ese_debug_enabled, "%s ERROR: IFSD > IFSC, NOT ALLOWED",
-             __FUNCTION__);
+    phNxpEseProto7816_3_Var.currentIFSDSize =  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC;
+    /* IFSD is greater than IFSC , set max IFSC as IFSD*/
+    ALOGD_IF(ese_debug_enabled, "%s : IFSD greater than IFSC ,  set max IFSC as IFSD  ",__FUNCTION__);
   } else {
-    phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
-        PH_NXP_ESE_PROTO_7816_TRANSCEIVE;
-    phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
     phNxpEseProto7816_3_Var.currentIFSDSize = IFS_Size;
-    phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.sFrameType =
-        IFS_REQ;
-    phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
-        SEND_S_IFS_ADJ;
-    status = TransceiveProcess();
-    if (ESESTATUS_FAILED == status) {
-      /* reset all the structures */
-      ALOGE( "%s TransceiveProcess failed ", __FUNCTION__);
-    }
-    phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
-        PH_NXP_ESE_PROTO_7816_IDLE;
-    ALOGD_IF(ese_debug_enabled, "Exit %s ", __FUNCTION__);
   }
+  phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
+      PH_NXP_ESE_PROTO_7816_TRANSCEIVE;
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
+  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.sFrameType =
+      IFS_REQ;
+  phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+      SEND_S_IFS_ADJ;
+  status = TransceiveProcess();
+  if (ESESTATUS_FAILED == status) {
+    /* reset all the structures */
+    ALOGE( "%s TransceiveProcess failed ", __FUNCTION__);
+  }
+  phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
+      PH_NXP_ESE_PROTO_7816_IDLE;
+  ALOGD_IF(ese_debug_enabled, "Exit %s ", __FUNCTION__);
   return status;
 }
 
