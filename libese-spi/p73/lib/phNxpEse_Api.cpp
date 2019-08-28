@@ -757,14 +757,25 @@ ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp) {
   } else if ((ESE_STATUS_BUSY == nxpese_ctxt.EseLibStatus)) {
     ALOGE(" %s ESE - BUSY \n", __FUNCTION__);
     return ESESTATUS_BUSY;
+  } else if ((ESE_STATUS_RECOVERY == nxpese_ctxt.EseLibStatus)) {
+    ALOGE(" %s ESE - RECOVERY \n", __FUNCTION__);
+    return ESESTATUS_RECOVERY_STARTED;
   } else {
     nxpese_ctxt.EseLibStatus = ESE_STATUS_BUSY;
     status = phNxpEseProto7816_Transceive((phNxpEse_data*)pCmd,
                                            (phNxpEse_data*)pRsp);
     if (ESESTATUS_SUCCESS != status) {
       ALOGE(" %s phNxpEseProto7816_Transceive- Failed \n", __FUNCTION__);
+      if (ESESTATUS_TRANSCEIVE_FAILED == status) {
+        /*MAX WTX reached*/
+        nxpese_ctxt.EseLibStatus = ESE_STATUS_RECOVERY;
+      } else {
+        /*Timeout/ No response*/
+        nxpese_ctxt.EseLibStatus = ESE_STATUS_IDLE;
+      }
+    } else {
+      nxpese_ctxt.EseLibStatus = ESE_STATUS_IDLE;
     }
-    nxpese_ctxt.EseLibStatus = ESE_STATUS_IDLE;
     nxpese_ctxt.rnack_sent = false;
 
     ALOGD_IF(ese_debug_enabled, " %s Exit status 0x%x \n", __FUNCTION__,
@@ -1000,6 +1011,11 @@ ESESTATUS phNxpEse_deInit(void) {
   ESESTATUS status = ESESTATUS_SUCCESS;
   unsigned long maxTimer = 0;
   unsigned long num = 0;
+  if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0 &&
+      (ESE_STATUS_RECOVERY == nxpese_ctxt.EseLibStatus) &&
+      ESE_PROTOCOL_MEDIA_SPI != nxpese_ctxt.initParams.mediaType) {
+    return status;
+  }
   /*TODO : to be removed after JCOP fix*/
   if (EseConfig::hasKey(NAME_NXP_VISO_DPD_ENABLED))
   {
@@ -1012,7 +1028,7 @@ ESESTATUS phNxpEse_deInit(void) {
   else
   {
     status = phNxpEseProto7816_Close(
-          (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
+        (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
     if (status == ESESTATUS_SUCCESS) {
       ALOGD_IF(ese_debug_enabled,
                "%s secureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
@@ -1076,12 +1092,18 @@ ESESTATUS phNxpEse_close(ESESTATUS deInitStatus) {
         ALOGD_IF(ese_debug_enabled, "Inform eSE that trusted Mode is over");
         status = phPalEse_ioctl(phPalEse_e_SetSecureMode,
                                 nxpese_ctxt.pDevHandle, 0x00);
-      }
-      if (nxpese_ctxt.EseLibStatus == ESE_STATUS_RECOVERY ||
-          (deInitStatus == ESESTATUS_RESPONSE_TIMEOUT) ||
-          (ESESTATUS_SUCCESS != phNxpEseProto7816_CloseAllSessions())) {
-        ALOGD_IF(ese_debug_enabled, "eSE not responding perform hard reset");
-        phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
+
+        if (ESESTATUS_SUCCESS != phNxpEseProto7816_CloseAllSessions()) {
+          ALOGD_IF(ese_debug_enabled, "eSE not responding perform hard reset");
+          phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
+        }
+      } else {
+        if (nxpese_ctxt.EseLibStatus == ESE_STATUS_RECOVERY ||
+            (deInitStatus == ESESTATUS_RESPONSE_TIMEOUT) ||
+            ESESTATUS_SUCCESS != phNxpEseProto7816_CloseAllSessions()) {
+          ALOGD_IF(ese_debug_enabled, "eSE not responding perform hard reset");
+          phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
+        }
       }
     }
   }

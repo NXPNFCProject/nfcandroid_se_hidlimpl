@@ -25,7 +25,6 @@
  *
  * @{ */
 
-
 /**
  * \ingroup ISO7816-3_protocol_lib
  * \brief   This function is used to reset the 7816 protocol stack instance
@@ -1244,6 +1243,19 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
             IDLE_STATE;
         break;
       case WTX_REQ:
+        if (phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.sFrameType ==
+                PROP_END_APDU_REQ &&
+            phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.len ==
+                PH_PROTO_CLOSE_ALL_SESSION_LEN) {
+          ALOGD_IF(ese_debug_enabled,
+                   "%s Invalid resp for End of  session"
+                   "WTX received",
+                   __FUNCTION__);
+          phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+              IDLE_STATE;
+          status = ESESTATUS_TRANSCEIVE_FAILED;
+          break;
+        }
         phNxpEseProto7816_3_Var.wtx_counter++;
         ALOGD_IF(ese_debug_enabled, "%s Wtx_counter value - %lu", __FUNCTION__,
                  phNxpEseProto7816_3_Var.wtx_counter);
@@ -1273,28 +1285,13 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
               phNxpEseProto7816_3_Var.wtx_counter_limit) {
             phNxpEseProto7816_3_Var.wtx_counter = 0;
             if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-              if (phNxpEseProto7816_3_Var.reset_type != INTF_RESET_REQ) {
-                phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo
-                    .sFrameType = INTF_RESET_REQ;
-                phNxpEseProto7816_3_Var.reset_type = INTF_RESET_REQ;
-                phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
-                phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo
-                    .sFrameType = INTF_RESET_REQ;
-                phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
-                    SEND_S_INTF_RST;
-                ALOGD_IF(ese_debug_enabled,
-                         "%s Interface Reset to eSE wtx "
-                         "count reached!!!",
-                         __FUNCTION__);
-              } else {
-                ALOGD_IF(ese_debug_enabled,
-                         "%s Power cycle to eSE  max "
-                         "WTX received",
-                         __FUNCTION__);
-                phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
-                    IDLE_STATE;
-                status = ESESTATUS_TRANSCEIVE_FAILED;
-              }
+              ALOGD_IF(ese_debug_enabled,
+                       "%s Power cycle to eSE  max "
+                       "WTX received",
+                       __FUNCTION__);
+              phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+                  IDLE_STATE;
+              status = ESESTATUS_TRANSCEIVE_FAILED;
             } else {
               phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo
                   .sFrameType = INTF_RESET_REQ;
@@ -1500,7 +1497,7 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
         if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-          status = ESESTATUS_TRANSCEIVE_FAILED;
+          status = ESESTATUS_FAILED;
         }
         phNxpEseProto7816_3_Var.timeoutCounter = PH_PROTO_7816_VALUE_ZERO;
         ALOGD_IF(ese_debug_enabled, "%s calling phNxpEse_StoreDatainList",
