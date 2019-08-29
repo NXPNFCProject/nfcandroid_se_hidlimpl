@@ -207,7 +207,8 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
   /* T=1 Protocol layer open */
   wConfigStatus = phNxpEseProto7816_Open(protoInitParam);
   if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-    if (ESESTATUS_TRANSCEIVE_FAILED == wConfigStatus) {
+    if (ESESTATUS_TRANSCEIVE_FAILED == wConfigStatus ||
+        ESESTATUS_FAILED == wConfigStatus) {
       nxpese_ctxt.EseLibStatus = ESE_STATUS_RECOVERY;
     }
   }
@@ -470,7 +471,7 @@ clean_and_return_2:
  * \brief  Check if libese has opened
  *
  * \retval return false if it is close, otherwise true.
- *
+ **
  ******************************************************************************/
 bool phNxpEse_isOpen() { return nxpese_ctxt.EseLibStatus != ESE_STATUS_CLOSE; }
 
