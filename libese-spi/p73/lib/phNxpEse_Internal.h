@@ -123,6 +123,7 @@ typedef struct phNxpEse_Context {
   uint8_t endPointInfo;/*!<info end point*/
   bool rnack_sent;/*!<rnack send info */
   bool spm_power_state;/*!<spm_power_state */
+  NotifyWtxReq* fPtr_WtxNtf;/*!< Wait extension callback notification*/
 } phNxpEse_Context_t;
 
 /* Timeout value to wait for response from

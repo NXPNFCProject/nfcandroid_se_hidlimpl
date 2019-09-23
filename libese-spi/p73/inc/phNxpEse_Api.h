@@ -56,6 +56,13 @@ typedef enum {
   ESE_PROTOCOL_MEDIA_SPI  = 0x08, /*!< Media Type - SPI legacy  */
   ESE_PROTOCOL_MEDIA_SPI_APDU_GATE =0xD0   /*!Media Type - APDU Gate */
 } phNxpEse_mediaType;
+
+typedef enum {
+  WTX_ONGOING = 1,
+  WTX_END = 2,
+} phNxpEse_wtxState;
+
+typedef void(NotifyWtxReq)(phNxpEse_wtxState);
 /**
  * \ingroup spi_libese
  * \brief Ese library init parameters to be set while calling phNxpEse_init
@@ -64,6 +71,7 @@ typedef enum {
 typedef struct phNxpEse_initParams {
   phNxpEse_initMode initMode; /*!< Ese communication mode */
   phNxpEse_mediaType mediaType; /*!< Logical channel for Ese communication */
+  NotifyWtxReq* fPtr_WtxNtf;    /*!< Wait extension callback notification*/
 } phNxpEse_initParams;
 
 /*!
@@ -390,5 +398,16 @@ ESESTATUS phNxpEse_GetEseStatus(phNxpEse_data* timer_buffer);
  *
  */
 ESESTATUS phNxpEse_coldReset(void);
+
+/**
+ * \ingroup spi_libese
+ * \brief  This function notifies SE hal service if it registers
+ *
+ * \param[out]       state - WTX_ONGOIGN/WTX_END
+ *
+ * \retval void.
+ *
+ */
+void phNxpEse_NotifySEWtxRequest(phNxpEse_wtxState state);
 /** @} */
 #endif /* _PHNXPSPILIB_API_H_ */

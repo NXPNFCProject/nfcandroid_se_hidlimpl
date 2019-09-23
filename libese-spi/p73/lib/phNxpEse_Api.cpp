@@ -184,6 +184,15 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
   {
     protoInitParam.interfaceReset = false;
   }
+  if (EseConfig::hasKey(NAME_NXP_WTX_NTF_COUNT)) {
+    num = EseConfig::getUnsigned(NAME_NXP_WTX_NTF_COUNT);
+    protoInitParam.wtx_ntf_limit = num;
+    ALOGD_IF(ese_debug_enabled, "Wtx_ntf limit from config file - %lu",
+             protoInitParam.wtx_ntf_limit);
+  } else {
+    protoInitParam.wtx_ntf_limit = PH_DEFAULT_WTX_NTF_LIMIT;
+  }
+  nxpese_ctxt.fPtr_WtxNtf = initParams.fPtr_WtxNtf;
   /* Sharing lib context for fetching secure timer values */
   protoInitParam.pSecureTimerParams =
       (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams;
@@ -1824,4 +1833,21 @@ static unsigned char* phNxpEse_GgetTimerTlvBuffer(uint8_t* timer_buffer,
     }
   }
   return timer_buffer;
+}
+
+/******************************************************************************
+ * Function         phNxpEse_NotifySEWtxRequest
+ *
+ * Description      This function notifies SE hal service if it registers
+ *                  about WTX ongoing & end status
+ *
+ * Returns          None
+ *
+ ******************************************************************************/
+void phNxpEse_NotifySEWtxRequest(phNxpEse_wtxState state) {
+  if (nxpese_ctxt.fPtr_WtxNtf) {
+    (nxpese_ctxt.fPtr_WtxNtf)(state);
+  } else {
+    ALOGE("%s function not supported", __FUNCTION__);
+  }
 }

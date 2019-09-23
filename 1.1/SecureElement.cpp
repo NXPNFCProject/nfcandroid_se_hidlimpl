@@ -52,6 +52,13 @@ SecureElement::SecureElement()
       mIsEseInitialized(false),
       mOpenedChannels{false, false, false, false} {}
 
+void SecureElement::NotifySeWaitExtension(phNxpEse_wtxState state) {
+  if (state == WTX_ONGOING) {
+    LOG(INFO) << "SecureElement::WTX ongoing";
+  } else if (state == WTX_END) {
+    LOG(INFO) << "SecureElement::WTX ended";
+  }
+}
 
 Return<void> SecureElement::init(
     const sp<
@@ -64,6 +71,7 @@ Return<void> SecureElement::init(
   memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
   initParams.initMode = ESE_MODE_NORMAL;
   initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
+  initParams.fPtr_WtxNtf = SecureElement::NotifySeWaitExtension;
 
   if (clientCallback == nullptr) {
     return Void();
@@ -124,6 +132,7 @@ Return<void> SecureElement::init_1_1(
   memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
   initParams.initMode = ESE_MODE_NORMAL;
   initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
+  initParams.fPtr_WtxNtf = SecureElement::NotifySeWaitExtension;
   if (clientCallback == nullptr) {
     return Void();
   } else {
@@ -605,6 +614,7 @@ ESESTATUS SecureElement::seHalInit() {
   memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
   initParams.initMode = ESE_MODE_NORMAL;
   initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
+  initParams.fPtr_WtxNtf = SecureElement::NotifySeWaitExtension;
 
   status = phNxpEse_open(initParams);
   if(ESESTATUS_SUCCESS == status || ESESTATUS_BUSY == status){

@@ -105,6 +105,8 @@ struct SecureElement : public V1_1::ISecureElement, public hidl_death_recipient 
 
   void serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/);
 
+  static void NotifySeWaitExtension(phNxpEse_wtxState state);
+
  private:
   uint8_t mOpenedchannelCount = 0;
   Mutex seHalLock;

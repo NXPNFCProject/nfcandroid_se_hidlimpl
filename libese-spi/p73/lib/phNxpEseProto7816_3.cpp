@@ -259,6 +259,13 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data);
  */
 static void phNxpEseProto7816_DecodeSFrameSecureTimerData(uint8_t* p_data);
 
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief       This internal function is to notify either WTX_ONGOING ot
+ *WTX_END \param[in]    state - Either WTX_ONGOING/WTX_END
+ *
+ */
+static void phNxpEseProto7816_CheckAndNotifyWtx(phNxpEse_wtxState state);
 /*!
  * \brief 7816_3 protocol stack parameter variable instance
  */
@@ -969,7 +976,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
   if (0x00 == pcb_bits.msb) /* I-FRAME decoded should come here */
   {
     ALOGD_IF(ese_debug_enabled, "%s I-Frame Received", __FUNCTION__);
-    phNxpEseProto7816_3_Var.wtx_counter = 0;
+    phNxpEseProto7816_CheckAndNotifyWtx(WTX_END);
     phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdFrameType = IFRAME;
     if (phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.seqNo !=
         pcb_bits.bit7)  //   != pcb_bits->bit7)
@@ -1025,7 +1032,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
              (0x00 == pcb_bits.bit7)) /* R-FRAME decoded should come here */
   {
     ALOGD_IF(ese_debug_enabled, "%s R-Frame Received", __FUNCTION__);
-    phNxpEseProto7816_3_Var.wtx_counter = 0;
+    phNxpEseProto7816_CheckAndNotifyWtx(WTX_END);
     phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdFrameType = RFRAME;
     phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.seqNo =
         0;  // = 0;
@@ -1184,7 +1191,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
     int32_t frameType = (int32_t)(pcb & 0x3F); /*discard upper 2 bits */
     phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdFrameType = SFRAME;
     if (frameType != WTX_REQ) {
-      phNxpEseProto7816_3_Var.wtx_counter = 0;
+      phNxpEseProto7816_CheckAndNotifyWtx(WTX_END);
     }
     switch (frameType) {
       case RESYNCH_REQ:
@@ -1261,7 +1268,6 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
                  phNxpEseProto7816_3_Var.wtx_counter);
         ALOGD_IF(ese_debug_enabled, "%s Wtx_counter wtx_counter_limit - %lu",
                  __FUNCTION__, phNxpEseProto7816_3_Var.wtx_counter_limit);
-
         /* Previous sent frame is some S-frame but not WTX response S-frame */
         if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0 &&
             phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.sFrameType !=
@@ -1283,7 +1289,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
           /* Checking for WTX counter with max. allowed WTX count */
           if (phNxpEseProto7816_3_Var.wtx_counter ==
               phNxpEseProto7816_3_Var.wtx_counter_limit) {
-            phNxpEseProto7816_3_Var.wtx_counter = 0;
+            phNxpEseProto7816_CheckAndNotifyWtx(WTX_END);
             if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
               ALOGD_IF(ese_debug_enabled,
                        "%s Power cycle to eSE  max "
@@ -1567,6 +1573,7 @@ static ESESTATUS TransceiveProcess(void) {
       case SEND_S_WTX_RSP:
         sFrameInfo.sFrameType = WTX_RSP;
         status = phNxpEseProto7816_SendSFrame(sFrameInfo);
+        phNxpEseProto7816_CheckAndNotifyWtx(WTX_ONGOING);
         break;
     case SEND_S_HRD_RST:
         sFrameInfo.sFrameType = HARD_RESET_REQ;
@@ -1592,8 +1599,41 @@ static ESESTATUS TransceiveProcess(void) {
           IDLE_STATE;
     }
   };
+  /*Timeout condition when previously WTX_ONGOING is notified
+   *WTX_END shall be notified from here */
+  phNxpEseProto7816_CheckAndNotifyWtx(WTX_END);
   ALOGD_IF(ese_debug_enabled, "Exit %s Status 0x%x", __FUNCTION__, status);
   return status;
+}
+
+/******************************************************************************
+ * Function         phNxpEseProto7816_CheckAndNotifyWtx
+ *
+ * Description      This function is used to
+ *                  1. Check any WTX received previously
+ *computing LRC
+ *                  2. Check WTX_counter limit is reached wtx_ntf limit
+ *and
+ *                  3. Notify if wtx counter is greater than wtx_ntf
+ *
+ * Returns          None.
+ *
+ ******************************************************************************/
+static void phNxpEseProto7816_CheckAndNotifyWtx(phNxpEse_wtxState state) {
+  if (phNxpEseProto7816_3_Var.wtx_counter) {
+    if (state == WTX_END) {
+      if (phNxpEseProto7816_3_Var.wtx_counter >=
+          phNxpEseProto7816_3_Var.wtx_ntf_limit) {
+        phNxpEse_NotifySEWtxRequest(WTX_END);
+      }
+      phNxpEseProto7816_3_Var.wtx_counter = 0;
+    } else if (state == WTX_ONGOING) {
+      if (phNxpEseProto7816_3_Var.wtx_counter ==
+           phNxpEseProto7816_3_Var.wtx_ntf_limit) {
+        phNxpEse_NotifySEWtxRequest(WTX_ONGOING);
+      }
+    }
+  }
 }
 
 /******************************************************************************
@@ -1720,12 +1760,15 @@ static ESESTATUS phNxpEseProto7816_HardReset(void)
 static ESESTATUS phNxpEseProto7816_ResetProtoParams(void) {
   unsigned long int tmpWTXCountlimit = PH_PROTO_7816_VALUE_ZERO;
   unsigned long int tmpRNACKCountlimit = PH_PROTO_7816_VALUE_ZERO;
+  unsigned long int tmpWtxNtfCountlimit = PH_PROTO_7816_VALUE_ZERO;
   tmpWTXCountlimit = phNxpEseProto7816_3_Var.wtx_counter_limit;
   tmpRNACKCountlimit = phNxpEseProto7816_3_Var.rnack_retry_limit;
+  tmpWtxNtfCountlimit = phNxpEseProto7816_3_Var.wtx_ntf_limit;
   phNxpEse_memset(&phNxpEseProto7816_3_Var, PH_PROTO_7816_VALUE_ZERO,
                   sizeof(phNxpEseProto7816_t));
   phNxpEseProto7816_3_Var.wtx_counter_limit = tmpWTXCountlimit;
   phNxpEseProto7816_3_Var.rnack_retry_limit = tmpRNACKCountlimit;
+  phNxpEseProto7816_3_Var.wtx_ntf_limit = tmpWtxNtfCountlimit;
   phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
       PH_NXP_ESE_PROTO_7816_IDLE;
   phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState = IDLE_STATE;
@@ -1807,6 +1850,7 @@ ESESTATUS phNxpEseProto7816_Open(phNxpEseProto7816InitParam_t initParam) {
   /* Update WTX max. limit */
   phNxpEseProto7816_3_Var.wtx_counter_limit = initParam.wtx_counter_limit;
   phNxpEseProto7816_3_Var.rnack_retry_limit = initParam.rnack_retry_limit;
+  phNxpEseProto7816_3_Var.wtx_ntf_limit = initParam.wtx_ntf_limit;
   if (initParam.interfaceReset) /* Do interface reset */
   {
     status = phNxpEseProto7816_IntfReset(initParam.pSecureTimerParams);

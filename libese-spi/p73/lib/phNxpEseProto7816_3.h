@@ -297,6 +297,8 @@ typedef struct phNxpEseProto7816 {
                                     type: R-ACK, S-frame, I-frame */
   unsigned long int rnack_retry_limit;
   unsigned long int rnack_retry_counter;
+  unsigned long int
+      wtx_ntf_limit; /*!< Wtx count interval to notify service registered*/
   phNxpEseProto7816SecureTimer_t secureTimerParams;
   unsigned long int reset_type;
   uint32_t currentIFSDSize;
@@ -316,6 +318,8 @@ typedef struct phNxpEseProto7816InitParam {
   unsigned long int rnack_retry_limit;
   phNxpEseProto7816SecureTimer_t*
       pSecureTimerParams; /*!< Secure timer value updated here >*/
+  unsigned long int
+      wtx_ntf_limit; /*!< Wtx count interval to notify service registered*/
 } phNxpEseProto7816InitParam_t;
 
 /*!
@@ -473,6 +477,10 @@ typedef struct phNxpEseProto7816_PCB_bits {
  * \brief APIs exposed from the 7816-3 protocol layer
  */
 #define PH_SE_OS_VERSION_10            0x10
+/*!
+ * \brief Default wait extension notification interval
+ */
+#define PH_DEFAULT_WTX_NTF_LIMIT 0x03
 
 /**
  * \ingroup ISO7816-3_protocol_lib
