@@ -1250,19 +1250,6 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
             IDLE_STATE;
         break;
       case WTX_REQ:
-        if (phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.sFrameType ==
-                PROP_END_APDU_REQ &&
-            phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.len ==
-                PH_PROTO_CLOSE_ALL_SESSION_LEN) {
-          ALOGD_IF(ese_debug_enabled,
-                   "%s Invalid resp for End of  session"
-                   "WTX received",
-                   __FUNCTION__);
-          phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
-              IDLE_STATE;
-          status = ESESTATUS_TRANSCEIVE_FAILED;
-          break;
-        }
         phNxpEseProto7816_3_Var.wtx_counter++;
         ALOGD_IF(ese_debug_enabled, "%s Wtx_counter value - %lu", __FUNCTION__,
                  phNxpEseProto7816_3_Var.wtx_counter);
