@@ -436,7 +436,8 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
     result[responseLen - 2] = rpdu.sw1;
 
     /*Status is success*/
-    if ((rpdu.sw1 == 0x90) && (rpdu.sw2 == 0x00)) {
+    if (((rpdu.sw1 == 0x90) && (rpdu.sw2 == 0x00)) || (rpdu.sw1 == 0x62) ||
+        (rpdu.sw1 == 0x63)) {
       /*Set basic channel reference if it is not set */
       if (!mOpenedChannels[0]) {
         mOpenedChannels[0] = true;
