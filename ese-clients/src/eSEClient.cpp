@@ -355,7 +355,7 @@ SESTATUS handleJcopOsDownload()
     {
       ALOGE("%s: JCDND initialization failed", __FUNCTION__);
       phNxpEse_ResetEndPoint_Cntxt(0);
-      phNxpEse_close();
+      phNxpEse_close(ESESTATUS_SUCCESS);
       return status;
     } else
     {
@@ -367,7 +367,7 @@ SESTATUS handleJcopOsDownload()
     }
     JCDNLD_DeInit();
     phNxpEse_ResetEndPoint_Cntxt(0);
-    phNxpEse_close();
+    phNxpEse_close(ESESTATUS_SUCCESS);
   }
   status = SESTATUS_SUCCESS;
   return status;
@@ -412,7 +412,7 @@ uint8_t performLSUpdate()
       status = performLSDownload(&Ch);
       phNxpEse_ResetEndPoint_Cntxt(ESE);
     }
-    phNxpEse_close();
+    phNxpEse_close(ESESTATUS_SUCCESS);
   }
   if(isVISOPresent)
   {
@@ -423,7 +423,7 @@ uint8_t performLSUpdate()
       status = performLSDownload(&Ch);
       phNxpEse_ResetEndPoint_Cntxt(EUICC);
     }
-    phNxpEse_close();
+    phNxpEse_close(ESESTATUS_SUCCESS);
   }
   return status;
 }
@@ -454,9 +454,9 @@ SESTATUS initializeEse(phNxpEse_initMode mode, SEDomainID Id)
   retstat = phNxpEse_init(initParams);
   if(retstat != ESESTATUS_SUCCESS)
   {
-    phNxpEse_ResetEndPoint_Cntxt(Id);
-    phNxpEse_close();
-    return status;
+      phNxpEse_ResetEndPoint_Cntxt(Id);
+      phNxpEse_close(ESESTATUS_SUCCESS);
+      return status;
   }
   ESE_ChannelInit(&Ch);
   status = SESTATUS_SUCCESS;
