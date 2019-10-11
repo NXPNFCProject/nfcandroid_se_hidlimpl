@@ -520,9 +520,11 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
       LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     }
   }
-  if(mOpenedChannels[channelNumber]) {
-    mOpenedChannels[channelNumber] = false;
-    mOpenedchannelCount--;
+  if(channelNumber < MAX_LOGICAL_CHANNELS) {
+    if(mOpenedChannels[channelNumber]) {
+      mOpenedChannels[channelNumber] = false;
+      mOpenedchannelCount--;
+    }
   }
   /*If there are no channels remaining close secureElement*/
   if (mOpenedchannelCount == 0) {
@@ -578,9 +580,11 @@ SecureElement::closeChannel(uint8_t channelNumber) {
       LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     }
   }
-  if(mOpenedChannels[channelNumber]) {
-    mOpenedChannels[channelNumber] = false;
-    mOpenedchannelCount--;
+  if(channelNumber < MAX_LOGICAL_CHANNELS) {
+    if(mOpenedChannels[channelNumber]) {
+      mOpenedChannels[channelNumber] = false;
+      mOpenedchannelCount--;
+    }
   }
   /*If there are no channels remaining close secureElement*/
   if (mOpenedchannelCount == 0) {
