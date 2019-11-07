@@ -17,7 +17,7 @@
  ******************************************************************************/
 
 #include "eSEClient.h"
-#include <cutils/log.h>
+#include <log/log.h>
 #include <dirent.h>
 #include <stdlib.h>
 #include <IChannel.h>
