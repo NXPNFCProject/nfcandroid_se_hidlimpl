@@ -35,6 +35,8 @@ namespace implementation {
 
 #define DEFAULT_BASIC_CHANNEL 0x00
 #define MAX_LOGICAL_CHANNELS 0x04
+#define INVALID_LEN_SW1 0x64
+#define INVALID_LEN_SW2 0xFF
 
 typedef struct gsTransceiveBuffer {
   phNxpEse_data cmdData;
@@ -192,11 +194,15 @@ Return<void> SecureElement::transmit(const hidl_vec<uint8_t>& data,
   status =
       phNxpEse_Transceive(&gsTxRxBuffer.cmdData, &gsTxRxBuffer.rspData);
 
-  if (status != ESESTATUS_SUCCESS) {
-    LOG(ERROR) << "transmit failed!!!";
-  } else {
+  if (status == ESESTATUS_SUCCESS) {
     result.resize(gsTxRxBuffer.rspData.len);
     memcpy(&result[0], gsTxRxBuffer.rspData.p_data, gsTxRxBuffer.rspData.len);
+  } else if (status == ESESTATUS_INVALID_RECEIVE_LENGTH) {
+    uint8_t respBuf[] = {INVALID_LEN_SW1, INVALID_LEN_SW2};
+    result.resize(sizeof(respBuf));
+    memcpy(&result[0], respBuf, sizeof(respBuf));
+  } else {
+    LOG(ERROR) << "transmit failed!!!";
   }
   status = phNxpEse_ResetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {

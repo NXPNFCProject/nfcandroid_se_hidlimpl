@@ -37,6 +37,7 @@
   ({                                                            \
       phPalEse_print_packet("RECV", data, len);                 \
   })
+#define MAX_SUPPORTED_DATA_SIZE 0x8800
 static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
                                int nNbBytesToRead);
 static int phNxpEse_readPacket_legacy(void* pDevHandle, uint8_t* pBuffer,
@@ -761,6 +762,9 @@ ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp) {
   if ((pCmd->len == 0) || pCmd->p_data == NULL) {
     ALOGE(" phNxpEse_Transceive - Invalid Parameter no data\n");
     return ESESTATUS_INVALID_PARAMETER;
+  } else if (pCmd->len > MAX_SUPPORTED_DATA_SIZE) {
+    ALOGE(" phNxpEse_Transceive - Invalid data size \n");
+    return ESESTATUS_INVALID_RECEIVE_LENGTH;
   } else if ((ESE_STATUS_CLOSE == nxpese_ctxt.EseLibStatus)) {
     ALOGE(" %s ESE Not Initialized \n", __FUNCTION__);
     return ESESTATUS_NOT_INITIALISED;
