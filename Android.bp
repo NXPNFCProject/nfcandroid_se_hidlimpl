@@ -68,6 +68,7 @@ cc_binary {
         "-DNFC_NXP_ESE_VER=JCOP_VER_5_x",
         "-Wall",
         "-Werror",
+        "-fexceptions",
     ],
 
 }

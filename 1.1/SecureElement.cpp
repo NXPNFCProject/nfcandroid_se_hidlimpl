@@ -246,7 +246,7 @@ Return<void> SecureElement::transmit(const hidl_vec<uint8_t>& data,
   hidl_vec<uint8_t> result;
   phNxpEse_memset(&gsTxRxBuffer.cmdData, 0x00, sizeof(phNxpEse_data));
   phNxpEse_memset(&gsTxRxBuffer.rspData, 0x00, sizeof(phNxpEse_data));
-  gsTxRxBuffer.cmdData.len = data.size();
+  gsTxRxBuffer.cmdData.len = (uint32_t)data.size();
   gsTxRxBuffer.cmdData.p_data =
       (uint8_t*)phNxpEse_memalloc(data.size() * sizeof(uint8_t));
   if(NULL == gsTxRxBuffer.cmdData.p_data){
@@ -322,7 +322,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
 
   phNxpEse_memset(&rspApdu, 0x00, sizeof(phNxpEse_data));
 
-  cmdApdu.len = manageChannelCommand.size();
+  cmdApdu.len = (uint32_t)manageChannelCommand.size();
   cmdApdu.p_data = (uint8_t*)phNxpEse_memalloc(manageChannelCommand.size() *
                                                sizeof(uint8_t));
   memcpy(cmdApdu.p_data, manageChannelCommand.data(), cmdApdu.len);
@@ -382,7 +382,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   cpdu.ins = 0xA4;                      /* Instruction code */
   cpdu.p1 = 0x04;                       /* Instruction parameter 1 */
   cpdu.p2 = p2;                         /* Instruction parameter 2 */
-  cpdu.lc = aid.size();
+  cpdu.lc = (uint16_t)aid.size();
   cpdu.le_type = 0x01;
   cpdu.pdata = (uint8_t*)phNxpEse_memalloc(aid.size() * sizeof(uint8_t));
   memcpy(cpdu.pdata, aid.data(), cpdu.lc);
@@ -476,7 +476,7 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
   cpdu.ins = 0xA4; /* Instruction code */
   cpdu.p1 = 0x04;  /* Instruction parameter 1 */
   cpdu.p2 = p2;    /* Instruction parameter 2 */
-  cpdu.lc = aid.size();
+  cpdu.lc = (uint16_t)aid.size();
   cpdu.le_type = 0x01;
   cpdu.pdata = (uint8_t*)phNxpEse_memalloc(aid.size() * sizeof(uint8_t));
   memcpy(cpdu.pdata, aid.data(), cpdu.lc);

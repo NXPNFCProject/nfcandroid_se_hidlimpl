@@ -22,10 +22,11 @@
 #include "VirtualISO.h"
 
 #include <hidl/LegacySupport.h>
+#include <string.h>
+#include <regex>
 #include "NxpEse.h"
 #include "SecureElement.h"
 #include "eSEClient.h"
-#include <string.h>
 
 // Generated HIDL files
 using android::hardware::secure_element::V1_1::ISecureElement;
@@ -56,61 +57,73 @@ int main() {
   android::sp<ISecureElement> virtual_iso_service = nullptr;
 
   ALOGI("Secure Element HAL Service 1.1 is starting.");
-  se_service = new SecureElement();
-  if (se_service == nullptr) {
-    ALOGE("Can not create an instance of Secure Element HAL Iface, exiting.");
-    goto shutdown;
-  }
-  configureRpcThreadpool(1, true /*callerWillJoin*/);
-
-  checkEseClientUpdate();
-  ret = geteSETerminalId(terminalID);
-  ALOGI("Terminal val = %s", terminalID);
-  if((ret) && (strncmp(SEterminal, terminalID, 3) == 0))
-  {
-    ALOGI("Terminal ID found");
-    status = se_service->registerAsService(terminalID);
-
-    if (status != OK) {
-      ALOGE("Could not register service for Secure Element HAL Iface (%d).",status);
+  try {
+    se_service = new SecureElement();
+    if (se_service == nullptr) {
+      ALOGE("Can not create an instance of Secure Element HAL Iface, exiting.");
       goto shutdown;
     }
-    ALOGI("Secure Element Service is ready");
+    configureRpcThreadpool(1, true /*callerWillJoin*/);
 
-    ALOGI("NXP Secure Element Extn Service 1.0 is starting.");
-    nxp_se_service = new NxpEse();
-    if (nxp_se_service == nullptr) {
-      ALOGE("Can not create an instance of NXP Secure Element Extn Iface,exiting.");
-      goto shutdown;
-    }
-    status = nxp_se_service->registerAsService();
-    if (status != OK) {
-      ALOGE("Could not register service for Power Secure Element Extn Iface (%d).",status);
-      goto shutdown;
-    }
-    ALOGI("Secure Element Service is ready");
-  }
+    checkEseClientUpdate();
+    ret = geteSETerminalId(terminalID);
+    ALOGI("Terminal val = %s", terminalID);
+    if ((ret) && (strncmp(SEterminal, terminalID, 3) == 0)) {
+      ALOGI("Terminal ID found");
+      status = se_service->registerAsService(terminalID);
 
-  ALOGI("Virtual ISO HAL Service 1.0 is starting.");
-  virtual_iso_service = new VirtualISO();
-  if (virtual_iso_service == nullptr) {
-    ALOGE("Can not create an instance of Virtual ISO HAL Iface, exiting.");
-    goto shutdown;
-  }
-  ret = geteUICCTerminalId(terminalID);
-  if((ret) && (strncmp(SEterminal, terminalID, 3) == 0))
-  {
-    status = virtual_iso_service->registerAsService(terminalID);
-    if (status != OK) {
-      ALOGE("Could not register service for Virtual ISO HAL Iface (%d).",
+      if (status != OK) {
+        ALOGE("Could not register service for Secure Element HAL Iface (%d).",
+              status);
+        goto shutdown;
+      }
+      ALOGI("Secure Element Service is ready");
+
+      ALOGI("NXP Secure Element Extn Service 1.0 is starting.");
+      nxp_se_service = new NxpEse();
+      if (nxp_se_service == nullptr) {
+        ALOGE(
+            "Can not create an instance of NXP Secure Element Extn "
+            "Iface,exiting.");
+        goto shutdown;
+      }
+      status = nxp_se_service->registerAsService();
+      if (status != OK) {
+        ALOGE(
+            "Could not register service for Power Secure Element Extn Iface "
+            "(%d).",
             status);
+        goto shutdown;
+      }
+      ALOGI("Secure Element Service is ready");
+    }
+
+    ALOGI("Virtual ISO HAL Service 1.0 is starting.");
+    virtual_iso_service = new VirtualISO();
+    if (virtual_iso_service == nullptr) {
+      ALOGE("Can not create an instance of Virtual ISO HAL Iface, exiting.");
       goto shutdown;
     }
-  }
+    ret = geteUICCTerminalId(terminalID);
+    if ((ret) && (strncmp(SEterminal, terminalID, 3) == 0)) {
+      status = virtual_iso_service->registerAsService(terminalID);
+      if (status != OK) {
+        ALOGE("Could not register service for Virtual ISO HAL Iface (%d).",
+              status);
+        goto shutdown;
+      }
+    }
 
-  ALOGI("Virtual ISO: Secure Element Service is ready");
-  perform_eSEClientUpdate();
-  joinRpcThreadpool();
+    ALOGI("Virtual ISO: Secure Element Service is ready");
+    perform_eSEClientUpdate();
+    joinRpcThreadpool();
+  } catch (const std::length_error& e) {
+    ALOGE("Lenght Exception occurred = %s ", e.what());
+  } catch (const std::__1::ios_base::failure& e) {
+    ALOGE("ios failure Exception occurred = %s ", e.what());
+  } catch (std::__1::regex_error& e) {
+    ALOGE("Regex Exception occurred = %s ", e.what());
+  }
 // Should not pass this line
 shutdown:
   // In normal operation, we don't expect the thread pool to exit
