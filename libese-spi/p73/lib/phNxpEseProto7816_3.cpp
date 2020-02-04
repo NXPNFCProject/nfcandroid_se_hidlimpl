@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2020 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -1378,7 +1378,6 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
             ATR_RSP;
         if (p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] > 0)
         {
-          phNxpEseProto7816_DecodeSFrameATRData(p_data);
           phNxpEse_StoreDatainList(p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET],
             &p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET + 1]);
         }
