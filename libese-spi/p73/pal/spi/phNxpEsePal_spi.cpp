@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2020 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -100,10 +100,10 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
     return ESESTATUS_FAILED;
   }
 #if (NFC_NXP_ESE_VER == JCOP_VER_5_x)
-  nfc_nci_IoctlInOutData_t* inpOutData = (nfc_nci_IoctlInOutData_t*)p_data;
+  ese_nxp_IoctlInOutData_t* inpOutData = (ese_nxp_IoctlInOutData_t*)p_data;
   switch(ioctlType) {
     case HAL_ESE_IOCTL_RF_STATUS_UPDATE:
-      rf_status = inpOutData->inp.data.nciCmd.p_cmd[0];
+      rf_status = inpOutData->inp.data.nxpCmd.p_cmd[0];
       if (rf_status == 1) {
         ALOGD_IF(
             ese_debug_enabled,
@@ -116,7 +116,7 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
       break;
     case HAL_ESE_IOCTL_NFC_JCOP_DWNLD:
 
-    eseioctldata.nfc_jcop_download_state = inpOutData->inp.data.nciCmd.p_cmd[0];
+    eseioctldata.nfc_jcop_download_state = inpOutData->inp.data.nxpCmd.p_cmd[0];
     if (eseioctldata.nfc_jcop_download_state == 1){
       ALOGD_IF(ese_debug_enabled,
                "******************JCOP Download "
@@ -357,7 +357,7 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
   ESESTATUS ret = ESESTATUS_IOCTL_FAILED;
   int retioctl = 0x00;
 #if (NFC_NXP_ESE_VER == JCOP_VER_5_x)
-  nfc_nci_IoctlInOutData_t inpOutData;
+  ese_nxp_IoctlInOutData_t inpOutData;
   inpOutData.inp.level = level;
   NfcAdaptation& pNfcAdapt = NfcAdaptation::GetInstance();
 #endif
@@ -412,7 +412,7 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
           } else {
 #if (NFC_NXP_ESE_VER == JCOP_VER_5_x)
             // Nfc Driver communication part
-            ret = pNfcAdapt.HalIoctl(HAL_NFC_SET_SPM_PWR, &inpOutData);
+            ret = pNfcAdapt.resetEse(level);
 #else
             ret = ESESTATUS_SUCCESS;
 #endif
@@ -476,7 +476,8 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
       memcpy(inpOutData.inp.data.nxpCmd.p_cmd, &data,
              sizeof(data));
       ALOGD_IF(ese_debug_enabled, "Before phPalEse_e_SetClientUpdateState");
-      ret = pNfcAdapt.HalIoctl(HAL_NFC_IOCTL_ESE_JCOP_DWNLD, &inpOutData);
+
+      ret = pNfcAdapt.setEseUpdateState(&inpOutData);
       ALOGD_IF(ese_debug_enabled, "After phPalEse_e_SetClientUpdateState");
     }
       break;

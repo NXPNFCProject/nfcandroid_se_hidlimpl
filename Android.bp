@@ -29,7 +29,7 @@ cc_binary {
         "libutils",
         "libchrome",
         "vendor.nxp.nxpese@1.0",
-        "vendor.nxp.nxpnfc@1.0",
+        "vendor.nxp.nxpnfc@2.0",
         "se_extn_client",
         "ls_client",
         "jcos_client",
@@ -51,7 +51,6 @@ cc_binary {
     ],
 
     include_dirs: [
-        "hardware/nxp/nfc/SN100x/extns/impl",
         "hardware/nxp/secure_element_extns/inc",
         "hardware/nxp/secure_element/extns/impl",
         "hardware/nxp/secure_element_extns/jcos_client/inc",

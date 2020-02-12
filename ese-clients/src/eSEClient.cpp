@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2020 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -33,10 +33,10 @@
 #include "hal_nxpese.h"
 #include "NxpEse.h"
 #include "NfcAdaptation.h"
-#include <vendor/nxp/nxpnfc/1.0/INxpNfc.h>
+#include <vendor/nxp/nxpnfc/2.0/INxpNfc.h>
 
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
-using vendor::nxp::nxpnfc::V1_0::INxpNfc;
+using vendor::nxp::nxpnfc::V2_0::INxpNfc;
 using android::sp;
 using android::hardware::Void;
 using android::hardware::hidl_vec;
@@ -130,31 +130,6 @@ void checkEseClientUpdate()
   if((se_intf.isJcopUpdateRequired && se_intf.sJcopUpdateIntferface)||
    (se_intf.isLSUpdateRequired && se_intf.sLsUpdateIntferface))
     seteSEClientState(ESE_UPDATE_STARTED);
-}
-
-/*******************************************************************************
-**
-** Function:    IoctlCallback
-**
-** Description: Callback from HAL stub for IOCTL api invoked.
-**              Output data for IOCTL is sent as argument
-**
-** Returns:     None.
-**
-*******************************************************************************/
-void IoctlCallback(::android::hardware::nfc::V1_0::NfcData outputData) {
-  const char* func = "IoctlCallback";
-  ese_nxp_ExtnOutputData_t* pOutData =
-      (ese_nxp_ExtnOutputData_t*)&outputData[0];
-  ALOGD("%s Ioctl Type=%lu",
-         func,(unsigned long)pOutData->ioctlType);
-  NfcAdaptation* pAdaptation = (NfcAdaptation*)pOutData->context;
-  /*Output Data from stub->Proxy is copied back to output data
-   * This data will be sent back to libnfc*/
-  memcpy(&pAdaptation->mCurrentIoctlData->out, &outputData[0],
-         sizeof(ese_nxp_ExtnOutputData_t));
-  ALOGD("%s Ioctl Type status = %d ",
-         func,pOutData->data.status);
 }
 
 /***************************************************************************
@@ -262,8 +237,7 @@ void* eSEUpdate_SE_SeqHandler(void* data) {
 *******************************************************************************/
 void* eSEClientUpdate_ThreadHandler(void* data) {
   (void)data;
-  ese_nxp_IoctlInOutData_t inpOutData;
-  int state, cnt = 0;
+  int cnt = 0;
 
   ALOGD("%s Enter\n", __func__);
   while(((mHalNxpNfc == nullptr) && (cnt < 3)))
@@ -282,28 +256,15 @@ void* eSEClientUpdate_ThreadHandler(void* data) {
 
   if(mHalNxpNfc != nullptr)
   {
-    memset(&inpOutData, 0x00, sizeof(ese_nxp_IoctlInOutData_t));
-    inpOutData.inp.data.nxpCmd.cmd_len = sizeof(state);
-    memcpy(inpOutData.inp.data.nxpCmd.p_cmd, &state,sizeof(state));
-
-    hidl_vec<uint8_t> data;
-
-    ese_nxp_IoctlInOutData_t* pInpOutData = &inpOutData;
-    //ALOGD_IF(nfc_debug_enabled, "%s arg=%ld", func, arg);
-    pInpOutData->inp.context = &NfcAdaptation::GetInstance();
-    NfcAdaptation::GetInstance().mCurrentIoctlData = pInpOutData;
-    data.setToExternal((uint8_t*)pInpOutData, sizeof(nfc_nci_IoctlInOutData_t));
-
-    mHalNxpNfc->ioctl(HAL_NFC_IOCTL_GET_ESE_UPDATE_STATE, data, IoctlCallback);
-
-    ALOGD("Ioctl Completed for Type result = %d", pInpOutData->out.data.status);
-    if(!se_intf.isJcopUpdateRequired && (pInpOutData->out.data.status & 0xFF))
+    if(!se_intf.isJcopUpdateRequired && mHalNxpNfc->isJcopUpdateRequired())
     {
-  	  se_intf.isJcopUpdateRequired = true;
+      se_intf.isJcopUpdateRequired = true;
+      ALOGD(" se_intf.isJcopUpdateRequired = %d",se_intf.isJcopUpdateRequired );
     }
-    if(!se_intf.isLSUpdateRequired && ((pInpOutData->out.data.status >> 8) & 0xFF))
+    if(!se_intf.isLSUpdateRequired && mHalNxpNfc->isLsUpdateRequired())
     {
-  	  se_intf.isLSUpdateRequired = true;
+      se_intf.isLSUpdateRequired = true;
+      ALOGD("se_intf.isLSUpdateRequired = %d", se_intf.isLSUpdateRequired);
     }
   }
 

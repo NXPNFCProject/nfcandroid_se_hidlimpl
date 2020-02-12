@@ -31,7 +31,7 @@ cc_library_shared {
         "src/include",
     ],
     include_dirs: [
-        "hardware/nxp/nfc/SN100x/extns/impl",
+        "hardware/nxp/nfc/SN100x/extns/impl/nxpnfc/2.0",
         "hardware/nxp/secure_element/extns/impl",
         "hardware/nxp/secure_element/ese-clients/inc"
 ],
@@ -63,7 +63,7 @@ cc_library_shared {
         "libbase",
         "libchrome",
         "vendor.nxp.nxpese@1.0",
-        "vendor.nxp.nxpnfc@1.0",
+        "vendor.nxp.nxpnfc@2.0",
     ],
 
     product_variables: {

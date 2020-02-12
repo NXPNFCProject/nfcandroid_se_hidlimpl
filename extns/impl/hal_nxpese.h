@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright (C) 2018-2019 NXP Semiconductors
+ *  Copyright (C) 2018-2020 NXP Semiconductors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #define ANDROID_HARDWARE_HAL_NXPESE_V1_0_H
 
 #define ESE_NXPNFC_HARDWARE_MODULE_ID "ese_nxp.pn54x"
+
 #define MAX_IOCTL_TRANSCEIVE_CMD_LEN 256
 #define MAX_IOCTL_TRANSCEIVE_RESP_LEN 256
 #define MAX_ATR_INFO_LEN 128
@@ -94,7 +95,6 @@ typedef struct {
   /*context to be used/updated only by users of proxy & stub of Ese.hal
    * i.e, EseAdaptation & hardware/interface/Ese.
    */
-  void* context;
   eseInputData_t data;
   uint8_t data_source;
   long level;
@@ -135,7 +135,6 @@ typedef struct {
    * These fields shall not be used by libese or halimplementation*/
   uint64_t ioctlType;
   uint32_t result;
-  void* context;
   eseOutputData_t data;
 } ese_nxp_ExtnOutputData_t;
 

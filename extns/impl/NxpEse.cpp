@@ -202,7 +202,6 @@ Return<void> NxpEse::ioctl(uint64_t ioctlType,
   /*copy data and additional fields indicating status of ioctl operation
    * and context of the caller. Then invoke the corresponding proxy callback*/
   inpOutData.out.ioctlType = ioctlType;
-  inpOutData.out.context = pInOutData->inp.context;
   inpOutData.out.result = status;
   if(ioctlType == HAL_ESE_IOCTL_GET_ESE_UPDATE_STATE)
   {

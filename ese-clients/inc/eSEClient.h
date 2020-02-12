@@ -38,4 +38,5 @@ typedef enum {
 ESE = 0,
 EUICC = 1,
 }SEDomainID;
+
 #endif /* ESE_UPDATE_2_H_ */

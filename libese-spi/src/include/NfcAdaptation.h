@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2020 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -20,12 +20,11 @@
 
 #include <android/hardware/nfc/1.0/types.h>
 #include <utils/RefBase.h>
-#include <vendor/nxp/nxpnfc/1.0/INxpNfc.h>
-#include "hal_nxpnfc.h"
+#include <vendor/nxp/nxpnfc/2.0/INxpNfc.h>
 #include "hal_nxpese.h"
 #include <phEseStatus.h>
 #include <phNxpEseFeatures.h>
-using vendor::nxp::nxpnfc::V1_0::INxpNfc;
+using vendor::nxp::nxpnfc::V2_0::INxpNfc;
 
 class ThreadMutex {
  public:
@@ -70,7 +69,8 @@ class NfcAdaptation {
   virtual ~NfcAdaptation();
   void Initialize();
   static NfcAdaptation& GetInstance();
-  static ESESTATUS HalIoctl(long data_len, void* p_data);
+  static ESESTATUS resetEse(uint64_t level);
+  static ESESTATUS setEseUpdateState(void* p_data);
   ese_nxp_IoctlInOutData_t* mCurrentIoctlData;
 
  private:
