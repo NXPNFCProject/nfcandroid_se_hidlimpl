@@ -10,7 +10,8 @@ cc_binary {
         "1.2/SecureElement.cpp",
         "1.2/VirtualISO.cpp",
         "extns/impl/NxpEse.cpp",
-        "ese-clients/src/eSEClient.cpp"
+        "ese-clients/src/eSEClient.cpp",
+        "1.2/OsuHal/src/OsuHalExtn.cpp",
     ],
 
     shared_libs: [
@@ -45,7 +46,8 @@ cc_binary {
         "libese-spi/p73/utils",
         "libese-spi/p73/spm",
         "libese-spi/src/include",
-        "ese-clients/inc"
+        "ese-clients/inc",
+        "1.2/OsuHal/inc",
     ],
 
     include_dirs: [

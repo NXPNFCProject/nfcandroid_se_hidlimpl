@@ -639,35 +639,35 @@ VirtualISO::seHalDeInit() {
 }
 Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
 VirtualISO::reset() {
-	  ESESTATUS status = ESESTATUS_SUCCESS;
-	  SecureElementStatus sestatus = SecureElementStatus::FAILED;
-	  LOG(ERROR) << "%s: Enter" << __func__;
-	  if (!mIsEseInitialized) {
-	    ESESTATUS status = seHalInit();
-	    if (status != ESESTATUS_SUCCESS) {
-		LOG(ERROR) << "%s: seHalInit Failed!!!"<< __func__;
-	    }
-	  }
-	  if (status == ESESTATUS_SUCCESS) {
-		  mCallbackV1_1->onStateChange_1_1(false, "reset the SE");
-	    status = phNxpEse_reset();
-	    if (status != ESESTATUS_SUCCESS) {
-		LOG(ERROR) << "%s: SecureElement reset failed!!"<< __func__;
-	    } else {
-	      sestatus = SecureElementStatus::SUCCESS;
-	      for (uint8_t xx = 0; xx < MAX_LOGICAL_CHANNELS; xx++) {
-	        mOpenedChannels[xx] = false;
-	      }
-	      mOpenedchannelCount = 0;
-	      mCallbackV1_1->onStateChange_1_1(true, "SE initialized");
-	    }
-	  }
-	  LOG(ERROR) << "%s: Exit" <<  __func__;
-	  return sestatus;
+  ESESTATUS status = ESESTATUS_SUCCESS;
+  SecureElementStatus sestatus = SecureElementStatus::FAILED;
+  LOG(ERROR) << "%s: Enter" << __func__;
+  if (!mIsEseInitialized) {
+    ESESTATUS status = seHalInit();
+    if (status != ESESTATUS_SUCCESS) {
+      LOG(ERROR) << "%s: seHalInit Failed!!!" << __func__;
+    }
+  }
+  if (status == ESESTATUS_SUCCESS) {
+    mCallbackV1_1->onStateChange_1_1(false, "reset the SE");
+    status = phNxpEse_reset();
+    if (status != ESESTATUS_SUCCESS) {
+      LOG(ERROR) << "%s: SecureElement reset failed!!" << __func__;
+    } else {
+      sestatus = SecureElementStatus::SUCCESS;
+      for (uint8_t xx = 0; xx < MAX_LOGICAL_CHANNELS; xx++) {
+        mOpenedChannels[xx] = false;
+      }
+      mOpenedchannelCount = 0;
+      mCallbackV1_1->onStateChange_1_1(true, "SE initialized");
+    }
+  }
+  LOG(ERROR) << "%s: Exit" << __func__;
+  return sestatus;
 }
 
 }  // namespace implementation
 }  // namespace V1_0
-}  // namespace secure_element
-}  // namespace hardware
-}  // namespace android
+}  // namespace virtual_iso
+}  // namespace nxp
+}  // namespace vendor
