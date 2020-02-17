@@ -18,16 +18,16 @@
 #ifndef ANDROID_HARDWARE_SECURE_ELEMENT_V1_2_SECUREELEMENT_H
 #define ANDROID_HARDWARE_SECURE_ELEMENT_V1_2_SECUREELEMENT_H
 
+#include <SyncEvent.h>
+#include <android-base/stringprintf.h>
 #include <android/hardware/secure_element/1.0/types.h>
 #include <android/hardware/secure_element/1.2/ISecureElement.h>
 #include <hardware/hardware.h>
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>
 #include <pthread.h>
+#include "OsuHalExtn.h"
 #include "phNxpEse_Api.h"
-#include <SyncEvent.h>
-#include <android-base/stringprintf.h>
-
 
 class ThreadMutex {
  public:
@@ -115,7 +115,7 @@ struct SecureElement : public V1_2::ISecureElement, public hidl_death_recipient 
   static sp<V1_0::ISecureElementHalCallback> mCallbackV1_0;
   static sp<V1_1::ISecureElementHalCallback> mCallbackV1_1;
   Return<SecureElementStatus> seHalDeInit();
-  ESESTATUS seHalInit();
+  ESESTATUS seHalInit(phNxpEse_initMode mode);
   Return<SecureElementStatus> internalCloseChannel(uint8_t channelNumber);
   void seHalResetSe();
 };
