@@ -1,14 +1,14 @@
 
 cc_binary {
     relative_install_path: "hw",
-    name: "android.hardware.secure_element@1.1-service",
-    init_rc: ["1.1/android.hardware.secure_element@1.1-service.rc"],
+    name: "android.hardware.secure_element@1.2-service",
+    init_rc: ["1.2/android.hardware.secure_element@1.2-service.rc"],
     proprietary: true,
     defaults: ["hidl_defaults"],
     srcs: [
-        "1.1/NxpEseService.cpp",
-        "1.1/SecureElement.cpp",
-        "1.1/VirtualISO.cpp",
+        "1.2/NxpEseService.cpp",
+        "1.2/SecureElement.cpp",
+        "1.2/VirtualISO.cpp",
         "extns/impl/NxpEse.cpp",
         "ese-clients/src/eSEClient.cpp"
     ],
@@ -16,6 +16,7 @@ cc_binary {
     shared_libs: [
         "android.hardware.secure_element@1.0",
         "android.hardware.secure_element@1.1",
+        "android.hardware.secure_element@1.2",
         "ese_spi_nxp",
         "libbase",
         "libcutils",

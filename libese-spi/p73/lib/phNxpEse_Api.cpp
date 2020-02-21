@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2020 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -846,9 +846,9 @@ ESESTATUS phNxpEse_reset(void) {
   ALOGD_IF(ese_debug_enabled, " %s Enter \n", __FUNCTION__);
   /* Do an interface reset, don't wait to see if JCOP went through a full power
    * cycle or not */
-  ESESTATUS bStatus = phNxpEseProto7816_IntfReset(
+  status = phNxpEseProto7816_IntfReset(
       (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
-  if (!bStatus) {
+  if (status) {
     ALOGE("%s Ese status Failed", __FUNCTION__);
   }
 
