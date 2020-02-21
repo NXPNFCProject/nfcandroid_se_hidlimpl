@@ -843,10 +843,6 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
   if(!p_data[2])
     phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.maxDataLenIFSC = IFSC_SIZE_SEND;
 
-  /* By default current IFS is set to Default */
-  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS =
-                phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.defaultDataLenIFSC;
-
   phNxpEse_memcpy(&phNxpEseProto7816_3_Var.atrInfo.len, &p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET],
        sizeof(phNxpEseProto7816_ATR_Info_t));
 
@@ -1378,6 +1374,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
             ATR_RSP;
         if (p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] > 0)
         {
+          phNxpEseProto7816_DecodeSFrameATRData(p_data);
           phNxpEse_StoreDatainList(p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET],
             &p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET + 1]);
         }
