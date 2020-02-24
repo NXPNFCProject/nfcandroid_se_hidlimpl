@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2020 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -56,6 +56,7 @@ typedef enum {
   phPalEse_e_SetJcopDwnldState,    /*!< Set Jcop Download state */
   phPalEse_e_SetClientUpdateState, /*!< Set Jcop Download state */
   phPalEse_e_SetSecureMode, /*!< Set the Trusted SE Mode */
+  phPalEse_e_ResetProtection,
 } phPalEse_ControlCode_t;   /*!< Control code for IOCTL call */
 
 /*!

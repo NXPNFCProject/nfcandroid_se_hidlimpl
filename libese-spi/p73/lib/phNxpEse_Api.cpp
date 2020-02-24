@@ -49,6 +49,7 @@ static ESESTATUS phNxpEse_checkFWDwnldStatus(void);
 static void phNxpEse_GetMaxTimer(unsigned long* pMaxTimer);
 static unsigned char* phNxpEse_GgetTimerTlvBuffer(unsigned char* timer_buffer,
                                                   unsigned int value);
+static ESESTATUS phNxpEse_doResetProtection(bool flag);
 static int poll_sof_chained_delay = 0;
 static phNxpEse_OsVersion_t sOsVersion = INVALID_OS_VERSION;
 
@@ -183,6 +184,7 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
     }
   } else /* OSU mode, no interface reset is required */
   {
+    phNxpEse_doResetProtection(true);
     protoInitParam.interfaceReset = false;
   }
   if (EseConfig::hasKey(NAME_NXP_WTX_NTF_COUNT)) {
@@ -1014,6 +1016,29 @@ ESESTATUS phNxpEse_chipReset(void) {
 }
 
 /******************************************************************************
+ * Function         phNxpEse_doResetProtection
+ *
+ * Description      This function enables/diables reset protection
+ *
+ * Returns          SUCCESS(0)/FAIL(-1).
+ *
+ ******************************************************************************/
+static ESESTATUS phNxpEse_doResetProtection(bool flag) {
+  ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
+  ALOGD_IF(ese_debug_enabled, " %s Enter \n", __FUNCTION__);
+  if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
+    wSpmStatus = phPalEse_ioctl(phPalEse_e_ResetProtection,
+                         nxpese_ctxt.pDevHandle, flag);
+  } else {
+    wSpmStatus = ESESTATUS_FAILED;
+    ALOGE(" %s Function not supported \n", __FUNCTION__);
+  }
+  ALOGD_IF(ese_debug_enabled, " %s Exit status 0x%x \n", __FUNCTION__,
+           wSpmStatus);
+  return wSpmStatus;
+}
+
+/******************************************************************************
  * Function         phNxpEse_deInit
  *
  * Description      This function de-initializes all the ESE protocol params
@@ -1029,6 +1054,9 @@ ESESTATUS phNxpEse_deInit(void) {
       (ESE_STATUS_RECOVERY == nxpese_ctxt.EseLibStatus) &&
       ESE_PROTOCOL_MEDIA_SPI != nxpese_ctxt.initParams.mediaType) {
     return status;
+  }
+  if (nxpese_ctxt.initParams.initMode == ESE_MODE_OSU) {
+    phNxpEse_doResetProtection(false);
   }
   /*TODO : to be removed after JCOP fix*/
   if (EseConfig::hasKey(NAME_NXP_VISO_DPD_ENABLED))

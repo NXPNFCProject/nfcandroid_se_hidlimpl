@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2020 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -422,6 +422,17 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
         }
       } else {
         ret = (ESESTATUS)ioctl(handle, P61_SET_SPM_PWR, level);
+      }
+      break;
+    case phPalEse_e_ResetProtection:
+      if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
+          retioctl = ioctl(handle, PERFORM_RESET_PROTECTION, level);
+          if (0x00 <= retioctl) {
+            ret = ESESTATUS_SUCCESS;
+          } else {
+            ALOGE("phPalEse_e_ResetProtection ioctl failed status :%x !",
+                    retioctl);
+          }
       }
       break;
     case phPalEse_e_EnableThroughputMeasurement:
