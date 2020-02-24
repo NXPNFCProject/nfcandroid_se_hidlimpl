@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2020 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -130,6 +130,11 @@
  * \brief IOCTL to perform the eSE COLD_RESET  via NFC driver.
  */
 #define ESE_PERFORM_COLD_RESET  _IOW(P61_MAGIC, 0x0C, long)
+
+/*!
+ * \brief IOCTL to enable/disable GPIO/COLD reset protection.
+ */
+#define PERFORM_RESET_PROTECTION  _IOW(P61_MAGIC, 0x0D, long)
 
 /* Function declarations */
 /**
