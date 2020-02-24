@@ -19,7 +19,7 @@
 
 #define LOG_TAG "OsuHalExtn"
 const static hidl_vec<uint8_t> OSU_AID = {0x4F, 0x70, 0x80, 0x13, 0x04,
-                                          0xDE, 0xAD, 0xBE, 0xEF, 0x00};
+                                          0xDE, 0xAD, 0xBE, 0xEF};
 /*
  * INIT :- Will return OSU ongoing
  *
