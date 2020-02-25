@@ -32,6 +32,8 @@ namespace V1_2 {
 namespace implementation {
 
 #define LOG_TAG "nxpese@1.0-service"
+#define ISVALIDLC(x) \
+  ((x > 00 && x <= 03) || (x >= 0x40 && x <= 0x4F) ? true : false)
 
 #define DEFAULT_BASIC_CHANNEL 0x00
 #define MAX_LOGICAL_CHANNELS 0x04
@@ -368,7 +370,8 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
     resApduBuff.channelNumber = 0xff;
     sestatus = SecureElementStatus::CHANNEL_NOT_AVAILABLE;
   } else if (rspApdu.p_data[rspApdu.len - 2] == 0x90 &&
-             rspApdu.p_data[rspApdu.len - 1] == 0x00) {
+             rspApdu.p_data[rspApdu.len - 1] == 0x00 &&
+             ISVALIDLC(rspApdu.p_data[0])) {
     resApduBuff.channelNumber = rspApdu.p_data[0];
     mOpenedchannelCount++;
     mOpenedChannels[resApduBuff.channelNumber] = true;
