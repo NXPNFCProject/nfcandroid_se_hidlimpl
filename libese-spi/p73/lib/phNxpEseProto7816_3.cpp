@@ -885,6 +885,19 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
   ALOGD_IF(ese_debug_enabled, "Capabilities = 0x%x",
            phNxpEseProto7816_3_Var.atrInfo.capbilities[0] << 8 |
                phNxpEseProto7816_3_Var.atrInfo.capbilities[1]);
+
+  if (phNxpEseProto7816_3_Var.atrInfo.vendorID[4] == PH_SE_OS_VERSION_11) {
+    phNxpEse_memcpy(&phNxpEseProto7816_3_Var.extndAtrInfo.channelNo,
+                    &p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] +
+                        sizeof(phNxpEseProto7816_ATR_Info_t),
+                    sizeof(phNxpEseProto7816_ATR_Info2_t));
+    ALOGD_IF(ese_debug_enabled, "Channel Number = 0x%x",
+             phNxpEseProto7816_3_Var.extndAtrInfo.channelNo);
+    ALOGD_IF(
+        ese_debug_enabled, "OS Type = %s",
+        (phNxpEseProto7816_3_Var.extndAtrInfo.osType == 0x01 ? "JCOP Mode"
+                                                             : "OSU Mode"));
+  }
   ALOGD_IF(ese_debug_enabled, "======================");
 }
 
@@ -1322,7 +1335,11 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
           phNxpEseProto7816_DecodeSFrameATRData(p_data);
           if (phNxpEseProto7816_3_Var.atrInfo
                   .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] ==
-              PH_SE_OS_VERSION_10) {
+              PH_SE_OS_VERSION_11) {
+            phNxpEse_setOsVersion(OS_VERSION_5_2_2);
+          } else if (phNxpEseProto7816_3_Var.atrInfo
+                         .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] ==
+                     PH_SE_OS_VERSION_10) {
             phNxpEse_setOsVersion(OS_VERSION_5_2);
           } else if(phNxpEseProto7816_3_Var.atrInfo
                   .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] ==
@@ -2033,6 +2050,29 @@ uint16_t phNxpEseProto7816_GetIfs(void) {
       phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo.currentDataLenIFS);
   return phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.IframeInfo
       .currentDataLenIFS;
+}
+
+/******************************************************************************
+ * Function         phNxpEseProto7816_GetOsMode
+ *
+ * Description      This function is used to get current OS Mode
+ *
+ * Returns          0x01 : JCOP_MODE
+ *                  0x02 : OSU_MODE
+ *
+ ******************************************************************************/
+phNxpEseProto7816_OsType_t phNxpEseProto7816_GetOsMode(void) {
+  phNxpEseProto7816_OsType_t mode = UNKNOWN_MODE;
+  if (GET_CHIP_OS_VERSION() == OS_VERSION_5_2_2) {
+    ALOGD_IF(ese_debug_enabled, "Enter %s OS Mode = %s", __FUNCTION__,
+             (phNxpEseProto7816_3_Var.extndAtrInfo.osType == 1 ? "JCOP Mode"
+                                                               : "OSU Mode"));
+    mode = (phNxpEseProto7816_3_Var.extndAtrInfo.osType == 1) ? JCOP_MODE
+                                                              : OSU_MODE;
+  } else {
+    ALOGE("%s function not supported", __FUNCTION__);
+  }
+  return mode;
 }
 
 /******************************************************************************
