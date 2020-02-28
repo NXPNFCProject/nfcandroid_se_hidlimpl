@@ -200,6 +200,18 @@ typedef struct phNxpEseProto7816_ATR_Info {
                         */
 } phNxpEseProto7816_ATR_Info_t;
 
+typedef struct phNxpEseProto7816_ATR_Info2 {
+  uint8_t channelNo; /*!< ATR: Current ongoing channel no */
+  uint8_t osType;    /*!< ATR: Indicates OS Type
+                       JCOP_OS    = 0x01
+                       UPDATER_OS = 0x02 */
+} phNxpEseProto7816_ATR_Info2_t;
+
+typedef enum phNxpEseProto7816_OsType {
+  UNKNOWN_MODE = 0,
+  JCOP_MODE = 0x1,
+  OSU_MODE = 0x2,
+} phNxpEseProto7816_OsType_t;
 /*!
  * \brief Next/Last Tx information structure holding transceive data
  *
@@ -303,6 +315,7 @@ typedef struct phNxpEseProto7816 {
   unsigned long int reset_type;
   uint32_t currentIFSDSize;
   phNxpEseProto7816_ATR_Info_t atrInfo;
+  phNxpEseProto7816_ATR_Info2_t extndAtrInfo;
 } phNxpEseProto7816_t;
 
 /*!
@@ -477,6 +490,10 @@ typedef struct phNxpEseProto7816_PCB_bits {
  * \brief APIs exposed from the 7816-3 protocol layer
  */
 #define PH_SE_OS_VERSION_10            0x10
+/*!
+ * \brief APIs exposed from the 7816-3 protocol layer
+ */
+#define PH_SE_OS_VERSION_11 0x11
 /*!
  * \brief Default wait extension notification interval
  */

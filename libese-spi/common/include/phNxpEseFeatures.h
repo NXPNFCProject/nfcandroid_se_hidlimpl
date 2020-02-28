@@ -36,6 +36,7 @@ typedef enum OS_VERSION {
   OS_VERSION_4_0 = 1,
   OS_VERSION_5_1 = 2,
   OS_VERSION_5_2 = 3,
+  OS_VERSION_5_2_2 = 4,
   INVALID_OS_VERSION = 0xFF,
 } phNxpEse_OsVersion_t;
 
