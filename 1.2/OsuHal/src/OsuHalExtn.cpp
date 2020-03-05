@@ -103,9 +103,13 @@ OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(uint8_t* input, size_t length,
   } else if (*input == OSU_PROP_CLA && *(input + 1) == OSU_PROP_INS &&
              *(input + 2) == OSU_PROP_RST_P1) {
     LOG(ERROR) << "checkTransmit in OSU_PROP_RST_INS";
-    phNxpEse_SetEndPoint_Cntxt(0);
+    if (phNxpEse_SetEndPoint_Cntxt(0) != ESESTATUS_SUCCESS) {
+      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+    }
     phNxpEse_resetJcopUpdate();
-    phNxpEse_ResetEndPoint_Cntxt(0);
+    if (phNxpEse_ResetEndPoint_Cntxt(0) !=  ESESTATUS_SUCCESS) {
+      LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed!!!";
+    }
     phNxpEse_free(input);
     input = nullptr;
     halMode = OSU_RST_MODE;
