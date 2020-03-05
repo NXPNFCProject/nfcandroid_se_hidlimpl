@@ -97,8 +97,13 @@ OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(uint8_t* input, size_t length,
   } else if (*input == OSU_PROP_CLA && *(input + 1) == OSU_PROP_INS &&
              *(input + 2) != OSU_PROP_RST_P1) {
     LOG(ERROR) << "checkTransmit in OSU_PROP_MODE";
-    *outLength = length - 5;
-    memcpy(input, input + 5, length - 5);
+    if( *(input + 4) != 0) {
+      *outLength = length - 5;
+      memcpy(input, input + 5, length - 5);
+    } else {
+      *outLength = length - 7;
+      memcpy(input, input + 7, length - 7);
+    }
     halMode = OSU_PROP_MODE;
   } else if (*input == OSU_PROP_CLA && *(input + 1) == OSU_PROP_INS &&
              *(input + 2) == OSU_PROP_RST_P1) {
