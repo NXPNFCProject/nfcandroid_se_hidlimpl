@@ -55,7 +55,6 @@ OsuHalExtn::OsuApduMode OsuHalExtn::isOsuMode(const hidl_vec<uint8_t>& evt,
         osuSubState =
             checkTransmit(pCmdData->p_data, evt.size(), &pCmdData->len);
       } else {
-        LOG(ERROR) << "In NORAML_GP_MODE!!!!";
         pCmdData->len = evt.size();
         osuSubState = OSU_GP_MODE;
       }
@@ -119,7 +118,6 @@ OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(uint8_t* input, size_t length,
     input = nullptr;
     halMode = OSU_RST_MODE;
   } else {
-    LOG(ERROR) << "checkTransmit in OSU_GP_MODE";
     *outLength = length;
     halMode = OSU_GP_MODE;
   }
