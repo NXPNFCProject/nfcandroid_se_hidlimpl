@@ -1165,22 +1165,6 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
       }
       // resend previously send I frame
     }
-#ifdef PROP_FRAME_MISSING_ERROR
-    /* Error handling 3 */
-    else if ((pcb_bits.lsb == 0x01) && (pcb_bits.bit2 == 0x01)) {
-      phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
-      if (phNxpEseProto7816_3_Var.recoveryCounter < GET_FRAME_RETRY_COUNT()) {
-        phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.errCode =
-            SOF_MISSED_ERROR;
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx =
-            phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx;
-        phNxpEseProto7816_3_Var.recoveryCounter++;
-      } else {
-        phNxpEseProto7816_RecoverySteps();
-        phNxpEseProto7816_3_Var.recoveryCounter++;
-      }
-    }
-#endif
     else /* Error handling 4 */
     {
       phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
