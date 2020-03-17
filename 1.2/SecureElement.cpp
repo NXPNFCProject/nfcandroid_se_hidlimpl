@@ -191,8 +191,7 @@ Return<void> SecureElement::getAtr(getAtr_cb _hidl_cb) {
   ESESTATUS status = ESESTATUS_FAILED;
   bool mIsSeHalInitDone = false;
 
-  if (IS_OSU_MODE(OsuHalExtn::getInstance().OPENLOGICAL) >=
-      OsuHalExtn::getInstance().OSU_PROP_MODE) {
+  if (IS_OSU_MODE(OsuHalExtn::getInstance().OPENLOGICAL)) {
     LOG(ERROR) << "%s: Not allowed in dedicated mode!!!" << __func__;
     _hidl_cb(response);
     return Void();
@@ -329,8 +328,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
 
   LOG(INFO) << "Acquired the lock from SPI openLogicalChannel";
 
-  if (IS_OSU_MODE(OsuHalExtn::getInstance().OPENLOGICAL) >=
-      OsuHalExtn::getInstance().OSU_PROP_MODE) {
+  if (IS_OSU_MODE(OsuHalExtn::getInstance().OPENLOGICAL)) {
     LOG(ERROR) << "%s: Not allowed in dedicated mode!!!" << __func__;
     _hidl_cb(resApduBuff, SecureElementStatus::IOERROR);
     return Void();
@@ -492,8 +490,7 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
               0x41, 0x01, 0x43, 0x4F, 0x52, 0x01};
 
   LOG(ERROR) << "Acquired the lock in SPI openBasicChannel";
-  if (IS_OSU_MODE(aid, OsuHalExtn::getInstance().OPENBASIC) >=
-      OsuHalExtn::getInstance().OSU_PROP_MODE) {
+  if (IS_OSU_MODE(aid, OsuHalExtn::getInstance().OPENBASIC)) {
     uint8_t sw[2] = {0x90, 0x00};
     result.resize(sizeof(sw));
     memcpy(&result[0], sw, 2);
@@ -651,8 +648,7 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
 Return<SecureElementStatus>
 SecureElement::closeChannel(uint8_t channelNumber) {
   AutoMutex guard(seHalLock);
-  if (IS_OSU_MODE(OsuHalExtn::getInstance().CLOSE, channelNumber) ==
-      OsuHalExtn::getInstance().NON_OSU_MODE) {
+  if (!IS_OSU_MODE(OsuHalExtn::getInstance().CLOSE, channelNumber)) {
     return internalCloseChannel(channelNumber);
   } else {
     return SecureElementStatus::SUCCESS;
