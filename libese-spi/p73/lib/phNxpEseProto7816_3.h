@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2020 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -498,6 +498,10 @@ typedef struct phNxpEseProto7816_PCB_bits {
  * \brief Default wait extension notification interval
  */
 #define PH_DEFAULT_WTX_NTF_LIMIT 0x03
+/*!
+ * \delay for hard reset response
+ */
+#define HARD_RESET_RES_DELAY 4000
 
 /**
  * \ingroup ISO7816-3_protocol_lib
