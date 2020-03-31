@@ -413,7 +413,6 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
       break;
 
     case phPalEse_e_GetEseAccess:
-      // ret = sendIoctlData(p, HAL_NFC_GET_ESE_ACCESS, &inpOutData);
       ret = ESESTATUS_SUCCESS;
       break;
 #ifdef NXP_ESE_JCOP_DWNLD_PROTECTION
