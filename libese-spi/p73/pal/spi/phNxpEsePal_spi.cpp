@@ -108,7 +108,7 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
       StateMachine::GetInstance().ProcessExtEvent(EVT_HCI_INIT_COMPLETE);
     }
   } break;
-  case HAL_NFC_IOCTL_RF_STATUS_UPDATE: {
+  case HAL_ESE_IOCTL_RF_STATUS_UPDATE: {
     int isRfNtfForOn = inpOutData->inp.data.nxpCmd.p_cmd[0];
     if (isRfNtfForOn == 1) {
       ALOGD_IF(
@@ -128,7 +128,7 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
       phPalEse_spi_start_debounce_timer(gRfOffDebounceTimeout);
     }
   } break;
-  case HAL_NFC_IOCTL_RF_ACTION_NTF: {
+  case HAL_ESE_IOCTL_RF_ACTION_NTF: {
     ALOGD_IF(
         ese_debug_enabled,
         "*******************RF ACT NTF*************************************");
