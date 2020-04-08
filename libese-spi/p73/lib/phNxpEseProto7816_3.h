@@ -207,11 +207,6 @@ typedef struct phNxpEseProto7816_ATR_Info2 {
                        UPDATER_OS = 0x02 */
 } phNxpEseProto7816_ATR_Info2_t;
 
-typedef enum phNxpEseProto7816_OsType {
-  UNKNOWN_MODE = 0,
-  JCOP_MODE = 0x1,
-  OSU_MODE = 0x2,
-} phNxpEseProto7816_OsType_t;
 /*!
  * \brief Next/Last Tx information structure holding transceive data
  *
@@ -600,6 +595,14 @@ ESESTATUS phNxpEseProto7816_getAtr(phNxpEse_data* pATRRsp);
  */
 uint16_t phNxpEseProto7816_GetIfs(void);
 
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief This function is used to get OS mode(JCOP/OSU)
+ *
+ * \retval OS mode(JCOP/OSU).
+ *
+ */
+phNxpEseProto7816_OsType_t phNxpEseProto7816_GetOsMode(void);
 /**
  * \ingroup ISO7816-3_protocol_lib
  * \brief This function is used to check eSE is alive/responding

@@ -903,6 +903,19 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
         (phNxpEseProto7816_3_Var.extndAtrInfo.osType == 0x01 ? "JCOP Mode"
                                                              : "OSU Mode"));
   }
+  if (phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN -
+                                               1] == PH_SE_OS_VERSION_11) {
+    phNxpEse_setOsVersion(OS_VERSION_5_2_2);
+  } else if (phNxpEseProto7816_3_Var.atrInfo
+                 .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] ==
+             PH_SE_OS_VERSION_10) {
+    phNxpEse_setOsVersion(OS_VERSION_5_2);
+  } else if (phNxpEseProto7816_3_Var.atrInfo
+                 .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] ==
+             PH_PROTO_7816_VALUE_ZERO) {
+    phNxpEse_setOsVersion(OS_VERSION_5_1);
+  }
+
   ALOGD_IF(ese_debug_enabled, "======================");
 }
 
@@ -989,57 +1002,70 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
 
   if (0x00 == pcb_bits.msb) /* I-FRAME decoded should come here */
   {
-    ALOGD_IF(ese_debug_enabled, "%s I-Frame Received", __FUNCTION__);
-    phNxpEseProto7816_CheckAndNotifyWtx(WTX_END);
-    phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdFrameType = IFRAME;
-    if (phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.seqNo !=
-        pcb_bits.bit7)  //   != pcb_bits->bit7)
-    {
-      ALOGD_IF(ese_debug_enabled, "%s I-Frame lastRcvdIframeInfo.seqNo:0x%x",
-               __FUNCTION__, pcb_bits.bit7);
-      phNxpEseProto7816_ResetRecovery();
-      phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.seqNo = 0x00;
-      phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.seqNo |=
-          pcb_bits.bit7;
-
-      if (pcb_bits.bit6) {
-        phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.isChained =
-            true;
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = RFRAME;
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.RframeInfo.errCode =
-            NO_ERROR;
-        if(EXTENDED_FRAME_MARKER == p_data[2]) /* Checking for extended frame prologue */
-        {
-          status = phNxpEseProro7816_SaveIframeData(&p_data[5], data_len - 6);
-        } else {
-          status = phNxpEseProro7816_SaveIframeData(&p_data[3], data_len - 4);
-        }
-        phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
-            SEND_R_ACK;
-      } else {
-        phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.isChained =
-            false;
-        phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
-            IDLE_STATE;
-        if(EXTENDED_FRAME_MARKER == p_data[2]) /* Checking for extended frame prologue */
-        {
-          status = phNxpEseProro7816_SaveIframeData(&p_data[5], data_len - 6);
-        } else {
-          status = phNxpEseProro7816_SaveIframeData(&p_data[3], data_len - 4);
-        }
-      }
+    if (phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.FrameType == SFRAME &&
+        phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.sFrameType ==
+            INTF_RESET_REQ) {
+      ALOGD_IF(ese_debug_enabled,
+               "%s Unexpected Frame, shall retry interface reset",
+               __FUNCTION__);
+      phNxpEse_memcpy(&phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx,
+                      &phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx,
+                      sizeof(phNxpEseProto7816_NextTx_Info_t));
     } else {
-      phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
-      if (phNxpEseProto7816_3_Var.recoveryCounter < GET_FRAME_RETRY_COUNT()) {
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = RFRAME;
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.RframeInfo.errCode =
-            OTHER_ERROR;
-        phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
-            SEND_R_NACK;
-        phNxpEseProto7816_3_Var.recoveryCounter++;
+      ALOGD_IF(ese_debug_enabled, "%s I-Frame Received", __FUNCTION__);
+      phNxpEseProto7816_CheckAndNotifyWtx(WTX_END);
+      phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdFrameType = IFRAME;
+      if (phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.seqNo !=
+          pcb_bits.bit7)  //   != pcb_bits->bit7)
+      {
+        ALOGD_IF(ese_debug_enabled, "%s I-Frame lastRcvdIframeInfo.seqNo:0x%x",
+                 __FUNCTION__, pcb_bits.bit7);
+        phNxpEseProto7816_ResetRecovery();
+        phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.seqNo = 0x00;
+        phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.seqNo |=
+            pcb_bits.bit7;
+
+        if (pcb_bits.bit6) {
+          phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.isChained =
+              true;
+          phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = RFRAME;
+          phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.RframeInfo.errCode =
+              NO_ERROR;
+          if (EXTENDED_FRAME_MARKER ==
+              p_data[2]) /* Checking for extended frame prologue */
+          {
+            status = phNxpEseProro7816_SaveIframeData(&p_data[5], data_len - 6);
+          } else {
+            status = phNxpEseProro7816_SaveIframeData(&p_data[3], data_len - 4);
+          }
+          phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+              SEND_R_ACK;
+        } else {
+          phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.isChained =
+              false;
+          phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+              IDLE_STATE;
+          if (EXTENDED_FRAME_MARKER ==
+              p_data[2]) /* Checking for extended frame prologue */
+          {
+            status = phNxpEseProro7816_SaveIframeData(&p_data[5], data_len - 6);
+          } else {
+            status = phNxpEseProro7816_SaveIframeData(&p_data[3], data_len - 4);
+          }
+        }
       } else {
-        phNxpEseProto7816_RecoverySteps();
-        phNxpEseProto7816_3_Var.recoveryCounter++;
+        phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
+        if (phNxpEseProto7816_3_Var.recoveryCounter < GET_FRAME_RETRY_COUNT()) {
+          phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = RFRAME;
+          phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.RframeInfo.errCode =
+              OTHER_ERROR;
+          phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+              SEND_R_NACK;
+          phNxpEseProto7816_3_Var.recoveryCounter++;
+        } else {
+          phNxpEseProto7816_RecoverySteps();
+          phNxpEseProto7816_3_Var.recoveryCounter++;
+        }
       }
     }
   } else if ((0x01 == pcb_bits.msb) &&
@@ -1054,16 +1080,27 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         pcb_bits.bit5;
 
     if ((pcb_bits.lsb == 0x00) && (pcb_bits.bit2 == 0x00)) {
-      phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.errCode =
-          NO_ERROR;
-      phNxpEseProto7816_ResetRecovery();
-      if (phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.seqNo !=
-          phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.seqNo) {
-        status = phNxpEseProto7816_SetNextIframeContxt();
-        phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
-            SEND_IFRAME;
+      if (phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.FrameType == SFRAME &&
+          phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.sFrameType ==
+              INTF_RESET_REQ) {
+        ALOGD_IF(ese_debug_enabled,
+                 "%s Unexpected Frame, shall retry interface reset",
+                 __FUNCTION__);
+        phNxpEse_memcpy(&phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx,
+                        &phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx,
+                        sizeof(phNxpEseProto7816_NextTx_Info_t));
       } else {
-        // error handling.
+        phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.errCode =
+            NO_ERROR;
+        phNxpEseProto7816_ResetRecovery();
+        if (phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.seqNo !=
+            phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.IframeInfo.seqNo) {
+          status = phNxpEseProto7816_SetNextIframeContxt();
+          phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+              SEND_IFRAME;
+        } else {
+          // error handling.
+        }
       }
     } /* Error handling 1 : Parity error */
     else if (((pcb_bits.lsb == 0x01) && (pcb_bits.bit2 == 0x00)) ||
@@ -1323,23 +1360,6 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
             INTF_RESET_RSP;
         if (p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] > 0) {
           phNxpEseProto7816_DecodeSFrameATRData(p_data);
-          if (phNxpEseProto7816_3_Var.atrInfo
-                  .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] ==
-              PH_SE_OS_VERSION_11) {
-            phNxpEse_setOsVersion(OS_VERSION_5_2_2);
-          } else if (phNxpEseProto7816_3_Var.atrInfo
-                         .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] ==
-                     PH_SE_OS_VERSION_10) {
-            phNxpEse_setOsVersion(OS_VERSION_5_2);
-          } else if(phNxpEseProto7816_3_Var.atrInfo
-                  .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] ==
-                  PH_PROTO_7816_VALUE_ZERO){
-            phNxpEse_setOsVersion(OS_VERSION_5_1);
-          }
-          else {
-            phNxpEse_setOsVersion(INVALID_OS_VERSION);
-            ALOGE("%s Invalid OS version ", __FUNCTION__);
-          }
         } else {
           phNxpEse_setOsVersion(OS_VERSION_4_0);
         }
@@ -1386,6 +1406,8 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
           phNxpEseProto7816_DecodeSFrameATRData(p_data);
           phNxpEse_StoreDatainList(p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET],
             &p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET + 1]);
+        } else {
+          phNxpEse_setOsVersion(OS_VERSION_4_0);
         }
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = UNKNOWN;
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =

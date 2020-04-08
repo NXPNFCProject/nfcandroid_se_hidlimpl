@@ -59,9 +59,12 @@ class OsuHalExtn {
   bool isOsuMode(uint8_t type, uint8_t channel = 0xFF);
   virtual ~OsuHalExtn();
   OsuHalExtn() noexcept;
+  void checkAndUpdateOsuMode();
 
  private:
   bool isAppOSUMode;
+  bool isJcopOSUMode;
   static const hidl_vec<uint8_t> osu_aid[10];
   OsuApduMode checkTransmit(uint8_t* input, size_t length, uint32_t* outLength);
+  bool isOsuMode();
 };

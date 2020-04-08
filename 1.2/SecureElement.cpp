@@ -490,7 +490,9 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
               0x41, 0x01, 0x43, 0x4F, 0x52, 0x01};
 
   LOG(ERROR) << "Acquired the lock in SPI openBasicChannel";
-  if (IS_OSU_MODE(aid, OsuHalExtn::getInstance().OPENBASIC)) {
+  OsuHalExtn::OsuApduMode mode =
+      IS_OSU_MODE(aid, OsuHalExtn::getInstance().OPENBASIC);
+  if (mode == OsuHalExtn::OSU_PROP_MODE) {
     uint8_t sw[2] = {0x90, 0x00};
     result.resize(sizeof(sw));
     memcpy(&result[0], sw, 2);
@@ -504,6 +506,10 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
     }
     _hidl_cb(result, SecureElementStatus::SUCCESS);
     return Void();
+  } else if (mode == OsuHalExtn::OSU_GP_MODE) {
+    _hidl_cb(result, SecureElementStatus::IOERROR);
+    return Void();
+  } else {
   }
 
   if (!mIsEseInitialized) {

@@ -20,6 +20,7 @@
 #define LOG_TAG "OsuHalExtn"
 const static hidl_vec<uint8_t> OSU_AID = {0x4F, 0x70, 0x80, 0x13, 0x04,
                                           0xDE, 0xAD, 0xBE, 0xEF};
+const static uint8_t defaultSelectAid[] = {0x00, 0xA4, 0x04, 0x00, 0x00};
 /*
  * INIT :- Will return OSU ongoing
  *
@@ -36,6 +37,7 @@ OsuHalExtn::OsuApduMode OsuHalExtn::isOsuMode(const hidl_vec<uint8_t>& evt,
                                               uint8_t type,
                                               phNxpEse_data* pCmdData) {
   OsuApduMode osuSubState = (isAppOSUMode ? OSU_PROP_MODE : NON_OSU_MODE);
+  checkAndUpdateOsuMode();
 
   switch (type) {
     case INIT:
@@ -45,13 +47,15 @@ OsuHalExtn::OsuApduMode OsuHalExtn::isOsuMode(const hidl_vec<uint8_t>& evt,
         isAppOSUMode = true;
         osuSubState = OSU_PROP_MODE;
         LOG(ERROR) << "Dedicated mode is set !!!!!!!!!!!!!!!!!";
+      } else if (isOsuMode()) {
+        osuSubState = OSU_GP_MODE;
+        LOG(ERROR) << "Non OSU AID Not allowed";
       } else {
-        LOG(ERROR) << "AID is not matching";
       }
       break;
     case TRANSMIT:
       memcpy(pCmdData->p_data, evt.data(), evt.size());
-      if (isAppOSUMode) {
+      if (isOsuMode()) {
         osuSubState =
             checkTransmit(pCmdData->p_data, evt.size(), &pCmdData->len);
       } else {
@@ -65,10 +69,12 @@ OsuHalExtn::OsuApduMode OsuHalExtn::isOsuMode(const hidl_vec<uint8_t>& evt,
 
 bool OsuHalExtn::isOsuMode(uint8_t type, uint8_t channel) {
   LOG(ERROR) << "Enter OSUMode2";
+  checkAndUpdateOsuMode();
   switch (type) {
     case CLOSE:
       if (channel == ISO7816_BASIC_CHANNEL) {
         isAppOSUMode = false;
+        isJcopOSUMode = false;
         LOG(ERROR) << "Setting to normal mode!!!";
       }
       break;
@@ -77,19 +83,30 @@ bool OsuHalExtn::isOsuMode(uint8_t type, uint8_t channel) {
     case INIT:
       break;
   }
-  return isAppOSUMode;
+  return isOsuMode();
 }
+
+void OsuHalExtn::checkAndUpdateOsuMode() {
+  isJcopOSUMode = (phNxpEse_GetOsMode() == OSU_MODE);
+}
+
 OsuHalExtn& OsuHalExtn::getInstance() {
   static OsuHalExtn manager;
   return manager;
 }
-OsuHalExtn::OsuHalExtn() noexcept { isAppOSUMode = false; }
+OsuHalExtn::OsuHalExtn() noexcept {
+  isAppOSUMode = false;
+  isJcopOSUMode = false;
+}
 OsuHalExtn::~OsuHalExtn() {}
 
+bool OsuHalExtn::isOsuMode() { return (isAppOSUMode || isJcopOSUMode); }
 OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(uint8_t* input, size_t length,
                                                   uint32_t* outLength) {
   OsuHalExtn::OsuApduMode halMode = NON_OSU_MODE;
-  if ((*input & ISO7816_CLA_CHN_MASK) != ISO7816_BASIC_CHANNEL) {
+  if ((*input & ISO7816_CLA_CHN_MASK) != ISO7816_BASIC_CHANNEL ||
+      (!memcmp(input, defaultSelectAid, length) && length == 5 &&
+       isJcopOSUMode)) {
     phNxpEse_free(input);
     input = nullptr;
     halMode = NON_OSU_MODE;
