@@ -229,7 +229,7 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams, bool isSpiDwpSyncReqd) {
 
   /*Read device node path*/
   ese_node = EseConfig::getString(NAME_NXP_ESE_DEV_NODE, "/dev/pn81a");
-  strcpy(ese_dev_node, ese_node.c_str());
+  strlcpy(ese_dev_node, ese_node.c_str(), sizeof(ese_dev_node));
   tPalConfig.pDevName = (int8_t*)ese_dev_node;
 
   /* Initialize PAL layer */
