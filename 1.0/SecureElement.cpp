@@ -336,7 +336,8 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
       sestatus = SecureElementStatus::SUCCESS;
     }
     /*AID provided doesn't match any applet on the secure element*/
-    else if (sw1 == 0x6A && sw2 == 0x82) {
+    else if ((sw1 == 0x6A && sw2 == 0x82) ||
+             (sw1 == 0x69 && (sw2 == 0x99 || sw2 == 0x85))) {
       sestatus = SecureElementStatus::NO_SUCH_ELEMENT_ERROR;
     }
     /*Operation provided by the P2 parameter is not permitted by the applet.*/
