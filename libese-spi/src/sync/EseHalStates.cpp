@@ -553,7 +553,7 @@ eStatus_t StateBase::NotifyHciEvtProcessComplete() {
   ese_nxp_IoctlInOutData_t inpOutData;
   memset(&inpOutData, 0x00, sizeof(ese_nxp_IoctlInOutData_t));
   ESESTATUS retval =
-      NfcAdaptation::GetInstance().HalIoctl(HAL_NFC_IOCTL_HCI_INIT_STATUS_UPDATE_COMPLETE, &inpOutData);
+      NfcAdaptation::GetInstance().notifyHciEvtProcessComplete();
   if (retval != ESESTATUS_SUCCESS) return SM_STATUS_FAILED;
   return SM_STATUS_SUCCESS;
 }

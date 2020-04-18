@@ -67,6 +67,7 @@ cc_library_shared {
         "libbase",
         "vendor.nxp.nxpese@1.0",
         "vendor.nxp.nxpnfc@1.0",
+        "vendor.nxp.nxpnfclegacy@1.0",
         "ese_client",
     ],
 }
@@ -138,6 +139,7 @@ cc_binary {
         "vendor.nxp.nxpese@1.0",
         "vendor.nxp.eventprocessor@1.0",
         "vendor.nxp.nxpnfc@1.0",
+        "vendor.nxp.nxpnfclegacy@1.0",
         "ese_client",
         "android.hardware.nfc@1.0",
         "android.hardware.nfc@1.1",

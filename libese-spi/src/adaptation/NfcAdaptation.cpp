@@ -28,6 +28,7 @@ using android::hardware::Return;
 using android::hardware::Void;
 using android::hardware::hidl_vec;
 using vendor::nxp::nxpnfc::V1_0::INxpNfc;
+using vendor::nxp::nxpnfclegacy::V1_0::INxpNfcLegacy;
 using ::android::hardware::hidl_death_recipient;
 using ::android::wp;
 using ::android::hidl::base::V1_0::IBase;
@@ -36,6 +37,7 @@ Mutex NfcAdaptation::sLock;
 Mutex NfcAdaptation::sIoctlLock;
 
 sp<INxpNfc> NfcAdaptation::mHalNxpNfc = nullptr;
+sp<INxpNfcLegacy> NfcAdaptation::mHalNxpNfcLegacy = nullptr;
 NfcAdaptation *NfcAdaptation::mpInstance = nullptr;
 
 int omapi_status;
@@ -98,6 +100,16 @@ void NfcAdaptation::resetNxpNfcHalReference() {
       usleep(100 * 1000);
     }
   }
+
+  ALOGD_IF(ese_debug_enabled, "%s: INxpNfcLegacy::getService()", __func__);
+  mHalNxpNfcLegacy = INxpNfcLegacy::tryGetService();
+  if(mHalNxpNfcLegacy == nullptr) {
+    ALOGD_IF(ese_debug_enabled,"Failed to retrieve the NXPNFC Legacy HAL!");
+  } else {
+    ALOGD_IF(ese_debug_enabled, "%s: INxpNfcLegacy::getService() returned %p (%s)", __func__, mHalNxpNfcLegacy.get(),
+          (mHalNxpNfcLegacy->isRemote() ? "remote" : "local"));
+  }
+
 }
 
 /*******************************************************************************
@@ -198,4 +210,26 @@ ESESTATUS NfcAdaptation::HalIoctl(long arg, void* p_data) {
            (unsigned long)pInpOutData->out.ioctlType);
   result = (ESESTATUS)(pInpOutData->out.result);
   return result;
+}
+
+/*******************************************************************************
+**
+** Function:    NfcAdaptation::notifyHciEvtProcessComplete
+**
+** Description: Calls the legacy interface api to call the
+**              phNxpNciHal_notifyHciEvtProcessComplete()
+**
+** Returns:     ESESTATUS
+**
+*******************************************************************************/
+ESESTATUS NfcAdaptation::notifyHciEvtProcessComplete() {
+  const char* func = "NfcAdaptation::notifyHciEvtProcessComplete";
+
+  ALOGD_IF(ese_debug_enabled, "%s Entry", func);
+  int32_t result = ESESTATUS_FAILED;
+  if (mHalNxpNfcLegacy != nullptr) {
+    result = mHalNxpNfcLegacy->hciInitUpdateStateComplete();
+  }
+  ALOGD_IF(ese_debug_enabled, "%s Exit", func);
+  return (ESESTATUS)result;
 }
