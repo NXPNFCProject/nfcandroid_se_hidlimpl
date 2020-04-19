@@ -97,14 +97,14 @@ cc_library_shared {
 }
 
 cc_binary {
-    name: "android.hardware.secure_element@1.1-service",
+    name: "android.hardware.secure_element@1.2-service",
     relative_install_path: "hw",
-    init_rc: ["1.1/android.hardware.secure_element@1.1-service.rc"],
+    init_rc: ["1.2/android.hardware.secure_element@1.2-service.rc"],
     proprietary: true,
     defaults: ["hidl_defaults"],
     srcs: [
-        "1.1/NxpEseService.cpp",
-        "1.1/SecureElement.cpp",
+        "1.2/NxpEseService.cpp",
+        "1.2/SecureElement.cpp",
         "extns/impl/NxpEse.cpp",
         "extns/impl/NxpEseEvtProcessor.cpp",
     ],
@@ -126,6 +126,7 @@ cc_binary {
     shared_libs: [
         "android.hardware.secure_element@1.0",
         "android.hardware.secure_element@1.1",
+        "android.hardware.secure_element@1.2",
         "ese_spi_nxp",
         "libbase",
         "ls_client",
