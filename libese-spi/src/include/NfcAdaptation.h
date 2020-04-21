@@ -19,7 +19,6 @@
 #include <pthread.h>
 
 #include "SyncEvent.h"
-#include "hal_nxpnfc.h"
 #include "hal_nxpese.h"
 #include <android/hardware/nfc/1.0/types.h>
 #include <phEseStatus.h>
