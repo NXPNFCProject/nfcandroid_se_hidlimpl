@@ -27,7 +27,7 @@ using android::sp;
 using android::hardware::Return;
 using android::hardware::Void;
 using android::hardware::hidl_vec;
-using vendor::nxp::nxpnfc::V1_0::INxpNfc;
+using vendor::nxp::nxpnfc::V2_0::INxpNfc;
 using vendor::nxp::nxpnfclegacy::V1_0::INxpNfcLegacy;
 using ::android::hardware::hidl_death_recipient;
 using ::android::wp;
@@ -152,6 +152,71 @@ NfcAdaptation::~NfcAdaptation() { mpInstance = NULL; }
 
 /*******************************************************************************
 **
+** Function:    NfcAdaptation::resetEse
+**
+** Description:  This function a wrapper function which triggers Ese reset
+**
+**
+**
+** Returns:     -1 or 0.
+**
+*******************************************************************************/
+ESESTATUS NfcAdaptation::resetEse(uint64_t level) {
+  const char* func = "NfcAdaptation::resetEse";
+  ESESTATUS result = ESESTATUS_FAILED;
+  bool ret = 0;
+
+  ALOGD_IF(ese_debug_enabled, "%s : Enter", func);
+
+  if (mHalNxpNfc != nullptr) {
+    ret = mHalNxpNfc->resetEse(level);
+    if(ret){
+      ALOGE("NfcAdaptation::resetEse mHalNxpNfc completed");
+      result = ESESTATUS_SUCCESS;
+    } else {
+      ALOGE("NfcAdaptation::resetEse mHalNxpNfc failed");
+    }
+  }
+
+  return result;
+}
+
+/*******************************************************************************
+**
+** Function:    NfcAdaptation::setEseUpdateState
+**
+** Description:  This is a wrapper functions notifies upper layer about
+** the jcob download comple
+** tion.
+** Returns:     -1 or 0.
+**
+*******************************************************************************/
+ESESTATUS NfcAdaptation::setEseUpdateState(void* p_data) {
+  const char* func = "NfcAdaptation::setEseUpdateState";
+  ::android::hardware::nfc::V1_0::NfcData data;
+  ESESTATUS result = ESESTATUS_FAILED;
+  bool ret = 0;
+
+  ALOGD_IF(ese_debug_enabled, "%s : Enter", func);
+
+  ese_nxp_IoctlInOutData_t* pInpOutData = (ese_nxp_IoctlInOutData_t*)p_data;
+  data.setToExternal((uint8_t*)pInpOutData, sizeof(ese_nxp_IoctlInOutData_t));
+
+  if (mHalNxpNfc != nullptr) {
+    ret = mHalNxpNfc->setEseUpdateState((::vendor::nxp::nxpnfc::V2_0::NxpNfcHalEseState)pInpOutData->inp.data.nxpCmd.p_cmd[0]);
+    if(ret){
+      ALOGE("NfcAdaptation::setEseUpdateState completed");
+      result = ESESTATUS_SUCCESS;
+    } else {
+      ALOGE("NfcAdaptation::setEseUpdateState failed");
+    }
+  }
+
+  return result;
+}
+
+/*******************************************************************************
+**
 ** Function:    IoctlCallback
 **
 ** Description: Callback from HAL stub for IOCTL api invoked.
@@ -203,9 +268,11 @@ ESESTATUS NfcAdaptation::HalIoctl(long arg, void* p_data) {
   pInpOutData->inp.context = &NfcAdaptation::GetInstance();
   NfcAdaptation::GetInstance().mCurrentIoctlData = pInpOutData;
   data.setToExternal((uint8_t*)pInpOutData, sizeof(ese_nxp_IoctlInOutData_t));
+#if 0
   if (mHalNxpNfc != nullptr) {
     mHalNxpNfc->ioctl(arg, data, IoctlCallback);
   }
+#endif
   ALOGD_IF(ese_debug_enabled, "%s Ioctl Completed for Type=%lu", func,
            (unsigned long)pInpOutData->out.ioctlType);
   result = (ESESTATUS)(pInpOutData->out.result);

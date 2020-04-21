@@ -396,7 +396,7 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
   switch (eControlCode) {
     // Nfc Driver communication part
     case phPalEse_e_ChipRst:
-      ret = pNfcAdapt.HalIoctl(HAL_NFC_SET_SPM_PWR, &inpOutData);
+      ret = pNfcAdapt.resetEse(level);
       if (ret == ESESTATUS_FEATURE_NOT_SUPPORTED) {
         ret = (ESESTATUS)ioctl((intptr_t)pDevHandle, P61_SET_SPM_PWR, level);
       }
@@ -427,7 +427,7 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
       memcpy(inpOutData.inp.data.nxpCmd.p_cmd, &data,
              sizeof(data));
       ALOGD_IF(ese_debug_enabled, "Before phPalEse_e_SetEseUpdateStatus");
-      ret = pNfcAdapt.HalIoctl(HAL_NFC_IOCTL_ESE_JCOP_DWNLD, &inpOutData);
+      ret = pNfcAdapt.setEseUpdateState(&inpOutData);
       ALOGD_IF(ese_debug_enabled, "After phPalEse_e_SetEseUpdateStatus");
     }
       break;

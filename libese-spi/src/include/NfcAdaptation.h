@@ -24,10 +24,11 @@
 #include <android/hardware/nfc/1.0/types.h>
 #include <phEseStatus.h>
 #include <utils/RefBase.h>
-#include <vendor/nxp/nxpnfc/1.0/INxpNfc.h>
+#include <vendor/nxp/nxpnfc/2.0/INxpNfc.h>
 #include <vendor/nxp/nxpnfclegacy/1.0/INxpNfcLegacy.h>
 
-using vendor::nxp::nxpnfc::V1_0::INxpNfc;
+using ::vendor::nxp::nxpnfc::V2_0::NxpNfcHalEseState;
+using vendor::nxp::nxpnfc::V2_0::INxpNfc;
 using vendor::nxp::nxpnfclegacy::V1_0::INxpNfcLegacy;
 using ::android::sp;
 class NxpNfcDeathRecipient;
@@ -40,6 +41,8 @@ class NfcAdaptation {
    static ESESTATUS HalIoctl(long data_len, void *p_data);
    static ESESTATUS notifyHciEvtProcessComplete();
    void resetNxpNfcHalReference();
+   static ESESTATUS resetEse(uint64_t level);
+   static ESESTATUS setEseUpdateState(void* p_data);
    ese_nxp_IoctlInOutData_t *mCurrentIoctlData;
 
  private:

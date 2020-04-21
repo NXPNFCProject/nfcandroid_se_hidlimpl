@@ -33,6 +33,7 @@ cc_library_shared {
     ],
     include_dirs: [
         "hardware/nxp/nfc/extns/impl",
+        "hardware/nxp/nfc/extns/impl/nxpnfc/2.0",
         "hardware/nxp/secure_element/extns/impl",
     ],
     export_include_dirs: [
@@ -66,7 +67,7 @@ cc_library_shared {
         "liblog",
         "libbase",
         "vendor.nxp.nxpese@1.0",
-        "vendor.nxp.nxpnfc@1.0",
+        "vendor.nxp.nxpnfc@2.0",
         "vendor.nxp.nxpnfclegacy@1.0",
         "ese_client",
     ],
@@ -138,7 +139,7 @@ cc_binary {
         "libutils",
         "vendor.nxp.nxpese@1.0",
         "vendor.nxp.eventprocessor@1.0",
-        "vendor.nxp.nxpnfc@1.0",
+        "vendor.nxp.nxpnfc@2.0",
         "vendor.nxp.nxpnfclegacy@1.0",
         "ese_client",
         "android.hardware.nfc@1.0",

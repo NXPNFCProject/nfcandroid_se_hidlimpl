@@ -31,12 +31,12 @@
 #include "hal_nxpese.h"
 #include "NxpEse.h"
 #include "NfcAdaptation.h"
-#include <vendor/nxp/nxpnfc/1.0/INxpNfc.h>
+#include <vendor/nxp/nxpnfc/2.0/INxpNfc.h>
 #include "SeChannelCallback.h"
 #include "SeEvtCallback.h"
 
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
-using vendor::nxp::nxpnfc::V1_0::INxpNfc;
+using vendor::nxp::nxpnfc::V2_0::INxpNfc;
 using android::sp;
 using android::hardware::Void;
 using android::hardware::hidl_vec;
