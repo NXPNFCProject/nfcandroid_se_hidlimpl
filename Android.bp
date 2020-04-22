@@ -1,23 +1,22 @@
 
 cc_binary {
     relative_install_path: "hw",
-    name: "android.hardware.secure_element@1.2-service",
-    init_rc: ["1.2/android.hardware.secure_element@1.2-service.rc"],
+    name: "android.hardware.secure_element@1.1-service",
+    init_rc: ["1.1/android.hardware.secure_element@1.1-service.rc"],
     proprietary: true,
     defaults: ["hidl_defaults"],
     srcs: [
-        "1.2/NxpEseService.cpp",
-        "1.2/SecureElement.cpp",
-        "1.2/VirtualISO.cpp",
+        "1.1/NxpEseService.cpp",
+        "1.1/SecureElement.cpp",
+        "1.1/VirtualISO.cpp",
         "extns/impl/NxpEse.cpp",
         "ese-clients/src/eSEClient.cpp",
-        "1.2/OsuHal/src/OsuHalExtn.cpp",
+        "1.1/OsuHal/src/OsuHalExtn.cpp",
     ],
 
     shared_libs: [
         "android.hardware.secure_element@1.0",
         "android.hardware.secure_element@1.1",
-        "android.hardware.secure_element@1.2",
         "ese_spi_nxp",
         "libbase",
         "libcutils",
@@ -49,7 +48,7 @@ cc_binary {
         "libese-spi/p73/spm",
         "libese-spi/src/include",
         "ese-clients/inc",
-        "1.2/OsuHal/inc",
+        "1.1/OsuHal/inc",
     ],
 
     include_dirs: [

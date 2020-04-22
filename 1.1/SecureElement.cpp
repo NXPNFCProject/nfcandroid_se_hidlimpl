@@ -191,8 +191,14 @@ Return<void> SecureElement::getAtr(getAtr_cb _hidl_cb) {
   ESESTATUS status = ESESTATUS_FAILED;
   bool mIsSeHalInitDone = false;
 
+  if (IS_OSU_MODE(OsuHalExtn::getInstance().OPENLOGICAL)) {
+    LOG(ERROR) << "%s: Not allowed in dedicated mode!!!" << __func__;
+    _hidl_cb(response);
+    return Void();
+  }
+
   if (!mIsEseInitialized) {
-    ESESTATUS status = seHalInit();
+    ESESTATUS status = seHalInit(ESE_MODE_NORMAL);
     if (status != ESESTATUS_SUCCESS) {
       LOG(ERROR) << "%s: seHalInit Failed!!!"<< __func__;
       _hidl_cb(response);/*Return with empty Vector*/
@@ -257,7 +263,23 @@ Return<void> SecureElement::transmit(const hidl_vec<uint8_t>& data,
     _hidl_cb(result);
     return Void();
   }
-  memcpy(gsTxRxBuffer.cmdData.p_data, data.data(), gsTxRxBuffer.cmdData.len);
+  OsuHalExtn::OsuApduMode mode = IS_OSU_MODE(
+      data, OsuHalExtn::getInstance().TRANSMIT, &gsTxRxBuffer.cmdData);
+  if (mode == OsuHalExtn::getInstance().NON_OSU_MODE) {
+    LOG(ERROR) << "Not allowed in dedicated mode!!!";
+    /*Return empty hidl_vec*/
+    _hidl_cb(result);
+    return Void();
+  } else if (mode == OsuHalExtn::getInstance().OSU_RST_MODE) {
+    uint8_t sw[2] = {0x90, 0x00};
+    result.resize(sizeof(sw));
+    memcpy(&result[0], sw, sizeof(sw));
+    _hidl_cb(result);
+    return Void();
+  } else {
+    // continue with normal processing
+  }
+  // memcpy(gsTxRxBuffer.cmdData.p_data, data.data(), gsTxRxBuffer.cmdData.len);
   LOG(INFO) << "Acquired lock for SPI";
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
@@ -306,8 +328,13 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
 
   LOG(INFO) << "Acquired the lock from SPI openLogicalChannel";
 
+  if (IS_OSU_MODE(OsuHalExtn::getInstance().OPENLOGICAL)) {
+    LOG(ERROR) << "%s: Not allowed in dedicated mode!!!" << __func__;
+    _hidl_cb(resApduBuff, SecureElementStatus::IOERROR);
+    return Void();
+  }
   if (!mIsEseInitialized) {
-    ESESTATUS status = seHalInit();
+    ESESTATUS status = seHalInit(ESE_MODE_NORMAL);
     if (status != ESESTATUS_SUCCESS) {
       LOG(ERROR) << "%s: seHalInit Failed!!!"<< __func__;
       _hidl_cb(resApduBuff, SecureElementStatus::IOERROR);
@@ -463,9 +490,30 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
               0x41, 0x01, 0x43, 0x4F, 0x52, 0x01};
 
   LOG(ERROR) << "Acquired the lock in SPI openBasicChannel";
+  OsuHalExtn::OsuApduMode mode =
+      IS_OSU_MODE(aid, OsuHalExtn::getInstance().OPENBASIC);
+  if (mode == OsuHalExtn::OSU_PROP_MODE) {
+    uint8_t sw[2] = {0x90, 0x00};
+    result.resize(sizeof(sw));
+    memcpy(&result[0], sw, 2);
+    if (!mIsEseInitialized) {
+      ESESTATUS status = seHalInit(ESE_MODE_OSU);
+      if (status != ESESTATUS_SUCCESS) {
+        LOG(ERROR) << "%s: seHalInit Failed!!!" << __func__;
+        _hidl_cb(result, SecureElementStatus::IOERROR);
+        return Void();
+      }
+    }
+    _hidl_cb(result, SecureElementStatus::SUCCESS);
+    return Void();
+  } else if (mode == OsuHalExtn::OSU_GP_MODE) {
+    _hidl_cb(result, SecureElementStatus::IOERROR);
+    return Void();
+  } else {
+  }
 
   if (!mIsEseInitialized) {
-    ESESTATUS status = seHalInit();
+    ESESTATUS status = seHalInit(ESE_MODE_NORMAL);
     if (status != ESESTATUS_SUCCESS) {
       LOG(ERROR) << "%s: seHalInit Failed!!!"<< __func__;
       _hidl_cb(result, SecureElementStatus::IOERROR);
@@ -606,7 +654,11 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
 Return<SecureElementStatus>
 SecureElement::closeChannel(uint8_t channelNumber) {
   AutoMutex guard(seHalLock);
-  return internalCloseChannel(channelNumber);
+  if (!IS_OSU_MODE(OsuHalExtn::getInstance().CLOSE, channelNumber)) {
+    return internalCloseChannel(channelNumber);
+  } else {
+    return SecureElementStatus::SUCCESS;
+  }
 }
 
 void SecureElement::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
@@ -616,12 +668,12 @@ void SecureElement::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
     deInitStatus = phNxpEse_deInit();
     phNxpEse_close(deInitStatus);
   }
-ESESTATUS SecureElement::seHalInit() {
+ESESTATUS SecureElement::seHalInit(phNxpEse_initMode mode) {
   ESESTATUS status = ESESTATUS_SUCCESS;
   phNxpEse_initParams initParams;
   ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
   memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
-  initParams.initMode = ESE_MODE_NORMAL;
+  initParams.initMode = mode;
   initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
   initParams.fPtr_WtxNtf = SecureElement::NotifySeWaitExtension;
 
