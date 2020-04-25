@@ -528,15 +528,16 @@ StateBase *StateBase::InitializeStates() {
 eStatus_t StateBase::SendOMAPICommand(uint8_t cmd[], uint8_t cmd_len) {
   int nfc_access_retryCnt = 0;
   int retval;
-  ese_nxp_IoctlInOutData_t inpOutData;
-  memset(&inpOutData, 0x00, sizeof(ese_nxp_IoctlInOutData_t));
-  inpOutData.inp.data.nxpCmd.cmd_len = cmd_len;
-  inpOutData.inp.data_source = 1;
-  memcpy(inpOutData.inp.data.nxpCmd.p_cmd, cmd, cmd_len);
+  phNxpNci_Extn_Cmd_t inData;
+  phNxpNci_Extn_Resp_t outData;
+  memset(&inData, 0x00, sizeof(phNxpNci_Extn_Cmd_t));
+  memset(&outData, 0x00, sizeof(phNxpNci_Extn_Resp_t));
+  inData.cmd_len = cmd_len;
+  memcpy(inData.p_cmd, cmd, cmd_len);
   omapi_status = ESESTATUS_FAILED;
 retry_nfc_access:
   retval =
-      NfcAdaptation::GetInstance().HalIoctl(HAL_NFC_SPI_DWP_SYNC, &inpOutData);
+      NfcAdaptation::GetInstance().HalNciTransceive(&inData,&outData);
   if (omapi_status != 0) {
     ALOGE_IF(state_machine_debug, "omapi_status return failed");
     nfc_access_retryCnt++;

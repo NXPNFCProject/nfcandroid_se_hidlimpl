@@ -30,7 +30,20 @@ using ::vendor::nxp::nxpnfc::V2_0::NxpNfcHalEseState;
 using vendor::nxp::nxpnfc::V2_0::INxpNfc;
 using vendor::nxp::nxpnfclegacy::V1_0::INxpNfcLegacy;
 using ::android::sp;
+using vendor::nxp::nxpnfclegacy::V1_0::NxpNciExtnCmd;
+using vendor::nxp::nxpnfclegacy::V1_0::NxpNciExtnResp;
 class NxpNfcDeathRecipient;
+
+typedef struct phNxpNci_Extn_Cmd{
+  uint16_t cmd_len;
+  uint8_t p_cmd[256];
+}phNxpNci_Extn_Cmd_t;
+
+typedef struct phNxpNci_Extn_Resp{
+  uint32_t status;
+  uint16_t rsp_len;
+  uint8_t p_rsp[256];
+}phNxpNci_Extn_Resp_t;
 
 class NfcAdaptation {
  public:
@@ -42,7 +55,9 @@ class NfcAdaptation {
    void resetNxpNfcHalReference();
    static ESESTATUS resetEse(uint64_t level);
    static ESESTATUS setEseUpdateState(void* p_data);
+   static uint32_t HalNciTransceive(phNxpNci_Extn_Cmd_t* in,phNxpNci_Extn_Resp_t* out);
    ese_nxp_IoctlInOutData_t *mCurrentIoctlData;
+   NxpNciExtnResp mNciResp;
 
  private:
   NfcAdaptation();

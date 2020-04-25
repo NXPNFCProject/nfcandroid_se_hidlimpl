@@ -300,3 +300,53 @@ ESESTATUS NfcAdaptation::notifyHciEvtProcessComplete() {
   ALOGD_IF(ese_debug_enabled, "%s Exit", func);
   return (ESESTATUS)result;
 }
+
+
+/*******************************************************************************
+ ** Function         HalNciTransceive_cb
+ **
+ ** Description      This is a callback for HalNciTransceive. It shall be called
+ **                  from HAL to return the value of requested property.
+ **
+ ** Parameters       NxpNciExtnResp
+ **
+ ** Return           void
+ *********************************************************************/
+static void HalNciTransceive_cb(NxpNciExtnResp out) {
+    const char* func = "HalNciTransceive_cb";
+    ALOGD_IF(ese_debug_enabled, "%s", func);
+    memset(&(NfcAdaptation::GetInstance().mNciResp),0,sizeof(NxpNciExtnResp));
+    memcpy(&(NfcAdaptation::GetInstance().mNciResp),&out,sizeof(NxpNciExtnResp));
+    ALOGD_IF(ese_debug_enabled, "%s Ioctl Type value[0]:0x%x and value[3] 0x%x",
+           func, out.p_rsp[0], out.p_rsp[3]);
+    omapi_status = out.p_rsp[3];
+  return;
+}
+
+/***************************************************************************
+**
+** Function         NfcAdaptation::HalNciTransceive
+**
+** Description      This function does tarnsceive of nci command
+**
+** Returns          NfcStatus.
+**
+***************************************************************************/
+uint32_t NfcAdaptation::HalNciTransceive(phNxpNci_Extn_Cmd_t* NciCmd,phNxpNci_Extn_Resp_t* NciResp) {
+  const char* func = "NfcAdaptation::HalNciTransceive";
+  NxpNciExtnCmd inNciCmd;
+  uint32_t status = 0;
+
+  ALOGD_IF(ese_debug_enabled,"%s : Enter", func);
+  memset(&inNciCmd,0,sizeof(NxpNciExtnCmd));
+  memcpy(&inNciCmd,NciCmd,sizeof(NxpNciExtnCmd));
+
+  if (mHalNxpNfcLegacy != nullptr) {
+     mHalNxpNfcLegacy->nciTransceive(inNciCmd,HalNciTransceive_cb);
+     status = (NfcAdaptation::GetInstance().mNciResp).status;
+     memcpy(NciResp , &(NfcAdaptation::GetInstance().mNciResp) , sizeof(phNxpNci_Extn_Resp_t));
+  }
+
+  ALOGD_IF(ese_debug_enabled,"%s : Exit", func);
+  return status;
+}
