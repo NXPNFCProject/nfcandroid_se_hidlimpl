@@ -174,7 +174,8 @@ ESESTATUS NfcAdaptation::resetEse(uint64_t level) {
       ALOGE("NfcAdaptation::resetEse mHalNxpNfc completed");
       result = ESESTATUS_SUCCESS;
     } else {
-      ALOGE("NfcAdaptation::resetEse mHalNxpNfc failed");
+      result = ESESTATUS_FEATURE_NOT_SUPPORTED;
+      ALOGE("NfcAdaptation::resetEse mHalNxpNfc feature not supported");
     }
   }
 
