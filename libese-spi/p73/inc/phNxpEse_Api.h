@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2020 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -61,6 +61,12 @@ typedef enum {
   WTX_ONGOING = 1,
   WTX_END = 2,
 } phNxpEse_wtxState;
+
+typedef enum phNxpEseProto7816_OsType {
+  UNKNOWN_MODE = 0,
+  JCOP_MODE = 0x1,
+  OSU_MODE = 0x2,
+} phNxpEseProto7816_OsType_t;
 
 typedef void(NotifyWtxReq)(phNxpEse_wtxState);
 /**
@@ -409,5 +415,14 @@ ESESTATUS phNxpEse_coldReset(void);
  *
  */
 void phNxpEse_NotifySEWtxRequest(phNxpEse_wtxState state);
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief This function is used to get OS mode(JCOP/OSU)
+ *
+ * \retval OS mode(JCOP/OSU).
+ *
+ */
+phNxpEseProto7816_OsType_t phNxpEse_GetOsMode(void);
 /** @} */
 #endif /* _PHNXPSPILIB_API_H_ */

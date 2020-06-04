@@ -1016,6 +1016,19 @@ ESESTATUS phNxpEse_chipReset(void) {
 }
 
 /******************************************************************************
+ * Function         phNxpEse_GetOsMode
+ *
+ * Description      This function is used to get OS mode(JCOP/OSU)
+ *
+ * Returns          0x01 : JCOP_MODE
+ *                  0x02 : OSU_MODE
+ *
+ ******************************************************************************/
+phNxpEseProto7816_OsType_t phNxpEse_GetOsMode(void) {
+  return phNxpEseProto7816_GetOsMode();
+}
+
+/******************************************************************************
  * Function         phNxpEse_doResetProtection
  *
  * Description      This function enables/diables reset protection
