@@ -1186,6 +1186,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
     if (frameType != WTX_REQ) {
       phNxpEseProto7816_CheckAndNotifyWtx(WTX_END);
     }
+    phNxpEseProto7816_ResetRecovery();
     switch (frameType) {
       case RESYNCH_REQ:
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
