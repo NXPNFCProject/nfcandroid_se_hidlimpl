@@ -508,6 +508,11 @@ static ESESTATUS phNxpEseProto7816_SendSFrame(sFrameInfo_t sFrameData) {
     ALOGD_IF(ese_debug_enabled, "S-Frame PCB: %x\n", p_framebuff[1]);
     status = phNxpEseProto7816_SendRawFrame(frame_len, p_framebuff);
     phNxpEse_free(p_framebuff);
+    /*After S-Frame Tx 1 ms sleep before Rx*/
+    if((GET_CHIP_OS_VERSION() != OS_VERSION_4_0) &&
+            (sframeData.sFrameType != PROP_END_APDU_REQ) ) {
+      phNxpEse_Sleep(1*1000);
+    }
   } else {
     ALOGE("Invalid S-block or malloc for s-block failed");
   }
@@ -1411,6 +1416,11 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
       default:
         ALOGE("%s Wrong S-Frame Received", __FUNCTION__);
         break;
+    }
+    /*After S-Frame Rx 1 msec delay before next Tx*/
+    if((GET_CHIP_OS_VERSION() != OS_VERSION_4_0) &&
+             (frameType != PROP_END_APDU_RSP) ) {
+      phNxpEse_Sleep(1000);
     }
   } else {
     ALOGD_IF(ese_debug_enabled, "%s Wrong-Frame Received", __FUNCTION__);
