@@ -1379,6 +1379,8 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType= HARD_RESET_REQ;
         break;
     case HARD_RESET_RSP:
+        //This is 4ms delay and delay of 1ms in also there in line 1401 before next Tx
+        phNxpEse_Sleep(HARD_RESET_RES_DELAY);
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType= HARD_RESET_RSP;
         if(p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] > 0)
         {

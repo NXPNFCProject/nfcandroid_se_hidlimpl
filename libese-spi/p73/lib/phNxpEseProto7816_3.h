@@ -493,6 +493,10 @@ typedef struct phNxpEseProto7816_PCB_bits {
  * \brief Default wait extension notification interval
  */
 #define PH_DEFAULT_WTX_NTF_LIMIT 0x03
+/*!
+ * \delay for hard reset response
+ */
+#define HARD_RESET_RES_DELAY 4000
 
 /**
  * \ingroup ISO7816-3_protocol_lib
