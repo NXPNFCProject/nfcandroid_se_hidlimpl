@@ -1757,11 +1757,15 @@ static ESESTATUS phNxpEseProto7816_RSync(void) {
 static ESESTATUS phNxpEseProto7816_HardReset(void)
 {
     ESESTATUS status = ESESTATUS_FAILED;
-    phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState = PH_NXP_ESE_PROTO_7816_TRANSCEIVE;
+
+    phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
+        PH_NXP_ESE_PROTO_7816_TRANSCEIVE;
     /* send the hard reset s-frame command*/
-    phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType= SFRAME;
-    phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.sFrameType = HARD_RESET_REQ;
-    phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState = SEND_S_HRD_RST;
+    phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
+    phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.sFrameType =
+        HARD_RESET_REQ;
+    phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+        SEND_S_HRD_RST;
     status = TransceiveProcess();
     phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState = PH_NXP_ESE_PROTO_7816_IDLE;
     return status;
@@ -1841,10 +1845,12 @@ ESESTATUS phNxpEseProto7816_Reset(void) {
   phNxpEseProto7816_ResetProtoParams();
   if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
     status = phNxpEseProto7816_HardReset();
-    /* Updating the ATR information(IFS,..) to 7816 stack */
-    phNxpEse_data atrRsp;
-    phNxpEseProto7816_getAtr(&atrRsp);
-    phNxpEse_free(atrRsp.p_data);
+    if (status == ESESTATUS_SUCCESS) {
+      /* Updating the ATR information(IFS,..) to 7816 stack */
+      phNxpEse_data atrRsp;
+      phNxpEseProto7816_getAtr(&atrRsp);
+      phNxpEse_free(atrRsp.p_data);
+    }
   } else {
     /* Resynchronising ESE protocol instance */
     status = phNxpEseProto7816_RSync();
@@ -1883,9 +1889,11 @@ ESESTATUS phNxpEseProto7816_Open(phNxpEseProto7816InitParam_t initParam) {
     if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
       status = phNxpEseProto7816_HardReset();
       /* Updating the ATR information (Eg: IFS,..) to 7816 stack */
-      phNxpEse_data atrRsp;
-      phNxpEseProto7816_getAtr(&atrRsp);
-      phNxpEse_free(atrRsp.p_data);
+      if (status == ESESTATUS_SUCCESS) {
+        phNxpEse_data atrRsp;
+        phNxpEseProto7816_getAtr(&atrRsp);
+        phNxpEse_free(atrRsp.p_data);
+      }
     } else {
       status = phNxpEseProto7816_RSync();
     }

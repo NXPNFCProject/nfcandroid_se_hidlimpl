@@ -50,6 +50,8 @@ static void phNxpEse_GetMaxTimer(unsigned long* pMaxTimer);
 static unsigned char* phNxpEse_GgetTimerTlvBuffer(unsigned char* timer_buffer,
                                                   unsigned int value);
 static ESESTATUS phNxpEse_doResetProtection(bool flag);
+static __inline bool phNxpEse_isColdResetRequired(phNxpEse_initMode mode,
+                                                  ESESTATUS status);
 static int poll_sof_chained_delay = 0;
 static phNxpEse_OsVersion_t sOsVersion = INVALID_OS_VERSION;
 
@@ -145,6 +147,7 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
   ESESTATUS wConfigStatus = ESESTATUS_FAILED;
   unsigned long int num, ifsd_value = 0;
   unsigned long maxTimer = 0;
+  uint8_t retry = 0;
   phNxpEseProto7816InitParam_t protoInitParam;
   phNxpEse_memset(&protoInitParam, 0x00, sizeof(phNxpEseProto7816InitParam_t));
   /* STATUS_OPEN */
@@ -215,9 +218,13 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
     }
   }
 #endif
-
-  /* T=1 Protocol layer open */
-  wConfigStatus = phNxpEseProto7816_Open(protoInitParam);
+  do {
+    /* T=1 Protocol layer open */
+    wConfigStatus = phNxpEseProto7816_Open(protoInitParam);
+    if (phNxpEse_isColdResetRequired(initParams.initMode, wConfigStatus))
+      phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
+  } while (phNxpEse_isColdResetRequired(initParams.initMode, wConfigStatus) &&
+           retry++ < 1);
   if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
     if (ESESTATUS_TRANSCEIVE_FAILED == wConfigStatus ||
         ESESTATUS_FAILED == wConfigStatus) {
@@ -898,7 +905,7 @@ ESESTATUS phNxpEse_reset(void) {
  ******************************************************************************/
 ESESTATUS phNxpEse_resetJcopUpdate(void) {
   ESESTATUS status = ESESTATUS_SUCCESS;
-
+  uint8_t retry = 0;
 #ifdef SPM_INTEGRATED
   unsigned long int num = 0;
 #endif
@@ -908,7 +915,11 @@ ESESTATUS phNxpEse_resetJcopUpdate(void) {
 
   /* Reset interface after every reset irrespective of
   whether JCOP did a full power cycle or not. */
-  status = phNxpEseProto7816_Reset();
+  do {
+    status = phNxpEseProto7816_Reset();
+    if (status != ESESTATUS_SUCCESS) phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
+  } while (status != ESESTATUS_SUCCESS && retry++ < 1);
+
   /* Retrieving the IFS-D value configured in the config file and applying to Card */
   if (EseConfig::hasKey(NAME_NXP_ESE_IFSD_VALUE)) {
     unsigned long int ifsd_value = 0;
@@ -1026,6 +1037,19 @@ ESESTATUS phNxpEse_chipReset(void) {
  ******************************************************************************/
 phNxpEseProto7816_OsType_t phNxpEse_GetOsMode(void) {
   return phNxpEseProto7816_GetOsMode();
+}
+
+/******************************************************************************
+ * Function         phNxpEse_isColdResetRequired
+ *
+ * Description      This function determines whether hard reset recovery is
+ *                  required or not on protocol recovery failure.
+ * Returns          TRUE(required)/FALSE(not required).
+ *
+ ******************************************************************************/
+static __inline bool phNxpEse_isColdResetRequired(phNxpEse_initMode mode,
+                                                  ESESTATUS status) {
+  return (mode == ESE_MODE_OSU && status != ESESTATUS_SUCCESS);
 }
 
 /******************************************************************************
