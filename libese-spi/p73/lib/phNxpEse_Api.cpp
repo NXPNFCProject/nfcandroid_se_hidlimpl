@@ -1251,6 +1251,7 @@ ESESTATUS phNxpEse_read(uint32_t* data_len, uint8_t** pp_data) {
  ******************************************************************************/
 static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
                                int nNbBytesToRead) {
+  bool flushData = false;
   int ret = -1;
   int sof_counter = 0; /* one read may take 1 ms*/
   int total_count = 0, numBytesToRead = 0, headerIndex = 0;
@@ -1286,32 +1287,33 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
         /*Polling for read on spi, hence Debug log*/
         ALOGD_IF(ese_debug_enabled, "_spi_read() [HDR]errno : %x ret : %X",
                  errno, ret);
-      }
-      if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) ||
-          (pBuffer[0] == RECIEVE_PACKET_SOF)) {
-        /* Read the HEADR of one byte*/
-        ALOGD_IF(ese_debug_enabled, "%s Read HDR SOF + PCB", __FUNCTION__);
-        numBytesToRead = 1; /*Read only INF LEN*/
-        headerIndex = 1;
-        break;
-      } else if (((pBuffer[0] == 0x00) || (pBuffer[0] == 0xFF)) &&
-                 ((pBuffer[1] == nxpese_ctxt.nadInfo.nadRx) ||
-                  (pBuffer[1] == RECIEVE_PACKET_SOF))) {
-        /* Read the HEADR of Two bytes*/
-        ALOGD_IF(ese_debug_enabled, "%s Read HDR only SOF", __FUNCTION__);
-        pBuffer[0] = pBuffer[1];
-        numBytesToRead = 2; /*Read PCB + INF LEN*/
-        headerIndex = 0;
-        break;
-      } else if (((pBuffer[0] == 0x00) && (pBuffer[1] == 0x00)) ||
-                 ((pBuffer[0] == 0xFF) && (pBuffer[1] == 0xFF))) {
-        // LOG(ERROR) << StringPrintf("_spi_read() Buf[0]: %X Buf[1]: %X",
-        // pBuffer[0], pBuffer[1]);
-      } else if (ret >= 0) { /* Corruption happened during the receipt from
-                                Card, go flush out the data */
-        ALOGE("_spi_read() Corruption Buf[0]: %X Buf[1]: %X ..len=%d",
-              pBuffer[0], pBuffer[1], ret);
-        break;
+      } else {
+        if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) ||
+            (pBuffer[0] == RECIEVE_PACKET_SOF)) {
+          /* Read the HEADR of one byte*/
+          ALOGD_IF(ese_debug_enabled, "%s Read HDR SOF + PCB", __FUNCTION__);
+          numBytesToRead = 1; /*Read only INF LEN*/
+          headerIndex = 1;
+          break;
+        } else if (((pBuffer[0] == 0x00) || (pBuffer[0] == 0xFF)) &&
+                   ((pBuffer[1] == nxpese_ctxt.nadInfo.nadRx) ||
+                    (pBuffer[1] == RECIEVE_PACKET_SOF))) {
+          /* Read the HEADR of Two bytes*/
+          ALOGD_IF(ese_debug_enabled, "%s Read HDR only SOF", __FUNCTION__);
+          pBuffer[0] = pBuffer[1];
+          numBytesToRead = 2; /*Read PCB + INF LEN*/
+          headerIndex = 0;
+          break;
+        } else if (((pBuffer[0] == 0x00) && (pBuffer[1] == 0x00)) ||
+                   ((pBuffer[0] == 0xFF) && (pBuffer[1] == 0xFF))) {
+          // LOG(ERROR) << StringPrintf("_spi_read() Buf[0]: %X Buf[1]: %X",
+          // pBuffer[0], pBuffer[1]);
+        } else if (ret >= 0) { /* Corruption happened during the receipt from
+                                  Card, go flush out the data */
+          ALOGE("_spi_read() Corruption Buf[0]: %X Buf[1]: %X ..len=%d",
+                pBuffer[0], pBuffer[1], ret);
+          break;
+        }
       }
       /*If it is Chained packet wait for 100 usec*/
       if (poll_sof_chained_delay == 1) {
@@ -1332,8 +1334,13 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
     if (sof_counter == max_sof_counter) {
       ret = -1;
     }
-    if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) ||
-        (pBuffer[0] == RECIEVE_PACKET_SOF)) {
+    if (ret < 0) {
+      /*In case of IO Error*/
+      ret = -2;
+      pBuffer[0] = 0x64;
+      pBuffer[1] = 0xFF;
+    } else if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) ||
+               (pBuffer[0] == RECIEVE_PACKET_SOF)) {
       ALOGD_IF(ese_debug_enabled, "%s SOF FOUND", __FUNCTION__);
       /* Read the HEADR of one/Two bytes based on how two bytes read A5 PCB or
        * 00 A5*/
@@ -1341,74 +1348,76 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
           phPalEse_read(pDevHandle, &pBuffer[1 + headerIndex], numBytesToRead);
       if (ret < 0) {
         ALOGE("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
-      }
-      if ((pBuffer[1] == CHAINED_PACKET_WITHOUTSEQN) ||
-          (pBuffer[1] == CHAINED_PACKET_WITHSEQN)) {
-        poll_sof_chained_delay = 1;
-        ALOGD_IF(ese_debug_enabled, "poll_sof_chained_delay value is %d ",
-                 poll_sof_chained_delay);
+        flushData = true;
       } else {
-        poll_sof_chained_delay = 0;
-        ALOGD_IF(ese_debug_enabled, "poll_sof_chained_delay value is %d ",
-                 poll_sof_chained_delay);
-      }
-      total_count = 3;
-      uint8_t pcb;
-      phNxpEseProto7816_PCB_bits_t pcb_bits;
-      pcb = pBuffer[PH_PROPTO_7816_PCB_OFFSET];
+        if ((pBuffer[1] == CHAINED_PACKET_WITHOUTSEQN) ||
+            (pBuffer[1] == CHAINED_PACKET_WITHSEQN)) {
+          poll_sof_chained_delay = 1;
+          ALOGD_IF(ese_debug_enabled, "poll_sof_chained_delay value is %d ",
+                   poll_sof_chained_delay);
+        } else {
+          poll_sof_chained_delay = 0;
+          ALOGD_IF(ese_debug_enabled, "poll_sof_chained_delay value is %d ",
+                   poll_sof_chained_delay);
+        }
+        total_count = 3;
+        uint8_t pcb;
+        phNxpEseProto7816_PCB_bits_t pcb_bits;
+        pcb = pBuffer[PH_PROPTO_7816_PCB_OFFSET];
 
-      phNxpEse_memset(&pcb_bits, 0x00, sizeof(phNxpEseProto7816_PCB_bits_t));
-      phNxpEse_memcpy(&pcb_bits, &pcb, sizeof(uint8_t));
+        phNxpEse_memset(&pcb_bits, 0x00, sizeof(phNxpEseProto7816_PCB_bits_t));
+        phNxpEse_memcpy(&pcb_bits, &pcb, sizeof(uint8_t));
 
-      /*For I-Frame Only*/
-      if (0 == pcb_bits.msb) {
-        if (pBuffer[2] != EXTENDED_FRAME_MARKER) {
+        /*For I-Frame Only*/
+        if (0 == pcb_bits.msb) {
+          if (pBuffer[2] != EXTENDED_FRAME_MARKER) {
+            nNbBytesToRead = pBuffer[2];
+            headerIndex = 3;
+          } else {
+            ret = phPalEse_read(pDevHandle, &pBuffer[3], 2);
+            if (ret < 0) {
+              ALOGE("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
+              flushData = true;
+            } else {
+              nNbBytesToRead = (pBuffer[3] << 8);
+              nNbBytesToRead = nNbBytesToRead | pBuffer[4];
+              /*If I-Frame received with invalid length respond with RNACK*/
+              if ((nNbBytesToRead == 0) || (nNbBytesToRead > MAX_DATA_LEN) ||
+                  (nNbBytesToRead > phNxpEseProto7816_GetIfs())) {
+                ALOGD_IF(ese_debug_enabled, "I-Frame with invalid len == %d",
+                         nNbBytesToRead);
+                flushData = true;
+              } else {
+                ALOGE("_spi_read() [HDR]EXTENDED_FRAME_MARKER, ret=%d", ret);
+                total_count += 2;
+                headerIndex = 5;
+              }
+            }
+          }
+        } else {
+          /*For Non-IFrame*/
           nNbBytesToRead = pBuffer[2];
           headerIndex = 3;
-        } else {
-          ret = phPalEse_read(pDevHandle, &pBuffer[3], 2);
+        }
+        if (!flushData) {
+          /* Read the Complete data + one byte CRC*/
+          ret = phPalEse_read(pDevHandle, &pBuffer[headerIndex],
+                              (nNbBytesToRead + 1));
           if (ret < 0) {
             ALOGE("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
+            ret = -1;
+          } else {
+            ret = (total_count + (nNbBytesToRead + 1));
           }
-          ALOGE("_spi_read() [HDR]errno 4444444 %d", ret);
-          nNbBytesToRead = (pBuffer[3] << 8);
-          nNbBytesToRead = nNbBytesToRead | pBuffer[4];
-          total_count += 2;
-          headerIndex = 5;
+          nxpese_ctxt.rnack_sent = false;
         }
       }
-      /*For Non-IFrame*/
-      else {
-        nNbBytesToRead = pBuffer[2];
-        headerIndex = 3;
-    }
-    /* Read the Complete data + one byte CRC*/
-    ret = phPalEse_read(pDevHandle, &pBuffer[headerIndex], (nNbBytesToRead + 1));
-    if (ret < 0) {
-      ALOGE("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
-      ret = -1;
     } else {
-      ret = (total_count + (nNbBytesToRead + 1));
-      /*If I-Frame received with invalid length respond with RNACK*/
-      if ((0 == pcb_bits.msb) &&
-          ((nNbBytesToRead == 0) ||
-           (nNbBytesToRead > phNxpEseProto7816_GetIfs()))) {
-        ALOGD_IF(ese_debug_enabled, "I-Frame with invalid len == %d",
-                 nNbBytesToRead);
-        pBuffer[0] = 0x90;
-        pBuffer[1] = RECIEVE_PACKET_SOF;
-        ret = 0x02;
-      }
-      }
-      nxpese_ctxt.rnack_sent = false;
-    } else if (ret < 0) {
-      /*In case of IO Error*/
-      ret = -2;
-      pBuffer[0] = 0x64;
-      pBuffer[1] = 0xFF;
-    } else { /* Received corrupted frame:
-              Flushing out data in the Rx buffer so that Card can switch the
-              mode */
+      flushData = true;
+    }
+    if (flushData) {
+      /* Received corrupted frame:
+         Flushing out data in the Rx buffer so that Card can switch the mode */
       uint16_t ifsd_size = phNxpEseProto7816_GetIfs();
       uint32_t total_frame_size = 0;
       ALOGE("_spi_read() corrupted, IFSD size=%d flushing it out!!", ifsd_size);
@@ -1418,9 +1427,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
          prologue + one LRC bytes) bytes from eSE  if max IFS size is greater
          than 254 bytes OR b.  Max IFSD size + 3 (remaining two prologue + one
          LRC bytes) bytes from eSE  if max IFS size is less than 255 bytes.
-
-          2) Send R-NACK to request eSE to re-transmit the frame*/
-
+         2) Send R-NACK to request eSE to re-transmit the frame*/
       if (ifsd_size > IFSC_SIZE_SEND) {
         total_frame_size = ifsd_size + 4;
       } else {
@@ -1432,7 +1439,6 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       if (ret < 0) {
         ALOGE("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
       } else { /* LRC fail expected for this frame to send R-NACK*/
-        ret = total_frame_size + 2;
         ALOGD_IF(
             ese_debug_enabled,
             "_spi_read() SUCCESS  ret : %X LRC fail excpected for this frame",
