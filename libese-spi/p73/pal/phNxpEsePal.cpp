@@ -70,6 +70,7 @@ void phPalEse_close(void* pDevHandle) {
   if (NULL != pDevHandle) {
     gpTransportObj->Close(pDevHandle);
   }
+  gpTransportObj = NULL;
   return;
 }
 
@@ -110,8 +111,7 @@ ESESTATUS phPalEse_ConfigTransport() {
 
   transportType = EseConfig::getUnsigned(NAME_NXP_TRANSPORT, UNKNOWN);
   ALOGD("phPalEse_ConfigTransport transport type %ld", transportType);
-  gpTransportObj =
-      move(transportFactory.getTransport((transportIntf)transportType));
+  gpTransportObj = transportFactory.getTransport((transportIntf)transportType);
   if (gpTransportObj == nullptr) {
     return ESESTATUS_FAILED;
   }

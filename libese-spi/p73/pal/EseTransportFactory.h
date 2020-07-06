@@ -21,7 +21,7 @@
 #include <memory>
 
 #define transportFactory (EseTransportFactory::getInstance())
-typedef std::unique_ptr<EseTransport> spTransport;
+typedef std::shared_ptr<EseTransport> spTransport;
 enum transportIntf { SPI, UNKNOWN };
 
 extern spTransport gpTransportObj;
@@ -38,7 +38,6 @@ class EseTransportFactory {
    ** Returns          none
    ****************************************************************************/
   EseTransportFactory();
-  spTransport mspTransportInterface;
 
  public:
   /*****************************************************************************
@@ -64,5 +63,5 @@ class EseTransportFactory {
   **
   ** Returns          Selected transport channel
   ****************************************************************************/
-  spTransport& getTransport(transportIntf transportType);
+  spTransport getTransport(transportIntf transportType);
 };

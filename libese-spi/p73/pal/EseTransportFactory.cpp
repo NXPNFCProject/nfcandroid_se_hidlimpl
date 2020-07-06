@@ -26,14 +26,15 @@ EseTransportFactory& EseTransportFactory::getInstance() {
   return mTransprtFactoryInstance;
 }
 
-spTransport& EseTransportFactory::getTransport(transportIntf transportType) {
+spTransport EseTransportFactory::getTransport(transportIntf transportType) {
+  spTransport mspTransportInterface;
   switch (transportType) {
     case SPI:
     case UNKNOWN:
-      mspTransportInterface = std::make_unique<EseSpiTransport>();
+      mspTransportInterface = std::make_shared<EseSpiTransport>();
       break;
     default:
-      mspTransportInterface = std::make_unique<EseSpiTransport>();
+      mspTransportInterface = std::make_shared<EseSpiTransport>();
       break;
   }
   return mspTransportInterface;
