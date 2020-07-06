@@ -22,7 +22,7 @@
 #include <phNxpEseFeatures.h>
 #include <ese_config.h>
 #include <phNxpEsePal.h>
-#include <phNxpEsePal_spi.h>
+#include <EseTransport.h>
 #include <phNxpEseProto7816_3.h>
 #include <phNxpEse_Internal.h>
 

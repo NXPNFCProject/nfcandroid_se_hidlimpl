@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020 NXP
+ *  Copyright 2020 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,13 +15,7 @@
  *  limitations under the License.
  *
  ******************************************************************************/
-
-/**
- * \addtogroup eSe_PAL_Spi
- * \brief PAL SPI port implementation for linux
- * @{ */
-#ifndef _PHNXPESE_PAL_SPI_H
-#define _PHNXPESE_PAL_SPI_H
+#pragma once
 
 /* Basic type definitions */
 #include <phNxpEsePal.h>
@@ -124,109 +118,21 @@
  * \brief IOCTL to set the GPIO for the eSE to distinguish
  *        the logical interface
  */
-#define ESE_SET_TRUSTED_ACCESS  _IOW(P61_MAGIC, 0x0B, long)
+#define ESE_SET_TRUSTED_ACCESS _IOW(P61_MAGIC, 0x0B, long)
 
 /*!
  * \brief IOCTL to perform the eSE COLD_RESET  via NFC driver.
  */
-#define ESE_PERFORM_COLD_RESET  _IOW(P61_MAGIC, 0x0C, long)
+#define ESE_PERFORM_COLD_RESET _IOW(P61_MAGIC, 0x0C, long)
 
-/*!
- * \brief IOCTL to enable/disable GPIO/COLD reset protection.
- */
-#define PERFORM_RESET_PROTECTION  _IOW(P61_MAGIC, 0x0D, long)
-
-/* Function declarations */
-/**
- * \ingroup eSe_PAL_Spi
- * \brief This function is used to close the ESE device
- *
- * \retval None
- *
- */
-
-void phPalEse_spi_close(void* pDevHandle);
-
-/**
- * \ingroup eSe_PAL_Spi
- * \brief Open and configure ESE device
- *
- * \param[in]       pConfig: Config to open the device
- *
- * \retval  ESESTATUS On Success ESESTATUS_SUCCESS else proper error code
- *
- */
-ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig);
-
-/**
- * \ingroup eSe_PAL_Spi
- * \brief Reads requested number of bytes from ESE into given buffer
- *
- * \param[in]    pDevHandle       - valid device handle
- **\param[in]    pBuffer          - buffer for read data
- **\param[in]    nNbBytesToRead   - number of bytes requested to be read
- *
- * \retval   numRead      - number of successfully read bytes.
- * \retval      -1             - read operation failure
- *
- */
-int phPalEse_spi_read(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToRead);
-
-/**
- * \ingroup eSe_PAL_Spi
- * \brief Writes requested number of bytes from given buffer into pn547 device
- *
- * \param[in]    pDevHandle               - valid device handle
- * \param[in]    pBuffer                     - buffer to write
- * \param[in]    nNbBytesToWrite       - number of bytes to write
- *
- * \retval  numWrote   - number of successfully written bytes
- * \retval      -1         - write operation failure
- *
- */
-int phPalEse_spi_write(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToWrite);
-
-/**
- * \ingroup eSe_PAL_Spi
- * \brief Exposed ioctl by ESE driver
- *
- * \param[in]    eControlCode       - phPalEse_ControlCode_t for the respective
- *configs
- * \param[in]    pDevHandle           - valid device handle
- * \param[in]    level                  - reset level
- *
- * \retval    0   - ioctl operation success
- * \retval   -1  - ioctl operation failure
- *
- */
-ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
-                             void* pDevHandle, long level);
-
-/**
- * \ingroup eSe_PAL_Spi
- * \brief Print packet data
- *
- * \param[in]    pString           - String to be printed
- * \param[in]    p_data               - data to be printed
- * \param[in]    len                  - Length of data to be printed
- *
- * \retval   void
- *
- */
-void phPalEse_spi_print_packet(const char* pString, const uint8_t* p_data,
-                               uint16_t len);
-/**
- * \ingroup eSe_PAL_Spi
- * \brief This function  suspends execution of the calling thread for
- *                  (at least) usec microseconds
- *
- * \param[in]    usec           - number of micro seconds to sleep
- *
- * \retval   void
- *
- */
-void phPalEse_spi_sleep(uint32_t usec);
-
-
-/** @} */
-#endif /*  _PHNXPESE_PAL_SPI_H    */
+class EseTransport {
+ public:
+  virtual void Close(void* pDevHandle) = 0;
+  virtual ESESTATUS OpenAndConfigure(pphPalEse_Config_t pConfig) = 0;
+  virtual int Read(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToRead) = 0;
+  virtual int Write(void* pDevHandle, uint8_t* pBuffer,
+                    int nNbBytesToWrite) = 0;
+  virtual ESESTATUS Ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
+                          long level) = 0;
+  virtual ~EseTransport(){};
+};

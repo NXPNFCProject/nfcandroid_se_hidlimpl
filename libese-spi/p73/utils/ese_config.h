@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2020 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -46,6 +46,7 @@
 #define NAME_NXP_P61_COLD_RESET_INTERFACE "NXP_P61_COLD_RESET_INTERFACE"
 #define NAME_NXP_OS_VERSION "NXP_OS_VERSION"
 #define NAME_NXP_WTX_NTF_COUNT "NXP_WTX_NTF_COUNT"
+#define NAME_NXP_TRANSPORT "NXP_TRANSPORT"
 #endif
 
 class EseConfig {

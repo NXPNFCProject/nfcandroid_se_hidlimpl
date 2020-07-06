@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2020 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -31,11 +31,10 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-#include <phEseStatus.h>
+#include <EseTransportFactory.h>
 #include <ese_config.h>
-#include <phNxpEsePal_spi.h>
+#include <phEseStatus.h>
 #include <string.h>
-
 
 /*!
  * \brief Normal mode header length
@@ -53,6 +52,9 @@
  * \brief To enable SPI interface for ESE communication
  */
 #define SPI_ENABLED 1
+
+spTransport gpTransportObj;
+
 /*******************************************************************************
 **
 ** Function         phPalEse_close
@@ -66,11 +68,7 @@
 *******************************************************************************/
 void phPalEse_close(void* pDevHandle) {
   if (NULL != pDevHandle) {
-#ifdef SPI_ENABLED
-    phPalEse_spi_close(pDevHandle);
-#else
-/* RFU */
-#endif
+    gpTransportObj->Close(pDevHandle);
   }
   return;
 }
@@ -91,12 +89,33 @@ void phPalEse_close(void* pDevHandle) {
 *******************************************************************************/
 ESESTATUS phPalEse_open_and_configure(pphPalEse_Config_t pConfig) {
   ESESTATUS status = ESESTATUS_FAILED;
-#ifdef SPI_ENABLED
-  status = phPalEse_spi_open_and_configure(pConfig);
-#else
-/* RFU */
-#endif
+  if (ESESTATUS_SUCCESS != phPalEse_ConfigTransport()) return ESESTATUS_FAILED;
+  status = gpTransportObj->OpenAndConfigure(pConfig);
   return status;
+}
+
+/*******************************************************************************
+**
+** Function         phPalEse_ConfigTransport
+**
+** Description      Configure Transport channel based on transport type provided
+**                  in config file
+**
+** Returns          ESESTATUS_SUCCESS If transport channel is configured
+**                  ESESTATUS_FAILED If transport channel configuration failed
+**
+*******************************************************************************/
+ESESTATUS phPalEse_ConfigTransport() {
+  unsigned long transportType = UNKNOWN;
+
+  transportType = EseConfig::getUnsigned(NAME_NXP_TRANSPORT, UNKNOWN);
+  ALOGD("phPalEse_ConfigTransport transport type %ld", transportType);
+  gpTransportObj =
+      move(transportFactory.getTransport((transportIntf)transportType));
+  if (gpTransportObj == nullptr) {
+    return ESESTATUS_FAILED;
+  }
+  return ESESTATUS_SUCCESS;
 }
 
 /*******************************************************************************
@@ -116,11 +135,7 @@ ESESTATUS phPalEse_open_and_configure(pphPalEse_Config_t pConfig) {
 *******************************************************************************/
 int phPalEse_read(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToRead) {
   int ret = -1;
-#ifdef SPI_ENABLED
-  ret = phPalEse_spi_read(pDevHandle, pBuffer, nNbBytesToRead);
-#else
-/* RFU */
-#endif
+  ret = gpTransportObj->Read(pDevHandle, pBuffer, nNbBytesToRead);
   return ret;
 }
 
@@ -145,11 +160,7 @@ int phPalEse_write(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToWrite) {
   if (NULL == pDevHandle) {
     return -1;
   }
-#ifdef SPI_ENABLED
-  numWrote = phPalEse_spi_write(pDevHandle, pBuffer, nNbBytesToWrite);
-#else
-/* RFU */
-#endif
+  numWrote = gpTransportObj->Write(pDevHandle, pBuffer, nNbBytesToWrite);
   return numWrote;
 }
 
@@ -176,11 +187,7 @@ ESESTATUS phPalEse_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
       return ESESTATUS_IOCTL_FAILED;
     }
   }
-#ifdef SPI_ENABLED
-  ret = phPalEse_spi_ioctl(eControlCode, pDevHandle, level);
-#else
-/* RFU */
-#endif
+  ret = gpTransportObj->Ioctl(eControlCode, pDevHandle, level);
   return ret;
 }
 

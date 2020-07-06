@@ -106,6 +106,15 @@ ESESTATUS phPalEse_open_and_configure(pphPalEse_Config_t pConfig);
 
 /**
  * \ingroup eSe_PAL
+ * \brief ConfigTransport to get SPI terminal
+ *
+ * \retval  ESESTATUS On Success ESESTATUS_SUCCESS else proper error code
+ *
+ */
+ESESTATUS phPalEse_ConfigTransport();
+
+/**
+ * \ingroup eSe_PAL
  * \brief Reads requested number of bytes from ESE into given buffer
  *
  * \param[in]    pDevHandle       - valid device handle
