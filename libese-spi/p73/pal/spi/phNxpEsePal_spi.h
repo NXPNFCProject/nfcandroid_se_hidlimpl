@@ -56,9 +56,6 @@
 
 #define NAD_POLLING_SCALER 1
 
-#define GET_NAD_POLLING_SCALER()                                    \
-  ((GET_CHIP_OS_VERSION() != OS_VERSION_4_0) ? (NAD_POLLING_SCALER) \
-                                             : (10 * NAD_POLLING_SCALER))
 /*!
  * \brief ESE wakeup delay in case of write error retry
  */

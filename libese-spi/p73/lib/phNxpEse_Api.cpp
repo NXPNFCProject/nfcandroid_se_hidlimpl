@@ -354,7 +354,7 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
 
   ALOGD_IF(ese_debug_enabled, "Nad poll retry time in us - %lu us",
            nxpese_ctxt.nadPollingRetryTime * GET_WAKE_UP_DELAY() *
-               GET_NAD_POLLING_SCALER());
+               NAD_POLLING_SCALER);
 
   /*Read device node path*/
   ese_node = EseConfig::getString(NAME_NXP_ESE_DEV_NODE, "/dev/pn81a");
@@ -1271,7 +1271,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       /*(nadPollingRetryTime * WAKE_UP_DELAY_SN1xx * NAD_POLLING_SCALER_SN1xx)*/
       max_sof_counter = ((ESE_POLL_TIMEOUT * 1000) /
                          (nxpese_ctxt.nadPollingRetryTime *
-                          GET_WAKE_UP_DELAY() * GET_NAD_POLLING_SCALER()));
+                          GET_WAKE_UP_DELAY() * NAD_POLLING_SCALER));
     }
     if (nxpese_ctxt.rnack_sent) {
       phPalEse_sleep(nxpese_ctxt.invalidFrame_Rnack_Delay);
@@ -1325,7 +1325,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
          << StringPrintf("%s Normal Pkt, delay read %dus", __FUNCTION__,
          WAKE_UP_DELAY_SN1xx * NAD_POLLING_SCALER_SN1xx);*/
         phPalEse_sleep(nxpese_ctxt.nadPollingRetryTime * GET_WAKE_UP_DELAY() *
-                       GET_NAD_POLLING_SCALER());
+                       NAD_POLLING_SCALER);
       }
       sof_counter++;
     } while (sof_counter < max_sof_counter);
@@ -1502,8 +1502,8 @@ static int phNxpEse_readPacket_legacy(void* pDevHandle, uint8_t* pBuffer,
       phPalEse_sleep(GET_WAKE_UP_DELAY() * CHAINED_PKT_SCALER);
     } else {
       ALOGD_IF(ese_debug_enabled, "%s Normal Pkt, delay read %dus",
-               __FUNCTION__, GET_WAKE_UP_DELAY() * GET_NAD_POLLING_SCALER());
-      phPalEse_sleep(GET_WAKE_UP_DELAY() * GET_NAD_POLLING_SCALER());
+               __FUNCTION__, GET_WAKE_UP_DELAY() * NAD_POLLING_SCALER);
+      phPalEse_sleep(GET_WAKE_UP_DELAY() * NAD_POLLING_SCALER);
     }
   } while (sof_counter < ESE_NAD_POLLING_MAX);
   if (pBuffer[0] == RECIEVE_PACKET_SOF) {
