@@ -891,7 +891,7 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
            phNxpEseProto7816_3_Var.atrInfo.capbilities[0] << 8 |
                phNxpEseProto7816_3_Var.atrInfo.capbilities[1]);
 
-  if (phNxpEseProto7816_3_Var.atrInfo.vendorID[4] == PH_SE_OS_VERSION_11) {
+  if (phNxpEseProto7816_3_Var.atrInfo.vendorID[4] >= PH_SE_OS_VERSION_11) {
     phNxpEse_memcpy(&phNxpEseProto7816_3_Var.extndAtrInfo.channelNo,
                     &p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] +
                         sizeof(phNxpEseProto7816_ATR_Info_t),
@@ -904,7 +904,7 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
                                                              : "OSU Mode"));
   }
   if (phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN -
-                                               1] == PH_SE_OS_VERSION_11) {
+                                               1] >= PH_SE_OS_VERSION_11) {
     phNxpEse_setOsVersion(OS_VERSION_5_2_2);
   } else if (phNxpEseProto7816_3_Var.atrInfo
                  .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] ==
@@ -2090,7 +2090,7 @@ uint16_t phNxpEseProto7816_GetIfs(void) {
  ******************************************************************************/
 phNxpEseProto7816_OsType_t phNxpEseProto7816_GetOsMode(void) {
   phNxpEseProto7816_OsType_t mode = UNKNOWN_MODE;
-  if (GET_CHIP_OS_VERSION() == OS_VERSION_5_2_2) {
+  if (GET_CHIP_OS_VERSION() >= OS_VERSION_5_2_2) {
     ALOGD_IF(ese_debug_enabled, "Enter %s OS Mode = %s", __FUNCTION__,
              (phNxpEseProto7816_3_Var.extndAtrInfo.osType == 1 ? "JCOP Mode"
                                                                : "OSU Mode"));
