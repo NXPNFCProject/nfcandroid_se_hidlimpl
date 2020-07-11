@@ -419,6 +419,17 @@ ESESTATUS EseSpiTransport::Ioctl(phPalEse_ControlCode_t eControlCode,
         ret = (ESESTATUS)ioctl((intptr_t)pDevHandle, P61_SET_SPM_PWR, level);
       }
       break;
+    case phPalEse_e_ResetProtection:
+      if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
+          retioctl = ioctl((intptr_t)pDevHandle, PERFORM_RESET_PROTECTION, level);
+          if (0x00 <= retioctl) {
+            ret = ESESTATUS_SUCCESS;
+          } else {
+            ALOGE("phPalEse_e_ResetProtection ioctl failed status :%x !",
+                    retioctl);
+          }
+      }
+      break;
     case phPalEse_e_EnableThroughputMeasurement:
       if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
         ret = ESESTATUS_SUCCESS;

@@ -124,6 +124,10 @@
  * \brief IOCTL to perform the eSE COLD_RESET  via NFC driver.
  */
 #define ESE_PERFORM_COLD_RESET _IOW(P61_MAGIC, 0x0C, long)
+/*!
+ * \brief IOCTL to enable/disable GPIO/COLD reset protection.
+ */
+#define PERFORM_RESET_PROTECTION  _IOW(P61_MAGIC, 0x0D, long)
 
 class EseTransport {
  public:
