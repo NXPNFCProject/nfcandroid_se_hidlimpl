@@ -187,7 +187,14 @@ ESESTATUS phPalEse_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
       return ESESTATUS_IOCTL_FAILED;
     }
   }
+  if (pDevHandle == NULL) {
+    phPalEse_ConfigTransport();
+  }
   ret = gpTransportObj->Ioctl(eControlCode, pDevHandle, level);
+  if (pDevHandle == NULL) {
+    phPalEse_close(pDevHandle);
+  }
+
   return ret;
 }
 
