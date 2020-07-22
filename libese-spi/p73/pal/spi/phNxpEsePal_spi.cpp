@@ -92,8 +92,9 @@ void phPalEse_spi_close(void* pDevHandle) {
 ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
   ESESTATUS status = ESESTATUS_SUCCESS;
   ese_nxp_IoctlInOutData_t *inpOutData = NULL;
-  if (p_data == NULL) {
-    ALOGE("%s:Invalid Data", __FUNCTION__);
+  if (!p_data) {
+    ALOGD_IF(ese_debug_enabled, "%s:p_data is null ioctltyp: %ld", __FUNCTION__,
+             (long)ioctlType);
     return ESESTATUS_FAILED;
   }
   inpOutData = (ese_nxp_IoctlInOutData_t *)p_data;
