@@ -316,7 +316,7 @@ ESESTATUS NfcAdaptation::notifyHciEvtProcessComplete() {
  **
  ** Return           void
  *********************************************************************/
-static void HalNciTransceive_cb(NxpNciExtnResp out) {
+static void HalNciTransceive_cb(const NxpNciExtnResp& out) {
     const char* func = "HalNciTransceive_cb";
     ALOGD_IF(ese_debug_enabled, "%s", func);
     memset(&(NfcAdaptation::GetInstance().mNciResp),0,sizeof(NxpNciExtnResp));
