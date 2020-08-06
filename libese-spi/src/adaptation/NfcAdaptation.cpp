@@ -137,7 +137,10 @@ NfcAdaptation& NfcAdaptation::GetInstance() {
 ** Returns:     none
 **
 *******************************************************************************/
-NfcAdaptation::NfcAdaptation() { mCurrentIoctlData = NULL; }
+NfcAdaptation::NfcAdaptation() {
+  mCurrentIoctlData = NULL;
+  memset(&mNciResp, 0, sizeof(NxpNciExtnResp));
+}
 
 /*******************************************************************************
 **
