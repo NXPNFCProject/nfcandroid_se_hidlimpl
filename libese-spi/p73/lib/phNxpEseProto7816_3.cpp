@@ -2091,11 +2091,16 @@ uint16_t phNxpEseProto7816_GetIfs(void) {
 phNxpEseProto7816_OsType_t phNxpEseProto7816_GetOsMode(void) {
   phNxpEseProto7816_OsType_t mode = UNKNOWN_MODE;
   if (GET_CHIP_OS_VERSION() >= OS_VERSION_5_2_2) {
-    ALOGD_IF(ese_debug_enabled, "Enter %s OS Mode = %s", __FUNCTION__,
-             (phNxpEseProto7816_3_Var.extndAtrInfo.osType == 1 ? "JCOP Mode"
-                                                               : "OSU Mode"));
-    mode = (phNxpEseProto7816_3_Var.extndAtrInfo.osType == 1) ? JCOP_MODE
-                                                              : OSU_MODE;
+    if (phNxpEseProto7816_3_Var.extndAtrInfo.osType == MODE_JCOP) {
+      ALOGD_IF(ese_debug_enabled, "Enter %s OS Mode = %s", __FUNCTION__, "JCOP Mode");
+      mode = JCOP_MODE;
+    } else if ( phNxpEseProto7816_3_Var.extndAtrInfo.osType == MODE_OSU) {
+      ALOGD_IF(ese_debug_enabled, "Enter %s OS Mode = %s", __FUNCTION__, "OSU Mode");
+      mode = OSU_MODE;
+    } else {
+      ALOGD_IF(ese_debug_enabled, "Enter %s OS Mode = %s", __FUNCTION__, "UNKNOWN Mode");
+      mode = UNKNOWN_MODE;
+    }
   } else {
     ALOGE("%s function not supported", __FUNCTION__);
   }
