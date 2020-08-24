@@ -30,7 +30,7 @@ namespace virtual_iso {
 namespace V1_0 {
 namespace implementation {
 
-#define LOG_TAG "nxpese@1.0-service"
+#define LOG_TAG "nxpVIsoese@1.0-service"
 
 #define DEFAULT_BASIC_CHANNEL 0x00
 #define MAX_LOGICAL_CHANNELS 0x04
