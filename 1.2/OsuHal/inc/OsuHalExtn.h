@@ -37,10 +37,11 @@ using ::android::hardware::hidl_vec;
 class OsuHalExtn {
  public:
   typedef enum {
-    NON_OSU_MODE,
-    OSU_PROP_MODE,
-    OSU_GP_MODE,
-    OSU_RST_MODE,
+    NON_OSU_MODE,     /* Normal Mode  : All HAL APIs allowed */
+    OSU_PROP_MODE,    /* OSU mode     : Only OSU JAR command allowed */
+    OSU_GP_MODE,      /* Any Mode     : Command allowed in both OSU or Normal mode */
+    OSU_RST_MODE,     /* OSU mode     : Proprietary HARD reset */
+    OSU_BLOCKED_MODE, /* OSU mode     : Command not allowed return error */
   } OsuApduMode;
 
   typedef enum {
