@@ -73,9 +73,6 @@ using ::android::hardware::Void;
 using ::android::sp;
 using android::base::StringPrintf;
 
-#ifndef MAX_LOGICAL_CHANNELS
-#define MAX_LOGICAL_CHANNELS 0x04
-#endif
 #ifndef MIN_APDU_LENGTH
 #define MIN_APDU_LENGTH 0x04
 #endif
@@ -108,10 +105,11 @@ struct SecureElement : public V1_2::ISecureElement, public hidl_death_recipient 
   static void NotifySeWaitExtension(phNxpEse_wtxState state);
   Return<::android::hardware::secure_element::V1_0::SecureElementStatus> reset();
  private:
+  uint8_t mMaxChannelCount;
   uint8_t mOpenedchannelCount = 0;
   Mutex seHalLock;
   bool mIsEseInitialized = false;
-  bool mOpenedChannels[MAX_LOGICAL_CHANNELS];
+  static std::vector<bool> mOpenedChannels;
   static sp<V1_0::ISecureElementHalCallback> mCallbackV1_0;
   static sp<V1_1::ISecureElementHalCallback> mCallbackV1_1;
   Return<SecureElementStatus> seHalDeInit();

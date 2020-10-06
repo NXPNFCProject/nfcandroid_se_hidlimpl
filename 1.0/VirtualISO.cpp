@@ -33,7 +33,6 @@ namespace implementation {
 #define LOG_TAG "nxpVIsoese@1.0-service"
 
 #define DEFAULT_BASIC_CHANNEL 0x00
-#define MAX_LOGICAL_CHANNELS 0x04
 
 typedef struct gsTransceiveBuffer {
   phNxpEse_data cmdData;
@@ -44,11 +43,12 @@ typedef struct gsTransceiveBuffer {
 static sTransceiveBuffer_t gsTxRxBuffer;
 static hidl_vec<uint8_t> gsRspDataBuff(256);
 static android::sp<ISecureElementHalCallback> cCallback;
+std::vector<bool> VirtualISO::mOpenedChannels;
 
 VirtualISO::VirtualISO()
-    : mOpenedchannelCount(0),
-      mIsEseInitialized(false),
-      mOpenedChannels{false, false, false, false} {}
+    : mMaxChannelCount(0),
+      mOpenedchannelCount(0),
+      mIsEseInitialized(false) {}
 
 Return<void> VirtualISO::init(
     const sp<
@@ -97,6 +97,8 @@ Return<void> VirtualISO::init(
   }
   if (status == ESESTATUS_SUCCESS && mIsInitDone)
   {
+    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2)? 0x0C: 0x04;
+    mOpenedChannels.resize(mMaxChannelCount, false);
     clientCallback->onStateChange(true);
   }
   else
@@ -427,8 +429,10 @@ VirtualISO::internalCloseChannel(uint8_t channelNumber)
   phNxpEse_7816_rpdu_t rpdu;
 
   LOG(ERROR)<<"internalCloseChannel Enter";
+   LOG(INFO) << StringPrintf("mMaxChannelCount = %d, Closing Channel = %d",
+                                mMaxChannelCount, channelNumber);
   if (channelNumber < DEFAULT_BASIC_CHANNEL ||
-      channelNumber >= MAX_LOGICAL_CHANNELS) {
+      channelNumber >= mMaxChannelCount) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d",channelNumber);
     sestatus = SecureElementStatus::FAILED;
   } else if (channelNumber > DEFAULT_BASIC_CHANNEL){
@@ -486,7 +490,7 @@ VirtualISO::closeChannel(uint8_t channelNumber) {
 
   LOG(INFO) << "Acquired the lock in VISO closeChannel";
   if (channelNumber < DEFAULT_BASIC_CHANNEL ||
-      channelNumber >= MAX_LOGICAL_CHANNELS) {
+      channelNumber >= mMaxChannelCount) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d for %d",channelNumber,mOpenedChannels[channelNumber]);
     sestatus = SecureElementStatus::FAILED;
   } else if (channelNumber > DEFAULT_BASIC_CHANNEL){
@@ -586,7 +590,7 @@ VirtualISO::seHalDeInit() {
   }
  //Clear all the flags as SPI driver is closed.
   mIsEseInitialized = false;
-  for (uint8_t xx = 0; xx < MAX_LOGICAL_CHANNELS; xx++) {
+  for (uint8_t xx = 0; xx < mMaxChannelCount; xx++) {
     mOpenedChannels[xx] = false;
   }
   mOpenedchannelCount = 0;

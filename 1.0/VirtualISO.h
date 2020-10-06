@@ -46,12 +46,6 @@ using ::android::hardware::Void;
 using ::android::sp;
 using android::base::StringPrintf;
 
-#ifndef MAX_LOGICAL_CHANNELS
-#define MAX_LOGICAL_CHANNELS 0x04
-#endif
-#ifndef MIN_APDU_LENGTH
-#define MIN_APDU_LENGTH 0x04
-#endif
 #ifndef DEFAULT_BASIC_CHANNEL
 #define DEFAULT_BASIC_CHANNEL 0x00
 #endif
@@ -79,9 +73,10 @@ struct VirtualISO : public ISecureElement, public hidl_death_recipient {
     // close(0);
   }
  private:
+  uint8_t mMaxChannelCount;
   uint8_t mOpenedchannelCount = 0;
   bool mIsEseInitialized = false;
-  bool mOpenedChannels[MAX_LOGICAL_CHANNELS];
+  static std::vector<bool> mOpenedChannels;
   Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
   seHalDeInit();
   ESESTATUS seHalInit();

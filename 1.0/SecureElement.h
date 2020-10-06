@@ -68,9 +68,6 @@ using ::android::hardware::Void;
 using ::android::sp;
 using android::base::StringPrintf;
 
-#ifndef MAX_LOGICAL_CHANNELS
-#define MAX_LOGICAL_CHANNELS 0x04
-#endif
 #ifndef MIN_APDU_LENGTH
 #define MIN_APDU_LENGTH 0x04
 #endif
@@ -99,9 +96,10 @@ struct SecureElement : public ISecureElement, public hidl_death_recipient {
   void serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/);
 
  private:
+  uint8_t mMaxChannelCount;
   uint8_t mOpenedchannelCount = 0;
   bool mIsEseInitialized = false;
-  bool mOpenedChannels[MAX_LOGICAL_CHANNELS];
+  static std::vector<bool> mOpenedChannels;
   static sp<V1_0::ISecureElementHalCallback> mCallbackV1_0;
   Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
   seHalDeInit();

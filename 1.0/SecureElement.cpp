@@ -36,7 +36,6 @@ namespace implementation {
   ((x > 00 && x <= 03) || (x >= 0x40 && x <= 0x4F) ? true : false)
 
 #define DEFAULT_BASIC_CHANNEL 0x00
-#define MAX_LOGICAL_CHANNELS 0x04
 #define INVALID_LEN_SW1 0x64
 #define INVALID_LEN_SW2 0xFF
 
@@ -49,11 +48,12 @@ typedef struct gsTransceiveBuffer {
 static sTransceiveBuffer_t gsTxRxBuffer;
 static hidl_vec<uint8_t> gsRspDataBuff(256);
 static android::sp<ISecureElementHalCallback> cCallback;
+std::vector<bool> SecureElement::mOpenedChannels;
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 SecureElement::SecureElement()
-    : mOpenedchannelCount(0),
-      mIsEseInitialized(false),
-      mOpenedChannels{false, false, false, false} {}
+    : mMaxChannelCount(0),
+      mOpenedchannelCount(0),
+      mIsEseInitialized(false) {}
 
 
 Return<void> SecureElement::init(
@@ -104,6 +104,8 @@ Return<void> SecureElement::init(
   }
   if (status == ESESTATUS_SUCCESS && mIsInitDone)
   {
+    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2)? 0x0C: 0x04;
+    mOpenedChannels.resize(mMaxChannelCount, false);
     clientCallback->onStateChange(true);
     cCallback = clientCallback;
   }
@@ -494,8 +496,10 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
   phNxpEse_7816_rpdu_t rpdu;
 
   LOG(ERROR) << "Acquired the lock in SPI internalCloseChannel";
+  LOG(INFO) << StringPrintf("mMaxChannelCount = %d, Closing Channel = %d",
+                                mMaxChannelCount, channelNumber);
   if (channelNumber < DEFAULT_BASIC_CHANNEL ||
-      channelNumber >= MAX_LOGICAL_CHANNELS) {
+      channelNumber >= mMaxChannelCount) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d for %d",channelNumber,mOpenedChannels[channelNumber]);
     sestatus = SecureElementStatus::FAILED;
   } else if (channelNumber > DEFAULT_BASIC_CHANNEL){
@@ -553,7 +557,7 @@ SecureElement::closeChannel(uint8_t channelNumber) {
 
   LOG(ERROR) << "Acquired the lock in SPI closeChannel";
   if (channelNumber < DEFAULT_BASIC_CHANNEL ||
-      channelNumber >= MAX_LOGICAL_CHANNELS) {
+      channelNumber >= mMaxChannelCount) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d for %d",channelNumber,mOpenedChannels[channelNumber]);
     sestatus = SecureElementStatus::FAILED;
   } else if (channelNumber > DEFAULT_BASIC_CHANNEL){
@@ -658,7 +662,7 @@ SecureElement::seHalDeInit() {
     LOG(ERROR) << "seHalDeInit: Failed";
   }
   mIsEseInitialized = false;
-  for (uint8_t xx = 0; xx < MAX_LOGICAL_CHANNELS; xx++) {
+  for (uint8_t xx = 0; xx < mMaxChannelCount; xx++) {
     mOpenedChannels[xx] = false;
   }
   mOpenedchannelCount = 0;

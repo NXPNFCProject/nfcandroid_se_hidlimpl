@@ -490,6 +490,10 @@ typedef struct phNxpEseProto7816_PCB_bits {
  */
 #define PH_SE_OS_VERSION_11 0x11
 /*!
+ * \brief OS version on SE for SN220
+ */
+#define PH_SE_OS_VERSION_20 0x20
+/*!
  * \brief Default wait extension notification interval
  */
 #define PH_DEFAULT_WTX_NTF_LIMIT 0x03

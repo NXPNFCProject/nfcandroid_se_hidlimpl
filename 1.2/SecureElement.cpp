@@ -36,9 +36,9 @@ namespace implementation {
   ((x > 00 && x <= 03) || (x >= 0x40 && x <= 0x4F) ? true : false)
 
 #define DEFAULT_BASIC_CHANNEL 0x00
-#define MAX_LOGICAL_CHANNELS 0x04
 #define INVALID_LEN_SW1 0x64
 #define INVALID_LEN_SW2 0xFF
+
 
 typedef struct gsTransceiveBuffer {
   phNxpEse_data cmdData;
@@ -50,11 +50,12 @@ static sTransceiveBuffer_t gsTxRxBuffer;
 static hidl_vec<uint8_t> gsRspDataBuff(256);
 sp<V1_0::ISecureElementHalCallback> SecureElement::mCallbackV1_0 = nullptr;
 sp<V1_1::ISecureElementHalCallback> SecureElement::mCallbackV1_1 = nullptr;
+std::vector<bool> SecureElement::mOpenedChannels;
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 SecureElement::SecureElement()
-    : mOpenedchannelCount(0),
-      mIsEseInitialized(false),
-      mOpenedChannels{false, false, false, false} {}
+    : mMaxChannelCount(0),
+      mOpenedchannelCount(0),
+      mIsEseInitialized(false) {}
 
 void SecureElement::NotifySeWaitExtension(phNxpEse_wtxState state) {
   if (state == WTX_ONGOING) {
@@ -113,6 +114,8 @@ Return<void> SecureElement::init(
   }
   if (status == ESESTATUS_SUCCESS && mIsInitDone)
   {
+    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2)? 0x0C: 0x04;
+    mOpenedChannels.resize(mMaxChannelCount, false);
     clientCallback->onStateChange(true);
     mCallbackV1_0 = clientCallback;
   }
@@ -172,6 +175,8 @@ Return<void> SecureElement::init_1_1(
     status = phNxpEse_close(deInitStatus);
   }
   if (status == ESESTATUS_SUCCESS && mIsInitDone) {
+    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2)? 0x0C: 0x04;
+    mOpenedChannels.resize(mMaxChannelCount, false);
     clientCallback->onStateChange_1_1(true, "NXP SE HAL init ok");
     mCallbackV1_1 = clientCallback;
   }
@@ -610,8 +615,10 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
   phNxpEse_7816_rpdu_t rpdu;
 
   LOG(ERROR) << "Acquired the lock in SPI internalCloseChannel";
+  LOG(INFO) << StringPrintf("mMaxChannelCount = %d, Closing Channel = %d",
+                                mMaxChannelCount, channelNumber);
   if ((int8_t)channelNumber < DEFAULT_BASIC_CHANNEL ||
-      channelNumber >= MAX_LOGICAL_CHANNELS) {
+      channelNumber >= mMaxChannelCount) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d",channelNumber);
   } else if (channelNumber > DEFAULT_BASIC_CHANNEL){
     phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
@@ -637,7 +644,7 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
       LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     }
   }
-  if(channelNumber < MAX_LOGICAL_CHANNELS) {
+  if(channelNumber < mMaxChannelCount) {
     if(mOpenedChannels[channelNumber]) {
       mOpenedChannels[channelNumber] = false;
       mOpenedchannelCount--;
@@ -723,7 +730,7 @@ SecureElement::seHalDeInit() {
     LOG(ERROR) << "seHalDeInit: Failed";
   }
   mIsEseInitialized = false;
-  for (uint8_t xx = 0; xx < MAX_LOGICAL_CHANNELS; xx++) {
+  for (uint8_t xx = 0; xx < mMaxChannelCount; xx++) {
     mOpenedChannels[xx] = false;
   }
   mOpenedchannelCount = 0;
@@ -748,7 +755,7 @@ SecureElement::reset() {
       LOG(ERROR) << "%s: SecureElement reset failed!!" << __func__;
     } else {
       sestatus = SecureElementStatus::SUCCESS;
-      for (uint8_t xx = 0; xx < MAX_LOGICAL_CHANNELS; xx++) {
+      for (uint8_t xx = 0; xx < mMaxChannelCount; xx++) {
         mOpenedChannels[xx] = false;
       }
       mOpenedchannelCount = 0;

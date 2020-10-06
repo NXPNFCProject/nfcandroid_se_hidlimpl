@@ -914,6 +914,10 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
                  .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] ==
              PH_PROTO_7816_VALUE_ZERO) {
     phNxpEse_setOsVersion(OS_VERSION_5_1);
+  } else if (phNxpEseProto7816_3_Var.atrInfo
+                 .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] ==
+             PH_SE_OS_VERSION_20) {
+    phNxpEse_setOsVersion(OS_VERSION_6_2);
   }
 
   ALOGD_IF(ese_debug_enabled, "======================");
