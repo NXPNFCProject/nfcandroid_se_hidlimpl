@@ -1128,6 +1128,13 @@ ESESTATUS phNxpEse_deInit(void) {
         if (status != ESESTATUS_SUCCESS) {
           ALOGE("%s phNxpEseP61_DisablePwrCntrl: failed", __FUNCTION__);
         }
+      } else {
+        ALOGD_IF(ese_debug_enabled, "Interface reset for DPD");
+        status = phNxpEseProto7816_IntfReset(
+            (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
+        if (status != ESESTATUS_SUCCESS) {
+          ALOGE("%s IntfReset Failed ", __FUNCTION__);
+        }
       }
 #endif
     }
@@ -1178,7 +1185,9 @@ ESESTATUS phNxpEse_close(ESESTATUS deInitStatus) {
         ALOGD_IF(ese_debug_enabled, "Inform eSE that trusted Mode is over");
         status = phPalEse_ioctl(phPalEse_e_SetSecureMode,
                                 nxpese_ctxt.pDevHandle, 0x00);
-
+        if (status != ESESTATUS_SUCCESS) {
+          ALOGE("%s: phPalEse_e_SetSecureMode failed", __FUNCTION__);
+        }
         if (ESESTATUS_SUCCESS != phNxpEseProto7816_CloseAllSessions()) {
           ALOGD_IF(ese_debug_enabled, "eSE not responding perform hard reset");
           phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
@@ -1190,6 +1199,14 @@ ESESTATUS phNxpEse_close(ESESTATUS deInitStatus) {
           ALOGD_IF(ese_debug_enabled, "eSE not responding perform hard reset");
           phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
         }
+      }
+      ALOGD_IF(ese_debug_enabled, "Interface reset for DPD");
+      status = phNxpEseProto7816_IntfReset(
+          (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
+      if (status == ESESTATUS_TRANSCEIVE_FAILED || status == ESESTATUS_FAILED) {
+        ALOGE("%s IntfReset Failed, perform hard reset", __FUNCTION__);
+        // max wtx or no response of interface reset after protocol recovery
+        phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
       }
     }
   }
