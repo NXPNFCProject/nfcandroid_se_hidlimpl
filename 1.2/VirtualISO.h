@@ -90,7 +90,6 @@ struct VirtualISO : public ISecureElement, public hidl_death_recipient {
   Return<SecureElementStatus> seHalDeInit();
   ESESTATUS seHalInit();
   Return<SecureElementStatus> internalCloseChannel(uint8_t channelNumber);
-  void seHalResetSe();
 };
 
 }  // namespace implementation

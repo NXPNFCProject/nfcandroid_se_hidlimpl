@@ -15,7 +15,7 @@
  *  limitations under the License.
  *
  ******************************************************************************/
-#define LOG_TAG "nxpese@1.0-service"
+#define LOG_TAG "nxpese@1.1-service"
 #include <log/log.h>
 #include <android/hardware/secure_element/1.1/ISecureElement.h>
 #include <vendor/nxp/nxpese/1.0/INxpEse.h>

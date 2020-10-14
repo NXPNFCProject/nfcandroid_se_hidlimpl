@@ -31,7 +31,7 @@ namespace secure_element {
 namespace V1_1 {
 namespace implementation {
 
-#define LOG_TAG "nxpese@1.0-service"
+#define LOG_TAG "nxpese@1.1-service"
 #define ISVALIDLC(x) \
   ((x > 00 && x <= 03) || (x >= 0x40 && x <= 0x4F) ? true : false)
 
