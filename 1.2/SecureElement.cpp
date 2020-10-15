@@ -666,10 +666,10 @@ SecureElement::closeChannel(uint8_t channelNumber) {
 
 void SecureElement::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
     LOG(ERROR) << " SecureElement serviceDied!!!";
-    ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
     mIsEseInitialized = false;
-    deInitStatus = phNxpEse_deInit();
-    phNxpEse_close(deInitStatus);
+    if(seHalDeInit() != SecureElementStatus::SUCCESS){
+      LOG(ERROR) << "SE Deinit not successfull";
+    }
   }
   ESESTATUS SecureElement::seHalInit(phNxpEse_initMode mode) {
     ESESTATUS status = ESESTATUS_SUCCESS;
