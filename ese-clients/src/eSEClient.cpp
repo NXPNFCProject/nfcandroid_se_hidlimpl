@@ -317,7 +317,9 @@ SESTATUS handleJcopOsDownload()
     if(retstat != STATUS_SUCCESS)
     {
       ALOGE("%s: JCDND initialization failed", __FUNCTION__);
-      phNxpEse_ResetEndPoint_Cntxt(0);
+      if (phNxpEse_ResetEndPoint_Cntxt(0) != ESESTATUS_SUCCESS) {
+        ALOGE("%s: Reset SE EndPoint failed", __FUNCTION__);
+      }
       phNxpEse_close(ESESTATUS_SUCCESS);
       return status;
     } else
@@ -329,7 +331,9 @@ SESTATUS handleJcopOsDownload()
       }
     }
     JCDNLD_DeInit();
-    phNxpEse_ResetEndPoint_Cntxt(0);
+    if (phNxpEse_ResetEndPoint_Cntxt(0) != ESESTATUS_SUCCESS) {
+      ALOGE("%s: Reset SE EndPoint failed", __FUNCTION__);
+    }
     phNxpEse_close(ESESTATUS_SUCCESS);
   }
   status = SESTATUS_SUCCESS;
@@ -373,7 +377,9 @@ uint8_t performLSUpdate()
     if(status == SESTATUS_SUCCESS)
     {
       status = performLSDownload(&Ch);
-      phNxpEse_ResetEndPoint_Cntxt(ESE);
+      if (phNxpEse_ResetEndPoint_Cntxt(ESE) != ESESTATUS_SUCCESS) {
+        ALOGE("%s: Reset SE EndPoint failed", __FUNCTION__);
+      }
     }
     phNxpEse_close(ESESTATUS_SUCCESS);
   }
@@ -384,7 +390,9 @@ uint8_t performLSUpdate()
     if(status == SESTATUS_SUCCESS)
     {
       status = performLSDownload(&Ch);
-      phNxpEse_ResetEndPoint_Cntxt(EUICC);
+      if (phNxpEse_ResetEndPoint_Cntxt(EUICC) != ESESTATUS_SUCCESS) {
+        ALOGE("%s: Reset SE EndPoint failed", __FUNCTION__);
+      }
     }
     phNxpEse_close(ESESTATUS_SUCCESS);
   }
