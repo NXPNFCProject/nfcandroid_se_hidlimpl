@@ -68,6 +68,9 @@ typedef enum phNxpEseProto7816_OsType {
   OSU_MODE = 0x2,
 } phNxpEseProto7816_OsType_t;
 
+#define MODE_JCOP 0x01
+#define MODE_OSU 0x02
+
 typedef void(NotifyWtxReq)(phNxpEse_wtxState);
 /**
  * \ingroup spi_libese
