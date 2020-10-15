@@ -149,13 +149,15 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
   unsigned long int num, ifsd_value = 0;
   unsigned long maxTimer = 0;
   uint8_t retry = 0;
+  const std::string WTX_TYPE[2] = {NAME_NXP_WTX_COUNT_VALUE,
+                                   NAME_NXP_OSU_MAX_WTX_COUNT};
   phNxpEseProto7816InitParam_t protoInitParam;
   phNxpEse_memset(&protoInitParam, 0x00, sizeof(phNxpEseProto7816InitParam_t));
   /* STATUS_OPEN */
   nxpese_ctxt.EseLibStatus = ESE_STATUS_OPEN;
 
-  if (EseConfig::hasKey(NAME_NXP_WTX_COUNT_VALUE)) {
-    num = EseConfig::getUnsigned(NAME_NXP_WTX_COUNT_VALUE);
+  if (EseConfig::hasKey(WTX_TYPE[initParams.initMode])) {
+    num = EseConfig::getUnsigned(WTX_TYPE[initParams.initMode]);
     protoInitParam.wtx_counter_limit = num;
     ALOGD_IF(ese_debug_enabled, "Wtx_counter read from config file - %lu",
              protoInitParam.wtx_counter_limit);
@@ -1598,7 +1600,6 @@ ESESTATUS phNxpEse_WriteFrame(uint32_t data_len, uint8_t* p_data) {
     status = ESESTATUS_SUCCESS;
     PH_PAL_ESE_PRINT_PACKET_TX(nxpese_ctxt.p_cmd_data, nxpese_ctxt.cmd_len);
   }
-
   ALOGD_IF(ese_debug_enabled, "Exit %s status %x\n", __FUNCTION__, status);
   return status;
 }
