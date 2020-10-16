@@ -97,6 +97,7 @@ Return<void> SecureElement::init(
     return Void();
   }
 
+  phNxpEse_setWtxCountLimit(OsuHalExtn::getInstance().getOSUMaxWtxCount());
   status = phNxpEse_open(initParams);
   if (status == ESESTATUS_SUCCESS || ESESTATUS_BUSY == status){
     ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
@@ -114,6 +115,7 @@ Return<void> SecureElement::init(
     }
     status = phNxpEse_close(deInitStatus);
   }
+  phNxpEse_setWtxCountLimit(RESET_APP_WTX_COUNT);
   if (status == ESESTATUS_SUCCESS && mIsInitDone)
   {
     mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2)? 0x0C: 0x04;
@@ -161,6 +163,7 @@ Return<void> SecureElement::init_1_1(
     return Void();
   }
 
+ phNxpEse_setWtxCountLimit(OsuHalExtn::getInstance().getOSUMaxWtxCount());
  status = phNxpEse_open(initParams);
   if (status == ESESTATUS_SUCCESS || ESESTATUS_BUSY == status){
     ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
@@ -179,6 +182,7 @@ Return<void> SecureElement::init_1_1(
     }
     status = phNxpEse_close(deInitStatus);
   }
+  phNxpEse_setWtxCountLimit(RESET_APP_WTX_COUNT);
   if (status == ESESTATUS_SUCCESS && mIsInitDone) {
     mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2)? 0x0C: 0x04;
     mOpenedChannels.resize(mMaxChannelCount, false);
