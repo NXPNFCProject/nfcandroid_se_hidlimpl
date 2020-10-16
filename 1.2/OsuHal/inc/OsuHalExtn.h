@@ -60,6 +60,7 @@ class OsuHalExtn {
   virtual ~OsuHalExtn();
   OsuHalExtn() noexcept;
   void checkAndUpdateOsuMode();
+  unsigned long int getOSUMaxWtxCount();
 
  private:
   bool isAppOSUMode;

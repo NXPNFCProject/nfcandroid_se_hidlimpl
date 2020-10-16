@@ -16,8 +16,10 @@
  *
  ******************************************************************************/
 #include "OsuHalExtn.h"
+#include <ese_config.h>
 
 #define LOG_TAG "OsuHalExtn"
+#define DEFAULT_MAX_WTX_COUNT 60
 const static hidl_vec<uint8_t> OSU_AID = {0x4F, 0x70, 0x80, 0x13, 0x04,
                                           0xDE, 0xAD, 0xBE, 0xEF};
 const static uint8_t defaultSelectAid[] = {0x00, 0xA4, 0x04, 0x00, 0x00};
@@ -141,4 +143,8 @@ OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(uint8_t* input, size_t length,
     halMode = OSU_GP_MODE;
   }
   return halMode;
+}
+
+unsigned long int OsuHalExtn::getOSUMaxWtxCount() {
+  return EseConfig::getUnsigned(NAME_NXP_OSU_MAX_WTX_COUNT, DEFAULT_MAX_WTX_COUNT);
 }
