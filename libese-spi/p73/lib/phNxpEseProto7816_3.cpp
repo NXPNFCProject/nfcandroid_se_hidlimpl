@@ -266,6 +266,14 @@ static void phNxpEseProto7816_DecodeSFrameSecureTimerData(uint8_t* p_data);
  *
  */
 static void phNxpEseProto7816_CheckAndNotifyWtx(phNxpEse_wtxState state);
+
+/**
+ * \ingroup ISO7816-3_protocol_lib
+ * \brief       This internal function to check Last sent frame is S-Frame
+ *              request and if received block is not S-Frame response
+ *              re-send Last S-frame request
+ */
+static bool phNxpEseProto7816_ResendLastSFrameReq(void);
 /*!
  * \brief 7816_3 protocol stack parameter variable instance
  */
@@ -1006,16 +1014,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
 
   if (0x00 == pcb_bits.msb) /* I-FRAME decoded should come here */
   {
-    if (phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.FrameType == SFRAME &&
-        phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.sFrameType ==
-            INTF_RESET_REQ) {
-      ALOGD_IF(ese_debug_enabled,
-               "%s Unexpected Frame, shall retry interface reset",
-               __FUNCTION__);
-      phNxpEse_memcpy(&phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx,
-                      &phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx,
-                      sizeof(phNxpEseProto7816_NextTx_Info_t));
-    } else {
+    if (!phNxpEseProto7816_ResendLastSFrameReq()) {
       ALOGD_IF(ese_debug_enabled, "%s I-Frame Received", __FUNCTION__);
       phNxpEseProto7816_CheckAndNotifyWtx(WTX_END);
       phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdFrameType = IFRAME;
@@ -1084,16 +1083,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         pcb_bits.bit5;
 
     if ((pcb_bits.lsb == 0x00) && (pcb_bits.bit2 == 0x00)) {
-      if (phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.FrameType == SFRAME &&
-          phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.sFrameType ==
-              INTF_RESET_REQ) {
-        ALOGD_IF(ese_debug_enabled,
-                 "%s Unexpected Frame, shall retry interface reset",
-                 __FUNCTION__);
-        phNxpEse_memcpy(&phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx,
-                        &phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx,
-                        sizeof(phNxpEseProto7816_NextTx_Info_t));
-      } else {
+      if (!phNxpEseProto7816_ResendLastSFrameReq()) {
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.errCode =
             NO_ERROR;
         phNxpEseProto7816_ResetRecovery();
@@ -1463,19 +1453,23 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
       ALOGE("%s LRC Check failed", __FUNCTION__);
       if (phNxpEseProto7816_3_Var.rnack_retry_counter <
           phNxpEseProto7816_3_Var.rnack_retry_limit) {
-        phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdFrameType = INVALID;
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = RFRAME;
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.RframeInfo.errCode =
-            PARITY_ERROR;
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.RframeInfo.seqNo =
-            (!phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.seqNo)
-            << 4;
-        phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
-            SEND_R_NACK;
-        phNxpEseProto7816_3_Var.rnack_retry_counter++;
-        if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-          phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
+        /*If Last sent Non-error frame is S-Frame*/
+        if (!phNxpEseProto7816_ResendLastSFrameReq()) {
+          phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdFrameType = INVALID;
+          phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = RFRAME;
+          phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.RframeInfo.errCode =
+              PARITY_ERROR;
+          phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.RframeInfo.seqNo =
+              (!phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo
+                    .seqNo)
+              << 4;
+          phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+              SEND_R_NACK;
+          if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
+            phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
+          }
         }
+        phNxpEseProto7816_3_Var.rnack_retry_counter++;
       } else {
         phNxpEseProto7816_3_Var.rnack_retry_counter = PH_PROTO_7816_VALUE_ZERO;
         /* Re-transmission failed completely, Going to exit */
@@ -2195,6 +2189,32 @@ ESESTATUS phNxpEseProto7816_ResetEndPoint(uint8_t uEndPoint)
         /*Do nothing return fail*/
     }
     return status;
+}
+
+/******************************************************************************
+ * Function         phNxpEseProto7816_ResendLastSFrameReq
+ *
+ * Description      This function is used to Resend S-Frame on receiving
+ *                  non S-Frame response
+ *
+ * Returns          If last sent Frame is S-Frame
+ *                  return TRUE(S-Frame) otherwise FALSE(Non-S-Frame).
+ *
+ ******************************************************************************/
+static bool phNxpEseProto7816_ResendLastSFrameReq(void) {
+  bool isLastSFrameReq = false;
+  if (phNxpEseProto7816_3_Var.lastSentNonErrorframeType == SFRAME &&
+      WTX_RSP !=
+          phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.sFrameType) {
+    ALOGD_IF(ese_debug_enabled,
+             "%s Unexpected Frame, re-transmitting the previous S-frame",
+             __FUNCTION__);
+    phNxpEse_memcpy(&phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx,
+                    &phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx,
+                    sizeof(phNxpEseProto7816_NextTx_Info_t));
+    isLastSFrameReq = true;
+  }
+  return isLastSFrameReq;
 }
 
 /** @} */
