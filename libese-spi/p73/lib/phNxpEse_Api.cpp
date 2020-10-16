@@ -37,7 +37,8 @@
   ({                                                            \
       phPalEse_print_packet("RECV", data, len);                 \
   })
-#define MAX_SUPPORTED_DATA_SIZE 0x8800
+/* 32K(0x8000) Datasize + 10(0xA) Byte Max Header Size + 1 byte negative testcase support */
+#define MAX_SUPPORTED_DATA_SIZE 0x800B
 static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
                                int nNbBytesToRead);
 static int phNxpEse_readPacket_legacy(void* pDevHandle, uint8_t* pBuffer,
