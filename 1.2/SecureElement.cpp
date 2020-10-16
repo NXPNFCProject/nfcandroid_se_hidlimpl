@@ -102,13 +102,15 @@ Return<void> SecureElement::init(
     ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
     if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0) &&
       ESESTATUS_SUCCESS == phNxpEse_init(initParams)){
-      if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)){
+      /*update OS mode during first init*/
+      IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
+
+      if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)) {
         LOG(INFO) << "ESE SPI init complete!!!";
         mIsInitDone = true;
       }
       deInitStatus = phNxpEse_deInit();
-      if (ESESTATUS_SUCCESS != deInitStatus)
-        mIsInitDone = false;
+      if (ESESTATUS_SUCCESS != deInitStatus) mIsInitDone = false;
     }
     status = phNxpEse_close(deInitStatus);
   }
@@ -164,6 +166,9 @@ Return<void> SecureElement::init_1_1(
     ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
     if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0) &&
       ESESTATUS_SUCCESS == phNxpEse_init(initParams)){
+      /*update OS mode during first init*/
+      IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
+
       if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)){
         LOG(INFO) << "ESE SPI init complete!!!";
         mIsInitDone = true;
@@ -271,7 +276,7 @@ Return<void> SecureElement::transmit(const hidl_vec<uint8_t>& data,
   }
   OsuHalExtn::OsuApduMode mode = IS_OSU_MODE(
       data, OsuHalExtn::getInstance().TRANSMIT, &gsTxRxBuffer.cmdData);
-  if (mode == OsuHalExtn::getInstance().NON_OSU_MODE) {
+  if (mode == OsuHalExtn::getInstance().OSU_BLOCKED_MODE) {
     LOG(ERROR) << "Not allowed in dedicated mode!!!";
     /*Return empty hidl_vec*/
     _hidl_cb(result);
@@ -530,7 +535,7 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
     }
     _hidl_cb(result, SecureElementStatus::SUCCESS);
     return Void();
-  } else if (mode == OsuHalExtn::OSU_GP_MODE) {
+  } else if (mode == OsuHalExtn::OSU_BLOCKED_MODE) {
     _hidl_cb(result, SecureElementStatus::IOERROR);
     return Void();
   } else {
@@ -684,6 +689,14 @@ SecureElement::closeChannel(uint8_t channelNumber) {
       OsuHalExtn::getInstance().NON_OSU_MODE) {
     return internalCloseChannel(channelNumber);
   } else {
+    /*Decrement channel count opened to
+     * keep in sync with service */
+    if (channelNumber < mMaxChannelCount) {
+      if (mOpenedChannels[channelNumber]) {
+        mOpenedChannels[channelNumber] = false;
+        mOpenedchannelCount--;
+      }
+    }
     return SecureElementStatus::SUCCESS;
   }
 }

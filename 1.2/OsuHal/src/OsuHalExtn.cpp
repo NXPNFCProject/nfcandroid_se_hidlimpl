@@ -39,7 +39,6 @@ OsuHalExtn::OsuApduMode OsuHalExtn::isOsuMode(const hidl_vec<uint8_t>& evt,
                                               uint8_t type,
                                               phNxpEse_data* pCmdData) {
   OsuApduMode osuSubState = (isAppOSUMode ? OSU_PROP_MODE : NON_OSU_MODE);
-  checkAndUpdateOsuMode();
 
   switch (type) {
     case INIT:
@@ -50,7 +49,7 @@ OsuHalExtn::OsuApduMode OsuHalExtn::isOsuMode(const hidl_vec<uint8_t>& evt,
         osuSubState = OSU_PROP_MODE;
         LOG(ERROR) << "Dedicated mode is set !!!!!!!!!!!!!!!!!";
       } else if (isOsuMode()) {
-        osuSubState = OSU_GP_MODE;
+        osuSubState = OSU_BLOCKED_MODE;
         LOG(ERROR) << "Non OSU AID Not allowed";
       } else {
       }
@@ -72,18 +71,17 @@ OsuHalExtn::OsuApduMode OsuHalExtn::isOsuMode(const hidl_vec<uint8_t>& evt,
 
 bool OsuHalExtn::isOsuMode(uint8_t type, uint8_t channel) {
   LOG(ERROR) << "Enter OSUMode2";
-  checkAndUpdateOsuMode();
   switch (type) {
     case CLOSE:
-      if (channel == ISO7816_BASIC_CHANNEL) {
+      /*If in OSU mode and close basic channel is called
+       * clear osu APP and update JCOP mode*/
+      if (channel == ISO7816_BASIC_CHANNEL && isOsuMode()) {
         isAppOSUMode = false;
-        isJcopOSUMode = false;
         LOG(ERROR) << "Setting to normal mode!!!";
       }
       break;
-    case RESET:
-      break;
     case INIT:
+      checkAndUpdateOsuMode();
       break;
   }
   return isOsuMode();
@@ -112,7 +110,7 @@ OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(uint8_t* input, size_t length,
        isJcopOSUMode)) {
     phNxpEse_free(input);
     input = nullptr;
-    halMode = NON_OSU_MODE;
+    halMode = OSU_BLOCKED_MODE;
   } else if (*input == OSU_PROP_CLA && *(input + 1) == OSU_PROP_INS &&
              *(input + 2) != OSU_PROP_RST_P1) {
     LOG(ERROR) << "checkTransmit in OSU_PROP_MODE";
@@ -134,6 +132,8 @@ OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(uint8_t* input, size_t length,
     if (phNxpEse_ResetEndPoint_Cntxt(0) !=  ESESTATUS_SUCCESS) {
       LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed!!!";
     }
+    /*Update mode after eSE reset*/
+    checkAndUpdateOsuMode();
     phNxpEse_free(input);
     input = nullptr;
     halMode = OSU_RST_MODE;
