@@ -536,8 +536,10 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
     }
     if(phNxpEse_doResetProtection(true) != ESESTATUS_SUCCESS) {
       LOG(ERROR) << "%s: Enable Reset Protection Failed!!!" << __func__;
+      _hidl_cb(result, SecureElementStatus::FAILED);
+    } else {
+      _hidl_cb(result, SecureElementStatus::SUCCESS);
     }
-    _hidl_cb(result, SecureElementStatus::SUCCESS);
     return Void();
   } else if (mode == OsuHalExtn::OSU_BLOCKED_MODE) {
     _hidl_cb(result, SecureElementStatus::IOERROR);
@@ -730,9 +732,15 @@ void SecureElement::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
           LOG(INFO) << "ESE SPI init complete!!!";
           return ESESTATUS_SUCCESS;
         }
+      } else {
+        LOG(INFO) << "ESE SPI init NOT successful";
+        status = ESESTATUS_FAILED;
       }
       deInitStatus = phNxpEse_deInit();
-      phNxpEse_close(deInitStatus);
+      if(phNxpEse_close(deInitStatus) != ESESTATUS_SUCCESS){
+        LOG(INFO) << "ESE close not successful";
+        status = ESESTATUS_FAILED;
+      }
       mIsEseInitialized = false;
     }
     return status;

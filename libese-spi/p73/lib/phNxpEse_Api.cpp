@@ -191,7 +191,10 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
     }
   } else /* OSU mode, no interface reset is required */
   {
-    phNxpEse_doResetProtection(true);
+    if(phNxpEse_doResetProtection(true)){
+      ALOGE("%s Reset Potection failed. returning...", __FUNCTION__);
+      return ESESTATUS_FAILED;
+    }
     protoInitParam.interfaceReset = false;
   }
   if (EseConfig::hasKey(NAME_NXP_WTX_NTF_COUNT)) {
