@@ -1030,26 +1030,35 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
           phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = RFRAME;
           phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.RframeInfo.errCode =
               NO_ERROR;
-          if (EXTENDED_FRAME_MARKER ==
-              p_data[2]) /* Checking for extended frame prologue */
-          {
-            status = phNxpEseProro7816_SaveIframeData(&p_data[5], data_len - 6);
-          } else {
-            status = phNxpEseProro7816_SaveIframeData(&p_data[3], data_len - 4);
-          }
           phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
               SEND_R_ACK;
+          if (EXTENDED_FRAME_MARKER == p_data[2] &&
+              (data_len > 6)) /* Checking for extended frame prologue */
+          {
+            status = phNxpEseProro7816_SaveIframeData(&p_data[5], data_len - 6);
+          } else if (data_len > 4) {
+            status = phNxpEseProro7816_SaveIframeData(&p_data[3], data_len - 4);
+          } else {
+            phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+                SEND_R_NACK;
+            ALOGD_IF(ese_debug_enabled, "%s Invalid IframeData", __FUNCTION__);
+          }
         } else {
           phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.isChained =
               false;
           phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
               IDLE_STATE;
-          if (EXTENDED_FRAME_MARKER ==
-              p_data[2]) /* Checking for extended frame prologue */
+          if (EXTENDED_FRAME_MARKER == p_data[2] &&
+              (data_len > 6)) /* Checking for extended frame prologue */
           {
             status = phNxpEseProro7816_SaveIframeData(&p_data[5], data_len - 6);
-          } else {
+          } else if (data_len > 4) {
             status = phNxpEseProro7816_SaveIframeData(&p_data[3], data_len - 4);
+          } else {
+            phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = RFRAME;
+            phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+                SEND_R_NACK;
+            ALOGD_IF(ese_debug_enabled, "%s Invalid IframeData", __FUNCTION__);
           }
         }
       } else {
