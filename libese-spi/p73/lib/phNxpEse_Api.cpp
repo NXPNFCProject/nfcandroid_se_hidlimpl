@@ -1420,7 +1420,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
           }
         } else {
           /*For Non-IFrame*/
-          nNbBytesToRead = (int)pBuffer[2];
+          nNbBytesToRead = pBuffer[2];
           headerIndex = 3;
         }
         if (!flushData) {
@@ -1549,7 +1549,7 @@ static int phNxpEse_readPacket_legacy(void* pDevHandle, uint8_t* pBuffer,
                poll_sof_chained_delay);
     }
     total_count = 3;
-    nNbBytesToRead = (int)pBuffer[2];
+    nNbBytesToRead = pBuffer[2];
     /* Read the Complete data + one byte CRC*/
     ret = phPalEse_read(pDevHandle, &pBuffer[3], (nNbBytesToRead + 1));
     if (ret < 0) {
