@@ -19,146 +19,254 @@
 #include <ese_config.h>
 
 #define LOG_TAG "OsuHalExtn"
+#include <log/log.h>
+
 #define DEFAULT_MAX_WTX_COUNT 60
+
 const static hidl_vec<uint8_t> OSU_AID = {0x4F, 0x70, 0x80, 0x13, 0x04,
                                           0xDE, 0xAD, 0xBE, 0xEF};
 const static uint8_t defaultSelectAid[] = {0x00, 0xA4, 0x04, 0x00, 0x00};
-/*
- * INIT :- Will return OSU ongoing
- *
- * OPENBASIC :- Will set OSU mode ongoing by comparing AID
- *
- * OPNELOGICAL :- Will return OSU state
- *
- * CLOSE :- If Channel 0 reset OSU state
- *
- * TRANSMIT :- Check CLA if non-zero in OSU mode return
- *
- * */
+
+/*******************************************************************************
+**
+** Function:    OsuHalExtn::isOsuMode
+**
+** Description: Check, update and return current mode for below SE HAL API
+**              requests openBasicChannel() and transmit()
+**
+** Returns:     OsuApduMode(NON_OSU_MODE, OSU_PROP_MODE, OSU_RST_MODE,
+**              OSU_BLOCKED_MODE, OSU_GP_MODE)
+**
+*******************************************************************************/
 OsuHalExtn::OsuApduMode OsuHalExtn::isOsuMode(const hidl_vec<uint8_t>& evt,
                                               uint8_t type,
                                               phNxpEse_data* pCmdData) {
   OsuApduMode osuSubState = (isAppOSUMode ? OSU_PROP_MODE : NON_OSU_MODE);
 
   switch (type) {
-    case INIT:
-      break;
     case OPENBASIC:
+      /*
+       * update & return OSU_PROP_MODE if OpenBasicChannel AID request matches
+       * OSU_AID
+       * */
       if (!memcmp(&evt[0], &OSU_AID[0], OSU_AID.size())) {
         isAppOSUMode = true;
         osuSubState = OSU_PROP_MODE;
-        LOG(ERROR) << "Dedicated mode is set !!!!!!!!!!!!!!!!!";
+        ALOGD("Dedicated mode is set !!!!!!!!!!!!!!!!!");
       } else if (isOsuMode()) {
+        // OpenBasic channel requests with non OSU_AID are not allowed/blocked
         osuSubState = OSU_BLOCKED_MODE;
-        LOG(ERROR) << "Non OSU AID Not allowed";
-      } else {
+        ALOGE("Non OSU AID Not allowed");
       }
       break;
     case TRANSMIT:
       memcpy(pCmdData->p_data, evt.data(), evt.size());
       if (isOsuMode()) {
+        /*
+         * Process transmit request(unwrap APDU, proprietary actions) in OSU
+         * mode
+         * */
         osuSubState =
             checkTransmit(pCmdData->p_data, evt.size(), &pCmdData->len);
       } else {
-        LOG(ERROR) << "In NORAML_GP_MODE!!!!";
         pCmdData->len = evt.size();
-        osuSubState = OSU_GP_MODE;
+        osuSubState = NON_OSU_MODE;
       }
       break;
   }
   return osuSubState;
 }
 
+/*******************************************************************************
+**
+** Function:    OsuHalExtn::isOsuMode
+**
+** Description: Check, update and return current mode for below SE HAL API
+**              requests init(), openLogicalChannel() and closeChannel()
+**
+** Returns:     true(OSU)/false(normal)
+**
+*******************************************************************************/
 bool OsuHalExtn::isOsuMode(uint8_t type, uint8_t channel) {
-  LOG(ERROR) << "Enter OSUMode2";
   switch (type) {
+    case INIT:
+      checkAndUpdateOsuMode();
+      break;
+    case OPENLOGICAL:
+      // No action, only return current mode
+      break;
     case CLOSE:
-      /*If in OSU mode and close basic channel is called
-       * clear osu APP and update JCOP mode*/
+      /*
+       * If in OSU mode close basic channel is called
+       * clear osu APP and update JCOP mode
+       * */
       if (channel == ISO7816_BASIC_CHANNEL && isOsuMode()) {
         if(phNxpEse_doResetProtection(false) != ESESTATUS_SUCCESS) {
-          LOG(ERROR) << "Disable Reset Protection Failed";
+          ALOGE("Disable Reset Protection Failed");
         }
         phNxpEse_setWtxCountLimit(RESET_APP_WTX_COUNT);
         isAppOSUMode = false;
-        LOG(ERROR) << "Setting to normal mode!!!";
+        ALOGD("Setting to normal mode!!!");
       }
-      break;
-    case INIT:
-      checkAndUpdateOsuMode();
       break;
   }
   return isOsuMode();
 }
 
+/*******************************************************************************
+**
+** Function:    OsuHalExtn::checkAndUpdateOsuMode
+**
+** Description: Check and update current JCOP mode OSU/Normal
+**
+** Returns:     None
+**
+*******************************************************************************/
 void OsuHalExtn::checkAndUpdateOsuMode() {
   isJcopOSUMode = (phNxpEse_GetOsMode() == OSU_MODE);
 }
 
+/*******************************************************************************
+**
+** Function:    OsuHalExtn::getInstance
+**
+** Description: get class singleton object
+**
+** Returns:     OsuHalExtn
+**
+*******************************************************************************/
 OsuHalExtn& OsuHalExtn::getInstance() {
   static OsuHalExtn manager;
   return manager;
 }
+
+/*******************************************************************************
+**
+** Function:    OsuHalExtn::OsuHalExtn()
+**
+** Description: class constructor
+**
+** Returns:     none
+**
+*******************************************************************************/
 OsuHalExtn::OsuHalExtn() noexcept {
   isAppOSUMode = false;
   isJcopOSUMode = false;
 }
+
+/*******************************************************************************
+**
+** Function:    OsuHalExtn::~OsuHalExtn()
+**
+** Description: class destructor
+**
+** Returns:     none
+**
+*******************************************************************************/
 OsuHalExtn::~OsuHalExtn() {}
 
+/*******************************************************************************
+**
+** Function:    OsuHalExtn::isOsuMode()
+**
+** Description: Returns current JCOP mode
+**
+** Returns:     true(OSU)/false(Normal)
+**
+*******************************************************************************/
 bool OsuHalExtn::isOsuMode() { return (isAppOSUMode || isJcopOSUMode); }
+
+/*******************************************************************************
+**
+** Function:    OsuHalExtn::checkTransmit
+**
+** Description: Process transmit request in OSU mode
+**              1) Unwrap proprietary APDU's to native commands
+**              2) Block unexpected command request in OSU Mode
+**              3) Perform hard reset on receiving proprietary reset APDU
+**
+** Returns:     OsuApduMode
+**
+*******************************************************************************/
 OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(uint8_t* input, size_t length,
                                                   uint32_t* outLength) {
   OsuHalExtn::OsuApduMode halMode = NON_OSU_MODE;
-  if ((*input & ISO7816_CLA_CHN_MASK) != ISO7816_BASIC_CHANNEL ||
-      (!memcmp(input, defaultSelectAid, length) && length == 5 &&
-       isJcopOSUMode)) {
+
+  /*
+   * 1) Transmit request on logical channels(ISO7816_CLA_CHN_MASK)shall be
+   *    blocked in OSU mode
+   * 2) Empty/Default GP card manger select from OMAPI shall
+   *    be blocked in OSU Mode
+   * */
+  if (((*input & ISO7816_CLA_CHN_MASK) != ISO7816_BASIC_CHANNEL) ||
+      (isJcopOSUMode && (length == ISO7816_SHORT_APDU_HEADER &&
+                         !memcmp(input, defaultSelectAid, length)))) {
     phNxpEse_free(input);
     input = nullptr;
     halMode = OSU_BLOCKED_MODE;
-  } else if (*input == OSU_PROP_CLA && *(input + 1) == OSU_PROP_INS &&
-             *(input + 2) != OSU_PROP_RST_P1) {
-    LOG(ERROR) << "checkTransmit in OSU_PROP_MODE";
-    if( *(input + 4) != 0) {
-      if (length > 5) {
-        *outLength = length - 5;
-        memcpy(input, input + 5, length - 5);
+  } else if ((*input == OSU_PROP_CLA) &&
+             (*(input + ISO7816_INS_OFFSET) == OSU_PROP_INS) &&
+             (*(input + ISO7816_P1_OFFSET) != OSU_PROP_RST_P1)) {
+    /*
+     * 1) Unwrap GP command to native commands
+     * 2) Check APDU type short/extended before unwrapping
+     * */
+    ALOGD("checkTransmit in OSU_PROP_MODE");
+    if (*(input + ISO7816_LC_OFFSET) != 0) {
+      if (length > ISO7816_SHORT_APDU_HEADER) {
+        *outLength = length - ISO7816_SHORT_APDU_HEADER;
+        memcpy(input, input + ISO7816_SHORT_APDU_HEADER,
+               length - ISO7816_SHORT_APDU_HEADER);
       } else {
         *outLength = 0;
-        LOG(ERROR) << "checkTransmit input data length is incorrect";
+        ALOGE("checkTransmit input data length is incorrect");
       }
     } else {
-      if (length > 7) {
-        *outLength = length - 7;
-        memcpy(input, input + 7, length - 7);
+      if (length > ISO7816_EXTENDED_APDU_HEADER) {
+        *outLength = length - ISO7816_EXTENDED_APDU_HEADER;
+        memcpy(input, input + ISO7816_EXTENDED_APDU_HEADER,
+               length - ISO7816_EXTENDED_APDU_HEADER);
       } else {
         *outLength = 0;
-        LOG(ERROR) << "checkTransmit input data length is incorrect";
+        ALOGE("checkTransmit input data length is incorrect");
       }
     }
     halMode = OSU_PROP_MODE;
-  } else if (*input == OSU_PROP_CLA && *(input + 1) == OSU_PROP_INS &&
-             *(input + 2) == OSU_PROP_RST_P1) {
-    LOG(ERROR) << "checkTransmit in OSU_PROP_RST_INS";
+  } else if ((*input == OSU_PROP_CLA) &&
+             (*(input + ISO7816_INS_OFFSET) == OSU_PROP_INS) &&
+             (*(input + ISO7816_P1_OFFSET) == OSU_PROP_RST_P1)) {
+    // eSE hard reset on receiving proprietary reset APDU
+    ALOGD("checkTransmit in OSU_PROP_RST_INS");
     if (phNxpEse_SetEndPoint_Cntxt(0) != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+      ALOGE("phNxpEse_SetEndPoint_Cntxt failed!!!");
     }
     phNxpEse_resetJcopUpdate();
     if (phNxpEse_ResetEndPoint_Cntxt(0) !=  ESESTATUS_SUCCESS) {
-      LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed!!!";
+      ALOGE("phNxpEse_ResetEndPoint_Cntxt failed!!!");
     }
-    /*Update mode after eSE reset*/
+    // Update mode after eSE reset
     checkAndUpdateOsuMode();
     phNxpEse_free(input);
     input = nullptr;
     halMode = OSU_RST_MODE;
   } else {
-    LOG(ERROR) << "checkTransmit in OSU_GP_MODE";
+    // Process remaining OSU commands
     *outLength = length;
     halMode = OSU_GP_MODE;
   }
   return halMode;
 }
 
+/*******************************************************************************
+**
+** Function:    OsuHalExtn::getOSUMaxWtxCount
+**
+** Description: Read OSU_MAX_WTX_COUNT from config file allowed when in OSU
+**              mode
+**
+** Returns:     Return maximum WTX count
+**
+*******************************************************************************/
 unsigned long int OsuHalExtn::getOSUMaxWtxCount() {
   return EseConfig::getUnsigned(NAME_NXP_OSU_MAX_WTX_COUNT, DEFAULT_MAX_WTX_COUNT);
 }

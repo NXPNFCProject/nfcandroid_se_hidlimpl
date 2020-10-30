@@ -26,22 +26,32 @@
 #include "phNxpEse_Api.h"
 
 using ::android::hardware::hidl_vec;
-#define ISO7816_CLA_CHN_MASK 0x03
+
 #define OSU_PROP_CLA 0x80
 #define OSU_PROP_INS 0xDF
 #define OSU_PROP_RST_P1 0xEF
+
 #define ISO7816_BASIC_CHANNEL 0x00
+#define ISO7816_CLA_OFFSET 0
+#define ISO7816_INS_OFFSET 1
+#define ISO7816_P1_OFFSET 2
+#define ISO7816_P2_OFFSET 3
+#define ISO7816_LC_OFFSET 4
+#define ISO7816_EXTENDED_LC_VALUE 0
+#define ISO7816_SHORT_APDU_HEADER 5
+#define ISO7816_EXTENDED_APDU_HEADER 7
+#define ISO7816_CLA_CHN_MASK 0x03
 
 #define IS_OSU_MODE(...) (OsuHalExtn::getInstance().isOsuMode(__VA_ARGS__))
 
 class OsuHalExtn {
  public:
   typedef enum {
-    NON_OSU_MODE,     /* Normal Mode  : All HAL APIs allowed */
-    OSU_PROP_MODE,    /* OSU mode     : Only OSU JAR command allowed */
-    OSU_GP_MODE,      /* Any Mode     : Command allowed in both OSU or Normal mode */
-    OSU_RST_MODE,     /* OSU mode     : Proprietary HARD reset */
-    OSU_BLOCKED_MODE, /* OSU mode     : Command not allowed return error */
+    NON_OSU_MODE,      // Normal Mode  : All HAL APIs allowed
+    OSU_PROP_MODE,     // OSU mode     : Only OSU JAR command allowed
+    OSU_GP_MODE,       // OSU mode     : GP command in OSU mode
+    OSU_RST_MODE,      // OSU mode     : Proprietary HARD reset
+    OSU_BLOCKED_MODE,  // OSU mode     : Command not allowed return error
   } OsuApduMode;
 
   typedef enum {
