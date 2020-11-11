@@ -1395,7 +1395,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
         /*For I-Frame Only*/
         if (0 == pcb_bits.msb) {
           if (pBuffer[2] != EXTENDED_FRAME_MARKER) {
-            nNbBytesToRead = pBuffer[2];
+            nNbBytesToRead = (pBuffer[2] & 0x000000FF);
             headerIndex = 3;
           } else {
             ret = phPalEse_read(pDevHandle, &pBuffer[3], 2);
@@ -1420,7 +1420,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
           }
         } else {
           /*For Non-IFrame*/
-          nNbBytesToRead = pBuffer[2];
+          nNbBytesToRead = (pBuffer[2] & 0x000000FF);
           headerIndex = 3;
         }
         if (!flushData) {
@@ -1549,7 +1549,7 @@ static int phNxpEse_readPacket_legacy(void* pDevHandle, uint8_t* pBuffer,
                poll_sof_chained_delay);
     }
     total_count = 3;
-    nNbBytesToRead = pBuffer[2];
+    nNbBytesToRead = (pBuffer[2] & 0x000000FF);
     /* Read the Complete data + one byte CRC*/
     ret = phPalEse_read(pDevHandle, &pBuffer[3], (nNbBytesToRead + 1));
     if (ret < 0) {
