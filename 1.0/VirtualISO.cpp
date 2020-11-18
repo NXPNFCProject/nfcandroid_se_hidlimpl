@@ -260,7 +260,19 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
   phNxpEse_memset(&rpdu, 0x00, sizeof(phNxpEse_7816_rpdu_t));
 
-  cpdu.cla = resApduBuff.channelNumber; /* Class of instruction */
+  if ((resApduBuff.channelNumber > 0x03) && (resApduBuff.channelNumber < 0x14)) {
+    /* update CLA byte accoridng to GP spec Table 11-12*/
+    cpdu.cla = 0x40 + (resApduBuff.channelNumber-4); /* Class of instruction */
+  }else if ((resApduBuff.channelNumber > 0x00) && (resApduBuff.channelNumber < 0x04)){
+    /* update CLA byte accoridng to GP spec Table 11-11*/
+    cpdu.cla = resApduBuff.channelNumber; /* Class of instruction */
+  } else {
+    LOG(ERROR) << StringPrintf("%s: Invalid Channel no: %02x",
+              __func__, resApduBuff.channelNumber);
+    resApduBuff.channelNumber = 0xff;
+    _hidl_cb(resApduBuff, SecureElementStatus::IOERROR);
+    return Void();
+  }
   cpdu.ins = 0xA4;                      /* Instruction code */
   cpdu.p1 = 0x04;                       /* Instruction parameter 1 */
   cpdu.p2 = p2;                         /* Instruction parameter 2 */

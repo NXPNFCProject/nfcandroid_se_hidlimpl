@@ -911,7 +911,11 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
         (phNxpEseProto7816_3_Var.extndAtrInfo.osType == 0x01 ? "JCOP Mode"
                                                              : "OSU Mode"));
   }
-  if (phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN -
+  if (phNxpEseProto7816_3_Var.atrInfo
+                 .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] >=
+             PH_SE_OS_VERSION_20) {
+    phNxpEse_setOsVersion(OS_VERSION_6_2);
+  } else if (phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN -
                                                1] >= PH_SE_OS_VERSION_11) {
     phNxpEse_setOsVersion(OS_VERSION_5_2_2);
   } else if (phNxpEseProto7816_3_Var.atrInfo
@@ -922,10 +926,6 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
                  .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] ==
              PH_PROTO_7816_VALUE_ZERO) {
     phNxpEse_setOsVersion(OS_VERSION_5_1);
-  } else if (phNxpEseProto7816_3_Var.atrInfo
-                 .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] ==
-             PH_SE_OS_VERSION_20) {
-    phNxpEse_setOsVersion(OS_VERSION_6_2);
   }
 
   ALOGD_IF(ese_debug_enabled, "======================");
