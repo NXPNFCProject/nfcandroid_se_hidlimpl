@@ -355,6 +355,11 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
     }
   }
 
+  if (mOpenedChannels.size() == 0x00) {
+    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2)? 0x0C: 0x04;
+    mOpenedChannels.resize(mMaxChannelCount, false);
+  }
+
   SecureElementStatus sestatus = SecureElementStatus::IOERROR;
   ESESTATUS status = ESESTATUS_FAILED;
   phNxpEse_data cmdApdu;
@@ -562,6 +567,11 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
       _hidl_cb(result, SecureElementStatus::IOERROR);
       return Void();
     }
+  }
+
+  if (mOpenedChannels.size() == 0x00) {
+    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2)? 0x0C: 0x04;
+    mOpenedChannels.resize(mMaxChannelCount, false);
   }
   phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
   phNxpEse_memset(&rpdu, 0x00, sizeof(phNxpEse_7816_rpdu_t));
@@ -805,6 +815,10 @@ SecureElement::reset() {
       LOG(ERROR) << "%s: SecureElement reset failed!!" << __func__;
     } else {
       sestatus = SecureElementStatus::SUCCESS;
+      if (mOpenedChannels.size() == 0x00) {
+        mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2)? 0x0C: 0x04;
+        mOpenedChannels.resize(mMaxChannelCount, false);
+      }
       for (uint8_t xx = 0; xx < mMaxChannelCount; xx++) {
         mOpenedChannels[xx] = false;
       }
