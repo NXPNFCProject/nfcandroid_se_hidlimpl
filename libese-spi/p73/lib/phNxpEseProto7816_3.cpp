@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020 NXP
+ *  Copyright 2018-2021 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -1230,8 +1230,9 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
     phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdFrameType = SFRAME;
     if (frameType != WTX_REQ) {
       phNxpEseProto7816_CheckAndNotifyWtx(WTX_END);
+      phNxpEseProto7816_ResetRecovery();
     }
-    phNxpEseProto7816_ResetRecovery();
+
     switch (frameType) {
       case RESYNCH_REQ:
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
