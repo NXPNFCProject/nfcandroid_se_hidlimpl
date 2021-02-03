@@ -115,7 +115,7 @@ struct SecureElement : public V1_2::ISecureElement, public hidl_death_recipient 
   static sp<V1_0::ISecureElementHalCallback> mCallbackV1_0;
   static sp<V1_1::ISecureElementHalCallback> mCallbackV1_1;
   Return<SecureElementStatus> seHalDeInit();
-  ESESTATUS seHalInit(phNxpEse_initMode mode);
+  ESESTATUS seHalInit();
   Return<SecureElementStatus> internalCloseChannel(uint8_t channelNumber);
 };
 

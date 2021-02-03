@@ -611,10 +611,10 @@ SecureElement::closeChannel(uint8_t channelNumber) {
 
 void SecureElement::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
     LOG(ERROR) << " SecureElement serviceDied!!!";
-    ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
     mIsEseInitialized = false;
-    deInitStatus = phNxpEse_deInit();
-    phNxpEse_close(deInitStatus);
+    if(seHalDeInit() != SecureElementStatus::SUCCESS){
+      LOG(ERROR) << "SE Deinit not successfull";
+    }
   }
 ESESTATUS SecureElement::seHalInit() {
   ESESTATUS status = ESESTATUS_SUCCESS;
@@ -635,8 +635,14 @@ ESESTATUS SecureElement::seHalInit() {
         return ESESTATUS_SUCCESS;
       }
       deInitStatus = phNxpEse_deInit();
+    } else {
+      LOG(INFO) << "ESE SPI init NOT successful";
+      status = ESESTATUS_FAILED;
     }
-    phNxpEse_close(deInitStatus);
+    if(phNxpEse_close(deInitStatus) != ESESTATUS_SUCCESS){
+      LOG(INFO) << "ESE close not successful";
+      status = ESESTATUS_FAILED;
+    }
     mIsEseInitialized = false;
   }
   return status;

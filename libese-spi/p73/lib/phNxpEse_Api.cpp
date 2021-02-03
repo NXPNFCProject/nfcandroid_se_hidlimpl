@@ -49,11 +49,12 @@ static ESESTATUS phNxpEse_checkFWDwnldStatus(void);
 static void phNxpEse_GetMaxTimer(unsigned long* pMaxTimer);
 static unsigned char* phNxpEse_GgetTimerTlvBuffer(unsigned char* timer_buffer,
                                                   unsigned int value);
-static ESESTATUS phNxpEse_doResetProtection(bool flag);
 static __inline bool phNxpEse_isColdResetRequired(phNxpEse_initMode mode,
                                                   ESESTATUS status);
 static int poll_sof_chained_delay = 0;
 static phNxpEse_OsVersion_t sOsVersion = INVALID_OS_VERSION;
+/* To Overwrite the value of wtx_counter_limit from config file*/
+static unsigned long int app_wtx_cnt = RESET_APP_WTX_COUNT;
 
 /*********************** Global Variables *************************************/
 
@@ -148,20 +149,20 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
   unsigned long int num, ifsd_value = 0;
   unsigned long maxTimer = 0;
   uint8_t retry = 0;
-  const std::string WTX_TYPE[2] = {NAME_NXP_WTX_COUNT_VALUE,
-                                   NAME_NXP_OSU_MAX_WTX_COUNT};
   phNxpEseProto7816InitParam_t protoInitParam;
   phNxpEse_memset(&protoInitParam, 0x00, sizeof(phNxpEseProto7816InitParam_t));
   /* STATUS_OPEN */
   nxpese_ctxt.EseLibStatus = ESE_STATUS_OPEN;
 
-  if (EseConfig::hasKey(WTX_TYPE[initParams.initMode])) {
-    num = EseConfig::getUnsigned(WTX_TYPE[initParams.initMode]);
-    protoInitParam.wtx_counter_limit = num;
-    ALOGD_IF(ese_debug_enabled, "Wtx_counter read from config file - %lu",
-             protoInitParam.wtx_counter_limit);
+  if(app_wtx_cnt > RESET_APP_WTX_COUNT) {
+    protoInitParam.wtx_counter_limit = app_wtx_cnt;
+    ALOGD_IF(ese_debug_enabled, "Wtx_counter limit from app setting - %lu",
+        protoInitParam.wtx_counter_limit);
   } else {
-    protoInitParam.wtx_counter_limit = PH_PROTO_WTX_DEFAULT_COUNT;
+    protoInitParam.wtx_counter_limit =
+      EseConfig::getUnsigned(NAME_NXP_WTX_COUNT_VALUE, PH_PROTO_WTX_DEFAULT_COUNT);
+    ALOGD_IF(ese_debug_enabled, "Wtx_counter read from config file - %lu",
+        protoInitParam.wtx_counter_limit);
   }
   if (EseConfig::hasKey(NAME_RNACK_RETRY_DELAY)) {
     num = EseConfig::getUnsigned(NAME_RNACK_RETRY_DELAY);
@@ -189,7 +190,10 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
     }
   } else /* OSU mode, no interface reset is required */
   {
-    phNxpEse_doResetProtection(true);
+    if(phNxpEse_doResetProtection(true)){
+      ALOGE("%s Reset Potection failed. returning...", __FUNCTION__);
+      return ESESTATUS_FAILED;
+    }
     protoInitParam.interfaceReset = false;
   }
   if (EseConfig::hasKey(NAME_NXP_WTX_NTF_COUNT)) {
@@ -1062,7 +1066,7 @@ static __inline bool phNxpEse_isColdResetRequired(phNxpEse_initMode mode,
  * Returns          SUCCESS(0)/FAIL(-1).
  *
  ******************************************************************************/
-static ESESTATUS phNxpEse_doResetProtection(bool flag) {
+ ESESTATUS phNxpEse_doResetProtection(bool flag) {
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
   ALOGD_IF(ese_debug_enabled, " %s Enter \n", __FUNCTION__);
   if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
@@ -1926,4 +1930,16 @@ void phNxpEse_NotifySEWtxRequest(phNxpEse_wtxState state) {
   } else {
     ALOGE("%s function not supported", __FUNCTION__);
   }
+}
+
+/******************************************************************************
+ * Function         phNxpEse_setWtxCountLimit
+ *
+ * Description      This function sets the counter limit for wtx
+ *
+ * Returns          None
+ *
+ ******************************************************************************/
+void phNxpEse_setWtxCountLimit(unsigned long int wtxCount) {
+  app_wtx_cnt = wtxCount;
 }

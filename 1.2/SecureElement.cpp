@@ -96,6 +96,7 @@ Return<void> SecureElement::init(
     return Void();
   }
 
+  phNxpEse_setWtxCountLimit(OsuHalExtn::getInstance().getOSUMaxWtxCount());
   status = phNxpEse_open(initParams);
   if (status == ESESTATUS_SUCCESS || ESESTATUS_BUSY == status){
     ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
@@ -113,6 +114,7 @@ Return<void> SecureElement::init(
     }
     status = phNxpEse_close(deInitStatus);
   }
+  phNxpEse_setWtxCountLimit(RESET_APP_WTX_COUNT);
   if (status == ESESTATUS_SUCCESS && mIsInitDone)
   {
     clientCallback->onStateChange(true);
@@ -158,6 +160,7 @@ Return<void> SecureElement::init_1_1(
     return Void();
   }
 
+ phNxpEse_setWtxCountLimit(OsuHalExtn::getInstance().getOSUMaxWtxCount());
  status = phNxpEse_open(initParams);
   if (status == ESESTATUS_SUCCESS || ESESTATUS_BUSY == status){
     ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
@@ -176,6 +179,7 @@ Return<void> SecureElement::init_1_1(
     }
     status = phNxpEse_close(deInitStatus);
   }
+  phNxpEse_setWtxCountLimit(RESET_APP_WTX_COUNT);
   if (status == ESESTATUS_SUCCESS && mIsInitDone) {
     clientCallback->onStateChange_1_1(true, "NXP SE HAL init ok");
     mCallbackV1_1 = clientCallback;
@@ -204,7 +208,7 @@ Return<void> SecureElement::getAtr(getAtr_cb _hidl_cb) {
   }
 
   if (!mIsEseInitialized) {
-    ESESTATUS status = seHalInit(ESE_MODE_NORMAL);
+    ESESTATUS status = seHalInit();
     if (status != ESESTATUS_SUCCESS) {
       LOG(ERROR) << "%s: seHalInit Failed!!!"<< __func__;
       _hidl_cb(response);/*Return with empty Vector*/
@@ -341,7 +345,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
     return Void();
   }
   if (!mIsEseInitialized) {
-    ESESTATUS status = seHalInit(ESE_MODE_NORMAL);
+    ESESTATUS status = seHalInit();
     if (status != ESESTATUS_SUCCESS) {
       LOG(ERROR) << "%s: seHalInit Failed!!!"<< __func__;
       _hidl_cb(resApduBuff, SecureElementStatus::IOERROR);
@@ -503,15 +507,34 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
     uint8_t sw[2] = {0x90, 0x00};
     result.resize(sizeof(sw));
     memcpy(&result[0], sw, 2);
-    if (!mIsEseInitialized) {
-      ESESTATUS status = seHalInit(ESE_MODE_OSU);
-      if (status != ESESTATUS_SUCCESS) {
-        LOG(ERROR) << "%s: seHalInit Failed!!!" << __func__;
+    if (mIsEseInitialized) {
+      /*Close existing sessions if any to start dedicated OSU Mode
+       * with OSU specific settings in TZ/TEE*/
+      if(seHalDeInit() != SecureElementStatus::SUCCESS) {
+        LOG(INFO) << "seDeInit Failed";
         _hidl_cb(result, SecureElementStatus::IOERROR);
         return Void();
       }
     }
-    _hidl_cb(result, SecureElementStatus::SUCCESS);
+    phNxpEse_setWtxCountLimit(OsuHalExtn::getInstance().getOSUMaxWtxCount());
+    ESESTATUS status = ESESTATUS_FAILED;
+    uint8_t retry = 0;
+    do {
+      /*For Reset Recovery*/
+      status = seHalInit();
+    } while (status != ESESTATUS_SUCCESS && retry++ < 1);
+    if (status != ESESTATUS_SUCCESS) {
+      LOG(ERROR) << "%s: seHalInit Failed!!!" << __func__;
+      phNxpEse_setWtxCountLimit(RESET_APP_WTX_COUNT);
+      _hidl_cb(result, SecureElementStatus::IOERROR);
+      return Void();
+    }
+    if(phNxpEse_doResetProtection(true) != ESESTATUS_SUCCESS) {
+      LOG(ERROR) << "%s: Enable Reset Protection Failed!!!" << __func__;
+      _hidl_cb(result, SecureElementStatus::FAILED);
+    } else {
+      _hidl_cb(result, SecureElementStatus::SUCCESS);
+    }
     return Void();
   } else if (mode == OsuHalExtn::OSU_BLOCKED_MODE) {
     _hidl_cb(result, SecureElementStatus::IOERROR);
@@ -520,7 +543,7 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
   }
 
   if (!mIsEseInitialized) {
-    ESESTATUS status = seHalInit(ESE_MODE_NORMAL);
+    ESESTATUS status = seHalInit();
     if (status != ESESTATUS_SUCCESS) {
       LOG(ERROR) << "%s: seHalInit Failed!!!"<< __func__;
       _hidl_cb(result, SecureElementStatus::IOERROR);
@@ -679,32 +702,38 @@ SecureElement::closeChannel(uint8_t channelNumber) {
 
 void SecureElement::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
     LOG(ERROR) << " SecureElement serviceDied!!!";
-    ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
     mIsEseInitialized = false;
-    deInitStatus = phNxpEse_deInit();
-    phNxpEse_close(deInitStatus);
+    if(seHalDeInit() != SecureElementStatus::SUCCESS){
+      LOG(ERROR) << "SE Deinit not successfull";
+    }
   }
-  ESESTATUS SecureElement::seHalInit(phNxpEse_initMode mode) {
+  ESESTATUS SecureElement::seHalInit() {
     ESESTATUS status = ESESTATUS_SUCCESS;
     phNxpEse_initParams initParams;
     ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
     memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
-    initParams.initMode = mode;
+    initParams.initMode = ESE_MODE_NORMAL;
     initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
     initParams.fPtr_WtxNtf = SecureElement::NotifySeWaitExtension;
 
     status = phNxpEse_open(initParams);
     if (ESESTATUS_SUCCESS == status || ESESTATUS_BUSY == status) {
       if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0) &&
-          ESESTATUS_SUCCESS == phNxpEse_init(initParams)) {
+          ESESTATUS_SUCCESS == (status = phNxpEse_init(initParams))) {
         if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)) {
           mIsEseInitialized = true;
           LOG(INFO) << "ESE SPI init complete!!!";
           return ESESTATUS_SUCCESS;
         }
-        deInitStatus = phNxpEse_deInit();
+      } else {
+        LOG(INFO) << "ESE SPI init NOT successful";
+        status = ESESTATUS_FAILED;
       }
-      phNxpEse_close(deInitStatus);
+      deInitStatus = phNxpEse_deInit();
+      if(phNxpEse_close(deInitStatus) != ESESTATUS_SUCCESS){
+        LOG(INFO) << "ESE close not successful";
+        status = ESESTATUS_FAILED;
+      }
       mIsEseInitialized = false;
     }
     return status;
@@ -749,7 +778,7 @@ SecureElement::reset() {
   SecureElementStatus sestatus = SecureElementStatus::FAILED;
   LOG(ERROR) << "%s: Enter" << __func__;
   if (!mIsEseInitialized) {
-    ESESTATUS status = seHalInit(ESE_MODE_NORMAL);
+    ESESTATUS status = seHalInit();
     if (status != ESESTATUS_SUCCESS) {
       LOG(ERROR) << "%s: seHalInit Failed!!!" << __func__;
     }

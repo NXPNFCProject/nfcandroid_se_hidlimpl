@@ -70,6 +70,7 @@ typedef enum phNxpEseProto7816_OsType {
 
 #define MODE_JCOP 0x01
 #define MODE_OSU 0x02
+#define RESET_APP_WTX_COUNT 0
 
 typedef void(NotifyWtxReq)(phNxpEse_wtxState);
 /**
@@ -427,5 +428,27 @@ void phNxpEse_NotifySEWtxRequest(phNxpEse_wtxState state);
  *
  */
 phNxpEseProto7816_OsType_t phNxpEse_GetOsMode(void);
+
+/**
+ * \ingroup spi_libese
+ * \brief This function enable/disable resetprotection
+ *
+ * \param[in]    flag   - indicated enable or disable resetprotection.
+ *
+ * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
+ *
+ */
+ESESTATUS phNxpEse_doResetProtection(bool flag);
+
+/**
+ * \ingroup spi_libese
+ * \brief This function is used to set the wtx count limit
+ *
+ * \param[in]    wtxCount     - value to set for wtx count limit
+ *
+ * \retval void.
+ *
+ */
+void phNxpEse_setWtxCountLimit(unsigned long int wtxCount);
 /** @} */
 #endif /* _PHNXPSPILIB_API_H_ */
