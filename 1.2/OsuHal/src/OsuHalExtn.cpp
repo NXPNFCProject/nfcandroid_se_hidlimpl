@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2020 NXP
+ *  Copyright 2020-2021 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -93,6 +93,9 @@ bool OsuHalExtn::isOsuMode(uint8_t type, uint8_t channel) {
       checkAndUpdateOsuMode();
       break;
     case OPENLOGICAL:
+      // No action, only return current mode
+      break;
+    case GETATR:
       // No action, only return current mode
       break;
     case CLOSE:
