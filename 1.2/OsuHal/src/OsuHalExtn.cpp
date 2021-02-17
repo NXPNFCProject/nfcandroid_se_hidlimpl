@@ -60,14 +60,20 @@ OsuHalExtn::OsuApduMode OsuHalExtn::isOsuMode(const hidl_vec<uint8_t>& evt,
       }
       break;
     case TRANSMIT:
-      memcpy(pCmdData->p_data, evt.data(), evt.size());
-      if (isOsuMode()) {
-        /*
-         * Process transmit request(unwrap APDU, proprietary actions) in OSU
-         * mode
-         * */
-        osuSubState =
-            checkTransmit(pCmdData->p_data, evt.size(), &pCmdData->len);
+      // Validate input data before processing
+      if (pCmdData != NULL && pCmdData->p_data != NULL) {
+        memcpy(pCmdData->p_data, evt.data(), evt.size());
+        if (isOsuMode()) {
+          /*
+           * Process transmit request(unwrap APDU, proprietary actions) in OSU
+           * mode
+           * */
+           osuSubState =
+             checkTransmit(pCmdData->p_data, evt.size(), &pCmdData->len);
+        } else {
+          pCmdData->len = evt.size();
+          osuSubState = NON_OSU_MODE;
+        }
       } else {
         pCmdData->len = evt.size();
         osuSubState = NON_OSU_MODE;
@@ -195,6 +201,10 @@ OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(uint8_t* input, size_t length,
                                                   uint32_t* outLength) {
   OsuHalExtn::OsuApduMode halMode = NON_OSU_MODE;
 
+  // Validate input buffer processing
+  if(input == NULL) {
+    return halMode;
+  }
   /*
    * 1) Transmit request on logical channels(ISO7816_CLA_CHN_MASK)shall be
    *    blocked in OSU mode
