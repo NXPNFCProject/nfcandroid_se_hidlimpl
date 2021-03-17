@@ -75,7 +75,7 @@ OsuHalExtn::OsuApduMode OsuHalExtn::isOsuMode(const hidl_vec<uint8_t>& evt,
           osuSubState = NON_OSU_MODE;
         }
       } else {
-        pCmdData->len = evt.size();
+        if (pCmdData != NULL) pCmdData->len = evt.size();
         osuSubState = NON_OSU_MODE;
       }
       break;
