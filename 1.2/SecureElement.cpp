@@ -17,6 +17,11 @@
  ******************************************************************************/
 #define LOG_TAG "NxpEseHal"
 #define MAX_INIT_RETRY_CNT 2
+#define DEFAULT_BASIC_CHANNEL 0x00
+#define INVALID_LEN_SW1 0x64
+#define INVALID_LEN_SW2 0xFF
+
+#define SW1_BYTES_REMAINING 0x61
 #include <log/log.h>
 
 #include "LsClient.h"
@@ -24,6 +29,7 @@
 #include "phNxpEse_Api.h"
 #include "NxpEse.h"
 #include "SpiEseUpdater.h"
+#include "phNxpEse_Apdu_Api.h"
 
 extern bool ese_debug_enabled;
 extern uint8_t gMfcAppSessionCount;
@@ -42,6 +48,10 @@ sp<V1_1::ISecureElementHalCallback> SecureElement::mCallbackV1_1 = nullptr;
 static void onLSCompleted(bool result, std::string reason, void* arg) {
   ((SecureElement*)arg)->onStateChange(result, reason);
 }
+
+static Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
+getResponseInternal(uint8_t cla, phNxpEse_7816_rpdu_t& rpdu,
+                    hidl_vec<uint8_t>& result);
 
 SecureElement::SecureElement()
     : mOpenedchannelCount(0),
@@ -311,12 +321,20 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   } else {
     uint8_t sw1 = rspApdu.p_data[rspApdu.len - 2];
     uint8_t sw2 = rspApdu.p_data[rspApdu.len - 1];
+    resApduBuff.selectResponse.resize(rspApdu.len);
+    memcpy(&resApduBuff.selectResponse[0], rspApdu.p_data, rspApdu.len);
+    if (sw1 == SW1_BYTES_REMAINING) {
+      phNxpEse_7816_rpdu_t rpdu;
+      sestatus = getResponseInternal(cmdApdu.p_data[0], rpdu,
+                                     resApduBuff.selectResponse);
+      sw1 = rpdu.sw1;
+      sw2 = rpdu.sw2;
+    }
+
     /*Return response on success, empty vector on failure*/
     /*Status is success*/
     if ((sw1 == 0x90 && sw2 == 0x00) || (sw1 == 0x62) || (sw1 == 0x63)) {
       /*Copy the response including status word*/
-      resApduBuff.selectResponse.resize(rspApdu.len);
-      memcpy(&resApduBuff.selectResponse[0], rspApdu.p_data, rspApdu.len);
       sestatus = SecureElementStatus::SUCCESS;
     }
     /*AID provided doesn't match any applet on the secure element*/
@@ -388,12 +406,19 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
   } else {
     uint8_t sw1 = rspApdu.p_data[rspApdu.len - 2];
     uint8_t sw2 = rspApdu.p_data[rspApdu.len - 1];
+    result.resize(rspApdu.len);
+    memcpy(&result[0], rspApdu.p_data, rspApdu.len);
+    if (sw1 == SW1_BYTES_REMAINING) {
+      phNxpEse_7816_rpdu_t rpdu;
+      sestatus = getResponseInternal(cmdApdu.p_data[0], rpdu, result);
+      sw1 = rpdu.sw1;
+      sw2 = rpdu.sw2;
+    }
+
     /*Return response on success, empty vector on failure*/
     /*Status is success*/
     if ((sw1 == 0x90 && sw2 == 0x00) || (sw1 == 0x62) || (sw1 == 0x63)) {
       /*Copy the response including status word*/
-      result.resize(rspApdu.len);
-      memcpy(&result[0], rspApdu.p_data, rspApdu.len);
       /*Set basic channel reference if it is not set */
       if (!mOpenedChannels[0]) {
         mOpenedChannels[0] = true;
@@ -585,6 +610,67 @@ SecureElement::reset() {
     }
   }
   ALOGD("DBBG> %s: Exit", __func__);
+  return sestatus;
+}
+
+static Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
+getResponseInternal(uint8_t cla, phNxpEse_7816_rpdu_t& rpdu,
+                    hidl_vec<uint8_t>& result) {
+  SecureElementStatus sestatus = SecureElementStatus::SUCCESS;
+  ESESTATUS status = ESESTATUS_SUCCESS;
+  phNxpEse_data cmdApdu;
+  phNxpEse_data rspApdu;
+  uint16_t responseLen = rpdu.len;  // Response already copied
+  uint8_t getRespLe = rpdu.sw2;     // Response pending to receive
+  uint8_t getResponse[5] = {0x00, 0xC0, 0x00, 0x00, 0x00};
+
+  getResponse[0] = cla;
+
+  phNxpEse_memset(&cmdApdu, 0x00, sizeof(phNxpEse_data));
+
+  cmdApdu.len = (uint32_t)sizeof(getResponse);
+  cmdApdu.p_data = getResponse;
+
+  do {
+    // update GET response 61 xx(Le)
+    getResponse[4] = getRespLe;
+
+    phNxpEse_memset(&rspApdu, 0x00, sizeof(phNxpEse_data));
+
+    status = phNxpEse_Transceive(&cmdApdu, &rspApdu);
+    if (status != ESESTATUS_SUCCESS) {
+      /*Transceive failed*/
+      if (rspApdu.len > 0 && (rspApdu.p_data[rspApdu.len - 2] == 0x64 &&
+                              rspApdu.p_data[rspApdu.len - 1] == 0xFF)) {
+        sestatus = SecureElementStatus::IOERROR;
+      } else {
+        sestatus = SecureElementStatus::FAILED;
+      }
+      break;
+    } else {
+      uint32_t respLen = rspApdu.len;
+
+      // skip 2 bytes in case of 61xx SW again
+      if (rspApdu.p_data[respLen - 2] == SW1_BYTES_REMAINING) {
+        respLen -= 2;
+        getRespLe = rspApdu.p_data[respLen - 1];
+      }
+      // copy response chunk received
+      result.resize(responseLen + respLen);
+      memcpy(&result[responseLen], rspApdu.p_data, respLen);
+      responseLen += respLen;
+    }
+  } while (rspApdu.p_data[rspApdu.len - 2] == SW1_BYTES_REMAINING);
+
+  // Propagate SW as it is received from card
+  if (sestatus == SecureElementStatus::SUCCESS) {
+    rpdu.sw1 = rspApdu.p_data[rspApdu.len - 2];
+    rpdu.sw2 = rspApdu.p_data[rspApdu.len - 1];
+  } else {  // Other Failure cases update failure SW:64FF
+    rpdu.sw1 = INVALID_LEN_SW1;
+    rpdu.sw2 = INVALID_LEN_SW2;
+  }
+
   return sestatus;
 }
 
