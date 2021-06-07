@@ -476,6 +476,9 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
     if (rpdu.sw1 == SW1_BYTES_REMAINING) {
       sestatus =
           getResponseInternal(cpdu.cla, rpdu, resApduBuff.selectResponse);
+      if (sestatus != SecureElementStatus::SUCCESS) {
+        LOG(ERROR) << "%s: getResponseInternal Failed" << __func__;
+      }
     }
 
     /*Status is success*/
@@ -622,6 +625,9 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
     result[responseLen - 2] = rpdu.sw1;
     if (rpdu.sw1 == SW1_BYTES_REMAINING) {
       sestatus = getResponseInternal(cpdu.cla, rpdu, result);
+      if (sestatus != SecureElementStatus::SUCCESS) {
+        LOG(ERROR) << "%s: getResponseInternal Failed " << __func__;
+      }
     }
 
     /*Status is success*/
