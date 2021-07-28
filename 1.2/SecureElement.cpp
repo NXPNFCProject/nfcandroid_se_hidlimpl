@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020 NXP
+ *  Copyright 2018-2021 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ namespace implementation {
 #define MAX_LOGICAL_CHANNELS 0x04
 #define INVALID_LEN_SW1 0x64
 #define INVALID_LEN_SW2 0xFF
+#define SW1_BYTES_REMAINING 0x61
 
 typedef struct gsTransceiveBuffer {
   phNxpEse_data cmdData;
@@ -46,6 +47,9 @@ typedef struct gsTransceiveBuffer {
   hidl_vec<uint8_t>* pRspDataBuff;
 } sTransceiveBuffer_t;
 
+static Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
+getResponseInternal(uint8_t cla, phNxpEse_7816_rpdu_t& rpdu,
+                    hidl_vec<uint8_t>& result);
 static sTransceiveBuffer_t gsTxRxBuffer;
 static hidl_vec<uint8_t> gsRspDataBuff(256);
 sp<V1_0::ISecureElementHalCallback> SecureElement::mCallbackV1_0 = nullptr;
@@ -452,6 +456,11 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
     resApduBuff.selectResponse[responseLen - 1] = rpdu.sw2;
     resApduBuff.selectResponse[responseLen - 2] = rpdu.sw1;
 
+    if (rpdu.sw1 == SW1_BYTES_REMAINING) {
+      sestatus =
+          getResponseInternal(cpdu.cla, rpdu, resApduBuff.selectResponse);
+    }
+
     /*Status is success*/
     if ((rpdu.sw1 == 0x90 && rpdu.sw2 == 0x00) || (rpdu.sw1 == 0x62) ||
         (rpdu.sw1 == 0x63)) {
@@ -589,6 +598,9 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
     memcpy(&result[0], rpdu.pdata, rpdu.len);
     result[responseLen - 1] = rpdu.sw2;
     result[responseLen - 2] = rpdu.sw1;
+    if (rpdu.sw1 == SW1_BYTES_REMAINING) {
+      sestatus = getResponseInternal(cpdu.cla, rpdu, result);
+    }
 
     /*Status is success*/
     if (((rpdu.sw1 == 0x90) && (rpdu.sw2 == 0x00)) || (rpdu.sw1 == 0x62) ||
@@ -801,6 +813,57 @@ SecureElement::reset() {
   return sestatus;
 }
 
+static Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
+getResponseInternal(uint8_t cla, phNxpEse_7816_rpdu_t& rpdu,
+                    hidl_vec<uint8_t>& result) {
+  SecureElementStatus sestatus = SecureElementStatus::SUCCESS;
+  ESESTATUS status = ESESTATUS_SUCCESS;
+  phNxpEse_data cmdApdu;
+  phNxpEse_data rspApdu;
+  uint16_t responseLen = rpdu.len;  // Response already copied
+  uint8_t getRespLe = rpdu.sw2;     // Response pending to receive
+  uint8_t getResponse[5] = {0x00, 0xC0, 0x00, 0x00, 0x00};
+  getResponse[0] = cla;
+  phNxpEse_memset(&cmdApdu, 0x00, sizeof(phNxpEse_data));
+  cmdApdu.len = (uint32_t)sizeof(getResponse);
+  cmdApdu.p_data = getResponse;
+  do {
+    // update GET response 61 xx(Le)
+    getResponse[4] = getRespLe;
+    phNxpEse_memset(&rspApdu, 0x00, sizeof(phNxpEse_data));
+    status = phNxpEse_Transceive(&cmdApdu, &rspApdu);
+    if (status != ESESTATUS_SUCCESS) {
+      /*Transceive failed*/
+      if (rspApdu.len > 0 && (rspApdu.p_data[rspApdu.len - 2] == 0x64 &&
+                              rspApdu.p_data[rspApdu.len - 1] == 0xFF)) {
+        sestatus = SecureElementStatus::IOERROR;
+      } else {
+        sestatus = SecureElementStatus::FAILED;
+      }
+      break;
+    } else {
+      uint32_t respLen = rspApdu.len;
+      // skip 2 bytes in case of 61xx SW again
+      if (rspApdu.p_data[respLen - 2] == SW1_BYTES_REMAINING) {
+        respLen -= 2;
+        getRespLe = rspApdu.p_data[respLen - 1];
+      }
+      // copy response chunk received
+      result.resize(responseLen + respLen);
+      memcpy(&result[responseLen], rspApdu.p_data, respLen);
+      responseLen += respLen;
+    }
+  } while (rspApdu.p_data[rspApdu.len - 2] == SW1_BYTES_REMAINING);
+  // Propagate SW as it is received from card
+  if (sestatus == SecureElementStatus::SUCCESS) {
+    rpdu.sw1 = rspApdu.p_data[rspApdu.len - 2];
+    rpdu.sw2 = rspApdu.p_data[rspApdu.len - 1];
+  } else {  // Other Failure cases update failure SW:64FF
+    rpdu.sw1 = INVALID_LEN_SW1;
+    rpdu.sw2 = INVALID_LEN_SW2;
+  }
+  return sestatus;
+}
 }  // namespace implementation
 }  // namespace V1_2
 }  // namespace secure_element
