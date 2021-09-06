@@ -68,8 +68,7 @@ OsuHalExtn::OsuApduMode OsuHalExtn::isOsuMode(const hidl_vec<uint8_t>& evt,
            * Process transmit request(unwrap APDU, proprietary actions) in OSU
            * mode
            * */
-           osuSubState =
-             checkTransmit(pCmdData->p_data, evt.size(), &pCmdData->len);
+          osuSubState = checkTransmit(pCmdData->p_data, &pCmdData->len, evt);
         } else {
           pCmdData->len = evt.size();
           osuSubState = NON_OSU_MODE;
@@ -197,9 +196,10 @@ bool OsuHalExtn::isOsuMode() { return (isAppOSUMode || isJcopOSUMode); }
 ** Returns:     OsuApduMode
 **
 *******************************************************************************/
-OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(uint8_t* input, size_t length,
-                                                  uint32_t* outLength) {
+OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(
+    uint8_t* input, uint32_t* outLength, const hidl_vec<uint8_t>& data) {
   OsuHalExtn::OsuApduMode halMode = NON_OSU_MODE;
+  size_t length = data.size();
 
   // Validate input buffer processing
   if(input == NULL) {
@@ -228,8 +228,7 @@ OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(uint8_t* input, size_t length,
     if (*(input + ISO7816_LC_OFFSET) != 0) {
       if (length > ISO7816_SHORT_APDU_HEADER) {
         *outLength = length - ISO7816_SHORT_APDU_HEADER;
-        memcpy(input, input + ISO7816_SHORT_APDU_HEADER,
-               length - ISO7816_SHORT_APDU_HEADER);
+        std::copy(data.begin() + ISO7816_SHORT_APDU_HEADER, data.end(), input);
       } else {
         *outLength = 0;
         ALOGE("checkTransmit input data length is incorrect");
@@ -237,8 +236,8 @@ OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(uint8_t* input, size_t length,
     } else {
       if (length > ISO7816_EXTENDED_APDU_HEADER) {
         *outLength = length - ISO7816_EXTENDED_APDU_HEADER;
-        memcpy(input, input + ISO7816_EXTENDED_APDU_HEADER,
-               length - ISO7816_EXTENDED_APDU_HEADER);
+        std::copy(data.begin() + ISO7816_EXTENDED_APDU_HEADER, data.end(),
+                  input);
       } else {
         *outLength = 0;
         ALOGE("checkTransmit input data length is incorrect");

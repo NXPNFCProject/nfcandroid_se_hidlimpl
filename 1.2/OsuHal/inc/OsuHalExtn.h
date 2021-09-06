@@ -75,6 +75,7 @@ class OsuHalExtn {
   bool isAppOSUMode;
   bool isJcopOSUMode;
   static const hidl_vec<uint8_t> osu_aid[10];
-  OsuApduMode checkTransmit(uint8_t* input, size_t length, uint32_t* outLength);
+  OsuApduMode checkTransmit(uint8_t* input, uint32_t* outLength,
+                            const hidl_vec<uint8_t>& data);
   bool isOsuMode();
 };
