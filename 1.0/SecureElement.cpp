@@ -506,8 +506,7 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
   LOG(ERROR) << "Acquired the lock in SPI internalCloseChannel";
   LOG(INFO) << StringPrintf("mMaxChannelCount = %d, Closing Channel = %d",
                                 mMaxChannelCount, channelNumber);
-  if (channelNumber < DEFAULT_BASIC_CHANNEL ||
-      channelNumber >= mMaxChannelCount) {
+  if (channelNumber >= mMaxChannelCount) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d for %d",channelNumber,mOpenedChannels[channelNumber]);
     sestatus = SecureElementStatus::FAILED;
   } else if (channelNumber > DEFAULT_BASIC_CHANNEL){

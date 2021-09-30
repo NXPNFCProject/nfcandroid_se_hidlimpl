@@ -574,8 +574,7 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
   LOG(ERROR) << "Acquired the lock in SPI internalCloseChannel";
   LOG(INFO) << StringPrintf("mMaxChannelCount = %d, Closing Channel = %d",
                                 mMaxChannelCount, channelNumber);
-  if ((int8_t)channelNumber < DEFAULT_BASIC_CHANNEL ||
-      channelNumber >= mMaxChannelCount) {
+  if (channelNumber >= mMaxChannelCount) {
     LOG(ERROR) << StringPrintf("invalid channel!!! %d",channelNumber);
   } else if (channelNumber > DEFAULT_BASIC_CHANNEL){
     phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
