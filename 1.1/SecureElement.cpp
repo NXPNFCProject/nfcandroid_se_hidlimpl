@@ -437,8 +437,7 @@ Return<SecureElementStatus> SecureElement::internalCloseChannel(uint8_t channelN
   phNxpEse_data cmdApdu;
   phNxpEse_data rspApdu;
 
-  if (((int8_t)channelNumber < DEFAULT_BASIC_CHANNEL) ||
-      (channelNumber >= MAX_LOGICAL_CHANNELS)) {
+  if (channelNumber >= MAX_LOGICAL_CHANNELS) {
     ALOGE("%s: invalid channel!!!", __func__);
     return SecureElementStatus::FAILED;
   }
