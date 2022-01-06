@@ -43,9 +43,9 @@ cc_library_shared {
         "src/include",
     ],
     include_dirs: [
-        "hardware/nxp/nfc/SN100x/extns/impl/nxpnfc/2.0",
-        "hardware/nxp/secure_element/extns/impl",
-        "hardware/nxp/secure_element/ese-clients/inc"
+        "hardware/nxp/nfc/snxxx/extns/impl/nxpnfc/2.0",
+        "hardware/nxp/secure_element/snxxx/extns/impl",
+        "hardware/nxp/secure_element/snxxx/ese-clients/inc"
 ],
 
     cflags: [
