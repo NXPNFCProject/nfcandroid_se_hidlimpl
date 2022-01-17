@@ -9,7 +9,7 @@ package {
 
 cc_library_shared {
 
-    name: "ese_spi_nxp",
+    name: "ese_spi_nxp_snxxx",
     defaults: ["hidl_defaults"],
     proprietary: true,
 

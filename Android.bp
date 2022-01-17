@@ -30,5 +30,5 @@ license {
 }
 
 subdirs = [
-    "snxxx","intf","pn8x",
+    "snxxx","intf",
 ]
