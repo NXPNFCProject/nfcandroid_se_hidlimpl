@@ -17,7 +17,6 @@
  ******************************************************************************/
 #define LOG_TAG "NxpEseHal-NfcAdaptation"
 #include "NfcAdaptation.h"
-
 #include <android/hardware/nfc/1.0/types.h>
 #include <hwbinder/ProcessState.h>
 #include <log/log.h>

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020 NXP
+ *  Copyright 2018-2021 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -184,15 +184,15 @@ typedef struct phNxpEseProto7816_ATR_Info {
   uint8_t bgt[2];      /*!< ATR: Minimum guard time in milliseconds for
                      T=1 blocks sent in opposite directions */
   uint8_t
-      bwt[2];             /*!< ATR: Maximum allowed command processing
-                        time in milliseconds before card has sent either
-                        command response or S(WTX) requesting processing time extension */
-  uint8_t maxFreq[2];     /*!< ATR: Max supported  clock frequency in kHz  */
-  uint8_t checksum;       /*!< ATR: Checksum (0 = LRC / 1 = CRC) */
-  uint8_t defaultIFSC;    /*!< ATR: Default IFS size */
-  uint8_t numChannels;    /*!< ATR: Number of logical connections supported */
-  uint8_t maxIFSC[2];     /*!< ATR: Maximum size of IFS supported */
-  uint8_t capbilities[2]; /*!< ATR: Bitmap to indicate various features
+      bwt[2];              /*!< ATR: Maximum allowed command processing
+                         time in milliseconds before card has sent either
+                         command response or S(WTX) requesting processing time extension */
+  uint8_t maxFreq[2];      /*!< ATR: Max supported  clock frequency in kHz  */
+  uint8_t checksum;        /*!< ATR: Checksum (0 = LRC / 1 = CRC) */
+  uint8_t defaultIFSC;     /*!< ATR: Default IFS size */
+  uint8_t numChannels;     /*!< ATR: Number of logical connections supported */
+  uint8_t maxIFSC[2];      /*!< ATR: Maximum size of IFS supported */
+  uint8_t capabilities[2]; /*!< ATR: Bitmap to indicate various features
                         supported by SE Bit-1: SE Data Available Line supported.
                         Bit-2: SE Data available polarity. 1 - Data available
                         GPIO will be pulled HIGH when SE response is ready Bit
@@ -537,7 +537,7 @@ ESESTATUS phNxpEseProto7816_Open(phNxpEseProto7816InitParam_t initParam);
  * \brief This function is used to
  *                  1. Send the raw data received from application after
  *computing LRC
- *                  2. Receive the the response data from ESE, decode, process
+ *                  2. Receive the response data from ESE, decode, process
  *and
  *                     store the data.
  *                  3. Get the final complete data and sent back to application

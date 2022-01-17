@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright (C) 2018-2020 NXP Semiconductors
+ *  Copyright (C) 2018-2021 NXP Semiconductors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -189,7 +189,7 @@ Return<void> NxpEse::ioctl(uint64_t ioctlType,
       (ese_nxp_IoctlInOutData_t*)&inOutData[0];
 
   /*data from proxy->stub is copied to local data which can be updated by
-   * underlying HAL implementation since its an inout argument*/
+   * underlying HAL implementation since it's an inout argument*/
   memcpy(&inpOutData, pInOutData, sizeof(ese_nxp_IoctlInOutData_t));
   ESESTATUS status = phNxpEse_spiIoctl(ioctlType, &inpOutData);
   ioctlHandler(ioctlType, inpOutData);

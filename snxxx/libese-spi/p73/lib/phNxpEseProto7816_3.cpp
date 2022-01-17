@@ -125,7 +125,7 @@ static ESESTATUS phNxpEseProto7816_SetNextIframeContxt(void);
  *\param[in]    data_len -data length
  *
  */
-static ESESTATUS phNxpEseProro7816_SaveIframeData(uint8_t* p_data,
+static ESESTATUS phNxpEseProto7816_SaveIframeData(uint8_t* p_data,
                                                   uint32_t data_len);
 
 /**
@@ -179,7 +179,7 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void);
  * \brief      This internal function is used to
  *                  1. Send the raw data received from application after
  *computing LRC
- *                  2. Receive the the response data from ESE, decode, process
+ *                  2. Receive the response data from ESE, decode, process
  *and
  *                     store the data.
  *
@@ -190,7 +190,7 @@ static ESESTATUS TransceiveProcess(void);
  * \ingroup ISO7816-3_protocol_lib
  * \brief      This internal function is used to
  *                  1. Send propreitary S-Frame command for resynch
- *T=1 sequence at slave
+ *T=1 sequence at worker
  *
  */
 static ESESTATUS phNxpEseProto7816_RSync(void);
@@ -720,7 +720,7 @@ static ESESTATUS phNxpEseProto7816_SetNextIframeContxt(void) {
  * Returns          On success return true or else false.
  *
  ******************************************************************************/
-static ESESTATUS phNxpEseProro7816_SaveIframeData(uint8_t* p_data,
+static ESESTATUS phNxpEseProto7816_SaveIframeData(uint8_t* p_data,
                                                   uint32_t data_len) {
   ESESTATUS status = ESESTATUS_FAILED;
   ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
@@ -896,8 +896,8 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
            phNxpEseProto7816_3_Var.atrInfo.maxIFSC[0] << 8 |
                phNxpEseProto7816_3_Var.atrInfo.maxIFSC[1]);
   ALOGD_IF(ese_debug_enabled, "Capabilities = 0x%x",
-           phNxpEseProto7816_3_Var.atrInfo.capbilities[0] << 8 |
-               phNxpEseProto7816_3_Var.atrInfo.capbilities[1]);
+           phNxpEseProto7816_3_Var.atrInfo.capabilities[0] << 8 |
+               phNxpEseProto7816_3_Var.atrInfo.capabilities[1]);
 
   if (phNxpEseProto7816_3_Var.atrInfo.vendorID[4] >= PH_SE_OS_VERSION_11) {
     phNxpEse_memcpy(&phNxpEseProto7816_3_Var.extndAtrInfo.channelNo,
@@ -1039,9 +1039,9 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
           if (EXTENDED_FRAME_MARKER == p_data[2] &&
               (data_len > 6)) /* Checking for extended frame prologue */
           {
-            status = phNxpEseProro7816_SaveIframeData(&p_data[5], data_len - 6);
+            status = phNxpEseProto7816_SaveIframeData(&p_data[5], data_len - 6);
           } else if (data_len > 4) {
-            status = phNxpEseProro7816_SaveIframeData(&p_data[3], data_len - 4);
+            status = phNxpEseProto7816_SaveIframeData(&p_data[3], data_len - 4);
           } else {
             phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
                 SEND_R_NACK;
@@ -1055,9 +1055,9 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
           if (EXTENDED_FRAME_MARKER == p_data[2] &&
               (data_len > 6)) /* Checking for extended frame prologue */
           {
-            status = phNxpEseProro7816_SaveIframeData(&p_data[5], data_len - 6);
+            status = phNxpEseProto7816_SaveIframeData(&p_data[5], data_len - 6);
           } else if (data_len > 4) {
-            status = phNxpEseProro7816_SaveIframeData(&p_data[3], data_len - 4);
+            status = phNxpEseProto7816_SaveIframeData(&p_data[3], data_len - 4);
           } else {
             phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = RFRAME;
             phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
@@ -1549,7 +1549,7 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
  * Description      This internal function is used to
  *                  1. Send the raw data received from application after
  *computing LRC
- *                  2. Receive the the response data from ESE, decode, process
+ *                  2. Receive the response data from ESE, decode, process
  *and
  *                     store the data.
  * Returns          On success return true or else false.
@@ -1671,7 +1671,7 @@ static void phNxpEseProto7816_CheckAndNotifyWtx(phNxpEse_wtxState state) {
  * Description      This function is used to
  *                  1. Send the raw data received from application after
  *computing LRC
- *                  2. Receive the the response data from ESE, decode, process
+ *                  2. Receive the response data from ESE, decode, process
  *and
  *                     store the data.
  *                  3. Get the final complete data and sent back to application

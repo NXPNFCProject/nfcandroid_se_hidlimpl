@@ -93,7 +93,7 @@ typedef union {
  */
 typedef struct {
   /*context to be used/updated only by users of proxy & stub of Ese.hal
-   * i.e, EseAdaptation & hardware/interface/Ese.
+   * i.e., EseAdaptation & hardware/interface/Ese.
    */
   eseInputData_t data;
   uint8_t data_source;
@@ -131,7 +131,7 @@ extern eseIoctlData_t eseioctldata;
 typedef struct {
   /*ioctlType, result & context to be used/updated only by users of
    * proxy & stub of Ese.hal.
-   * i.e, EseAdaptation & hardware/interface/Ese
+   * i.e., EseAdaptation & hardware/interface/Ese
    * These fields shall not be used by libese or halimplementation*/
   uint64_t ioctlType;
   uint32_t result;

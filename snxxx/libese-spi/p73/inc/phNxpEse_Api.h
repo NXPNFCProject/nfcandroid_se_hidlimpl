@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020 NXP
+ *  Copyright 2018-2021 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -114,7 +114,7 @@ extern bool ese_debug_enabled;
  * \param[in]    initParams - init parameters to be set while calling
  * phNxpEse_init
  *
- * \retval This function return ESESTATUS_SUCCES (0) in case of success
+ * \retval This function return ESESTATUS_SUCCESS (0) in case of success
  *         In case of failure returns other failure value.
  *
  */
@@ -138,7 +138,7 @@ bool phNxpEse_isOpen();
  * \param[in]     ioctlType - ioctl cmd
  *\param[out]    p_data - value read out
  *
- * \retval This function return ESESTATUS_SUCCES (0) in case of success
+ * \retval This function return ESESTATUS_SUCCESS (0) in case of success
  *         In case of failure returns other failure value.
  *
  */
@@ -152,7 +152,7 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data);
  *  \param[in]     uEndPoint - select the end point type (  END_POINT_ESE = 0,
  * END_POINT_eUICC =1 ).
  *
- * \retval This function return ESESTATUS_SUCCES (0) in case of success
+ * \retval This function return ESESTATUS_SUCCESS (0) in case of success
  *         In case of failure returns other failure value.
  *
  */
@@ -167,7 +167,7 @@ ESESTATUS phNxpEse_SetEndPoint_Cntxt(uint8_t uEndPoint);
  * \param[in]     uEndPoint - select the end point type (  END_POINT_ESE = 0,
  * END_POINT_eUICC =1 ).
  *
- * \retval This function return ESESTATUS_SUCCES (0) in case of success
+ * \retval This function return ESESTATUS_SUCCESS (0) in case of success
  *         In case of failure returns other failure value.
  *
  */
@@ -225,7 +225,7 @@ ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp);
  *         de-initialization of the ESE. It de-initializes protocol stack
  *instance variables
  *
- * \retval This function return ESESTATUS_SUCCES (0) in case of success
+ * \retval This function return ESESTATUS_SUCCESS (0) in case of success
  *         In case of failure returns other failure value.
  *
  */
@@ -321,7 +321,7 @@ ESESTATUS phNxpEse_Sleep(uint32_t usec);
  * \brief This function updates destination buffer with val
  *                 data in len size
  *
- * \param[in]    buff                - Array to be udpated
+ * \param[in]    buff                - Array to be updated
  * \param[in]    val                 - value to be updated
  * \param[in]    len                 - length of array to be updated
  *
@@ -380,7 +380,7 @@ void phNxpEse_free(void* ptr);
 
 /**
  * \ingroup spi_libese
- * \brief This function perfroms disbale/enable power control
+ * \brief This function performs disable/enable power control
  *
  *
  * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).

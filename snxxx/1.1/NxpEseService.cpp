@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020 NXP
+ *  Copyright 2018-2021 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -119,7 +119,7 @@ int main() {
     perform_eSEClientUpdate();
     joinRpcThreadpool();
   } catch (const std::length_error& e) {
-    ALOGE("Lenght Exception occurred = %s ", e.what());
+    ALOGE("Length Exception occurred = %s ", e.what());
   } catch (const std::__1::ios_base::failure& e) {
     ALOGE("ios failure Exception occurred = %s ", e.what());
   } catch (std::__1::regex_error& e) {

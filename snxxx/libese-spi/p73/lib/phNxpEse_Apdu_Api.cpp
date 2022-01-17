@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2019,2021 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ static ESESTATUS phNxpEse_7816_FrameCmd(pphNxpEse_7816_cpdu_t pCmd,
 /******************************************************************************
  * Function         phNxpEse_7816_Transceive
  *
- * Description      This function prepares C-APDU and sends to p61 and recives
+ * Description      This function prepares C-APDU and sends to p61 and receives
  *                  response from the p61. also it parses all required fields of
  *                  the response PDU.
  *
@@ -93,7 +93,7 @@ ESESTATUS phNxpEse_7816_Transceive(pphNxpEse_7816_cpdu_t pCmd,
             ALOGE("Invalid Res buffer");
             status = ESESTATUS_FAILED;
           }
-          ALOGD_IF(ese_debug_enabled, "Freeing memroy pRspTrans.p_data ");
+          ALOGD_IF(ese_debug_enabled, "Freeing memory pRspTrans.p_data ");
           phNxpEse_free(pRspTrans.p_data);
           pRspTrans.p_data = NULL;
           pRspTrans.len = 0;

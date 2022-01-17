@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2019,2021 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ typedef struct phNxpEse_7816_rpdu {
   uint8_t sw1;    /*!< Status byte most significant byte */
   uint8_t sw2;    /*!< Status byte least significant byte */
   uint8_t* pdata; /*!< Buffer allocated by caller*/
-  uint16_t len;   /*!< Lenght of the buffer, updated by calling api */
+  uint16_t len;   /*!< Length of the buffer, updated by calling api */
 } phNxpEse_7816_rpdu_t;
 
 /**
@@ -79,7 +79,7 @@ typedef phNxpEse_7816_rpdu_t* pphNxpEse_7816_rpdu_t;
 
 /**
  * \ingroup ISO7816-4_application_protocol_implementation
- * \brief This function prepares C-APDU and sends to p61 and recives response
+ * \brief This function prepares C-APDU and sends to p61 and receives response
  *from the p61.
  * also it parses all required fields of the response PDU.
  *

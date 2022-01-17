@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020 NXP
+ *  Copyright 2018-2021 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -187,7 +187,7 @@ void phPalEse_sleep(long usec);
  * \brief This function updates destination buffer with val
  *                 data in len size
  *
- * \param[in]    buff                - Array to be udpated
+ * \param[in]    buff                - Array to be updated
  * \param[in]    val                 - value to be updated
  * \param[in]    len                 - length of array to be updated
  *

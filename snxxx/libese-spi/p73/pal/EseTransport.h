@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2020 NXP
+ *  Copyright 2020-2021 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -86,7 +86,7 @@
  */
 #define P61_GET_SPM_STATUS _IOR(P61_MAGIC, 0x05, long)
 /*!
- * \brief IOCTL to add throughput measurment source code in device driver
+ * \brief IOCTL to add throughput measurement source code in device driver
  *
  */
 #define P61_SET_THROUGHPUT _IOW(P61_MAGIC, 0x06, long)

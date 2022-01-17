@@ -75,8 +75,8 @@ class SyncEvent {
   **
   ** Function:        notifyOne
   **
-  ** Description:     Notify a blocked thread that the event has occured.
-  *Unblocks it.
+  ** Description:     Notify a blocked thread that the event has occurred.
+  **                  Unblocks it.
   **
   ** Returns:         None.
   **

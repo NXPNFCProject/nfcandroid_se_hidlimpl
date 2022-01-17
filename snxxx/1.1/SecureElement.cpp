@@ -622,7 +622,7 @@ void SecureElement::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
   LOG(ERROR) << " SecureElement serviceDied!!!";
   mIsEseInitialized = false;
   if (seHalDeInit() != SecureElementStatus::SUCCESS) {
-    LOG(ERROR) << "SE Deinit not successfull";
+    LOG(ERROR) << "SE Deinit not successful";
   }
 }
 ESESTATUS SecureElement::seHalInit() {

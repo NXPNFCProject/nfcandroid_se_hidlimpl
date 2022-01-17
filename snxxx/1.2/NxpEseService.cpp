@@ -144,7 +144,7 @@ int main() {
     perform_eSEClientUpdate();
     joinRpcThreadpool();
   } catch (const std::length_error& e) {
-    ALOGE("Lenght Exception occurred = %s ", e.what());
+    ALOGE("Length Exception occurred = %s ", e.what());
   } catch (const std::__1::ios_base::failure& e) {
     ALOGE("ios failure Exception occurred = %s ", e.what());
   } catch (std::__1::regex_error& e) {

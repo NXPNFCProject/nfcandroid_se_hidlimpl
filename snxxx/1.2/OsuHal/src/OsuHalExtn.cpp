@@ -48,7 +48,7 @@ OsuHalExtn::OsuApduMode OsuHalExtn::isOsuMode(const hidl_vec<uint8_t>& evt,
       /*
        * update & return OSU_PROP_MODE if OpenBasicChannel AID request matches
        * OSU_AID
-       * */
+       */
       if (!memcmp(&evt[0], &OSU_AID[0], OSU_AID.size())) {
         isAppOSUMode = true;
         osuSubState = OSU_PROP_MODE;
@@ -67,7 +67,7 @@ OsuHalExtn::OsuApduMode OsuHalExtn::isOsuMode(const hidl_vec<uint8_t>& evt,
           /*
            * Process transmit request(unwrap APDU, proprietary actions) in OSU
            * mode
-           * */
+           */
           osuSubState = checkTransmit(pCmdData->p_data, &pCmdData->len, evt);
         } else {
           pCmdData->len = evt.size();
@@ -107,7 +107,7 @@ bool OsuHalExtn::isOsuMode(uint8_t type, uint8_t channel) {
       /*
        * If in OSU mode close basic channel is called
        * clear osu APP and update JCOP mode
-       * */
+       */
       if (channel == ISO7816_BASIC_CHANNEL && isOsuMode()) {
         if (phNxpEse_doResetProtection(false) != ESESTATUS_SUCCESS) {
           ALOGE("Disable Reset Protection Failed");
@@ -208,9 +208,9 @@ OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(
   /*
    * 1) Transmit request on logical channels(ISO7816_CLA_CHN_MASK)shall be
    *    blocked in OSU mode
-   * 2) Empty/Default GP card manger select from OMAPI shall
+   * 2) Empty/Default GP card manager select from OMAPI shall
    *    be blocked in OSU Mode
-   * */
+   */
   if (((*input & ISO7816_CLA_CHN_MASK) != ISO7816_BASIC_CHANNEL) ||
       (isJcopOSUMode && (length == ISO7816_SHORT_APDU_HEADER &&
                          !memcmp(input, defaultSelectAid, length)))) {
@@ -223,7 +223,7 @@ OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(
     /*
      * 1) Unwrap GP command to native commands
      * 2) Check APDU type short/extended before unwrapping
-     * */
+     */
     ALOGD("checkTransmit in OSU_PROP_MODE");
     if (*(input + ISO7816_LC_OFFSET) != 0) {
       if (length > ISO7816_SHORT_APDU_HEADER) {

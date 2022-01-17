@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020 NXP
+ *  Copyright 2018-2021 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@
 #include <phNxpEseProto7816_3.h>
 #include <phNxpEse_Internal.h>
 
-#define RECIEVE_PACKET_SOF 0xA5
+#define RECEIVE_PACKET_SOF 0xA5
 #define CHAINED_PACKET_WITHSEQN 0x60
 #define CHAINED_PACKET_WITHOUTSEQN 0x20
 #define PH_PAL_ESE_PRINT_PACKET_TX(data, len) \
@@ -500,7 +500,8 @@ bool phNxpEse_isOpen() { return nxpese_ctxt.EseLibStatus != ESE_STATUS_CLOSE; }
  *                  operation.  This will get priority access to ESE for timeout
  duration.
 
- * Returns          This function return ESESTATUS_SUCCES (0) in case of success
+ * Returns          This function return ESESTATUS_SUCCESS (0) in case of
+ success
  *                  In case of failure returns other failure value.
  *
  ******************************************************************************/
@@ -1051,7 +1052,7 @@ static __inline bool phNxpEse_isColdResetRequired(phNxpEse_initMode mode,
 /******************************************************************************
  * Function         phNxpEse_doResetProtection
  *
- * Description      This function enables/diables reset protection
+ * Description      This function enables/disables reset protection
  *
  * Returns          SUCCESS(0)/FAIL(-1).
  *
@@ -1298,7 +1299,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
                  errno, ret);
       } else {
         if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) ||
-            (pBuffer[0] == RECIEVE_PACKET_SOF)) {
+            (pBuffer[0] == RECEIVE_PACKET_SOF)) {
           /* Read the HEADR of one byte*/
           ALOGD_IF(ese_debug_enabled, "%s Read HDR SOF + PCB", __FUNCTION__);
           numBytesToRead = 1; /*Read only INF LEN*/
@@ -1306,7 +1307,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
           break;
         } else if (((pBuffer[0] == 0x00) || (pBuffer[0] == 0xFF)) &&
                    ((pBuffer[1] == nxpese_ctxt.nadInfo.nadRx) ||
-                    (pBuffer[1] == RECIEVE_PACKET_SOF))) {
+                    (pBuffer[1] == RECEIVE_PACKET_SOF))) {
           /* Read the HEADR of Two bytes*/
           ALOGD_IF(ese_debug_enabled, "%s Read HDR only SOF", __FUNCTION__);
           pBuffer[0] = pBuffer[1];
@@ -1349,7 +1350,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       pBuffer[0] = 0x64;
       pBuffer[1] = 0xFF;
     } else if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) ||
-               (pBuffer[0] == RECIEVE_PACKET_SOF)) {
+               (pBuffer[0] == RECEIVE_PACKET_SOF)) {
       ALOGD_IF(ese_debug_enabled, "%s SOF FOUND", __FUNCTION__);
       /* Read the HEADR of one/Two bytes based on how two bytes read A5 PCB or
        * 00 A5*/
@@ -1455,7 +1456,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
         PH_PAL_ESE_PRINT_PACKET_RX(pBuffer, ret);
       }
       pBuffer[0] = 0x90;
-      pBuffer[1] = RECIEVE_PACKET_SOF;
+      pBuffer[1] = RECEIVE_PACKET_SOF;
       ret = 0x02;
       phPalEse_sleep(nxpese_ctxt.invalidFrame_Rnack_Delay);
     }
@@ -1490,16 +1491,16 @@ static int phNxpEse_readPacket_legacy(void* pDevHandle, uint8_t* pBuffer,
       ALOGD_IF(ese_debug_enabled, "_spi_read() [HDR]errno : %x ret : %X", errno,
                ret);
     }
-    if (pBuffer[0] == RECIEVE_PACKET_SOF) {
+    if (pBuffer[0] == RECEIVE_PACKET_SOF) {
       /* Read the HEADR of one byte*/
       ALOGD_IF(ese_debug_enabled, "%s Read HDR", __FUNCTION__);
       numBytesToRead = 1;
       headerIndex = 1;
       break;
-    } else if (pBuffer[1] == RECIEVE_PACKET_SOF) {
+    } else if (pBuffer[1] == RECEIVE_PACKET_SOF) {
       /* Read the HEADR of Two bytes*/
       ALOGD_IF(ese_debug_enabled, "%s Read HDR", __FUNCTION__);
-      pBuffer[0] = RECIEVE_PACKET_SOF;
+      pBuffer[0] = RECEIVE_PACKET_SOF;
       numBytesToRead = 2;
       headerIndex = 0;
       break;
@@ -1515,7 +1516,7 @@ static int phNxpEse_readPacket_legacy(void* pDevHandle, uint8_t* pBuffer,
       phPalEse_sleep(GET_WAKE_UP_DELAY() * NAD_POLLING_SCALER);
     }
   } while (sof_counter < ESE_NAD_POLLING_MAX);
-  if (pBuffer[0] == RECIEVE_PACKET_SOF) {
+  if (pBuffer[0] == RECEIVE_PACKET_SOF) {
     ALOGD_IF(ese_debug_enabled, "%s SOF FOUND", __FUNCTION__);
     /* Read the HEADR of one/Two bytes based on how two bytes read A5 PCB or
      * 00 A5*/
