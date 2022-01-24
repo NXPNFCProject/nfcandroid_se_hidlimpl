@@ -28,7 +28,9 @@
 #include "NxpEse.h"
 #include "SecureElement.h"
 #include "VirtualISO.h"
+#ifdef NXP_BOOTTIME_UPDATE
 #include "eSEClient.h"
+#endif
 
 #define MAX_NFC_GET_RETRY 30
 #define NFC_GET_SERVICE_DELAY_MS 100
@@ -73,7 +75,7 @@ static inline void waitForNFCHAL() {
 int main() {
   status_t status;
 
-  char terminalID[5];
+  char terminalID[5] = "eSE1";
   const char* SEterminal = "eSEx";
   bool ret = false;
 
@@ -91,8 +93,12 @@ int main() {
     }
     configureRpcThreadpool(1, true /*callerWillJoin*/);
 
+#ifdef NXP_BOOTTIME_UPDATE
     checkEseClientUpdate();
     ret = geteSETerminalId(terminalID);
+#else
+    ret = true;
+#endif
     ALOGI("Terminal val = %s", terminalID);
     if ((ret) && (strncmp(SEterminal, terminalID, 3) == 0)) {
       ALOGI("Terminal ID found");
@@ -124,13 +130,19 @@ int main() {
       ALOGI("Secure Element Service is ready");
     }
 
+#ifdef NXP_VISO_ENABLE
     ALOGI("Virtual ISO HAL Service 1.0 is starting.");
     virtual_iso_service = new VirtualISO();
     if (virtual_iso_service == nullptr) {
       ALOGE("Can not create an instance of Virtual ISO HAL Iface, exiting.");
       goto shutdown;
     }
+#ifdef NXP_BOOTTIME_UPDATE
     ret = geteUICCTerminalId(terminalID);
+#else
+    strncpy(terminalID, "eSE2", 4);
+    ret = true;
+#endif
     if ((ret) && (strncmp(SEterminal, terminalID, 3) == 0)) {
       status = virtual_iso_service->registerAsService(terminalID);
       if (status != OK) {
@@ -141,7 +153,10 @@ int main() {
     }
 
     ALOGI("Virtual ISO: Secure Element Service is ready");
+#endif
+#ifdef NXP_BOOTTIME_UPDATE
     perform_eSEClientUpdate();
+#endif
     joinRpcThreadpool();
   } catch (const std::length_error& e) {
     ALOGE("Length Exception occurred = %s ", e.what());

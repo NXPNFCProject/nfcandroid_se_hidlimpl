@@ -81,6 +81,8 @@ cc_binary {
         "-DBUILDCFG=1",
         "-DNXP_EXTNS=TRUE",
         "-DNFC_NXP_ESE_VER=JCOP_VER_5_x",
+        "-DNXP_VISO_ENABLE",
+        "-DNXP_BOOTTIME_UPDATE",
         "-Wall",
         "-Werror",
         "-fexceptions",

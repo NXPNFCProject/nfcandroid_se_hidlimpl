@@ -16,10 +16,11 @@
  *
  ******************************************************************************/
 #define LOG_TAG "NxpEseHal"
+#include <log/log.h>
+
 #include <EseTransport.h>
 #include <cutils/properties.h>
 #include <ese_config.h>
-#include <log/log.h>
 #include <phNxpEseFeatures.h>
 #include <phNxpEsePal.h>
 #include <phNxpEseProto7816_3.h>

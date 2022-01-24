@@ -17,11 +17,13 @@
  ******************************************************************************/
 #include "VirtualISO.h"
 
-#include <android-base/logging.h>
-
 #include "NxpEse.h"
 #include "SecureElement.h"
+#ifdef NXP_BOOTTIME_UPDATE
 #include "eSEClient.h"
+#endif
+#include <android-base/logging.h>
+
 #include "hal_nxpese.h"
 #include "phNxpEse_Apdu_Api.h"
 #include "phNxpEse_Api.h"
@@ -75,6 +77,7 @@ Return<void> VirtualISO::init(
   } else {
     clientCallback->linkToDeath(this, 0 /*cookie*/);
   }
+#ifdef NXP_BOOTTIME_UPDATE
   if (ese_update != ESE_UPDATE_COMPLETED) {
     mCallbackV1_0 = clientCallback;
     clientCallback->onStateChange(false);
@@ -83,6 +86,7 @@ Return<void> VirtualISO::init(
     return Void();
     // Register
   }
+#endif
   if (mIsEseInitialized) {
     clientCallback->onStateChange(true);
     return Void();
@@ -130,6 +134,7 @@ Return<void> VirtualISO::init_1_1(
   } else {
     clientCallback->linkToDeath(this, 0 /*cookie*/);
   }
+#ifdef NXP_BOOTTIME_UPDATE
   if (ese_update != ESE_UPDATE_COMPLETED) {
     mCallbackV1_1 = clientCallback;
     clientCallback->onStateChange_1_1(false, "NXP SE update going on");
@@ -138,6 +143,7 @@ Return<void> VirtualISO::init_1_1(
     return Void();
     // Register
   }
+#endif
   if (mIsEseInitialized) {
     clientCallback->onStateChange_1_1(true, "NXP VISIO HAL init ok");
     return Void();

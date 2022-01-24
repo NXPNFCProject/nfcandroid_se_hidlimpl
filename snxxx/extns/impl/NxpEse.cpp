@@ -16,11 +16,12 @@
  *
  ******************************************************************************/
 #include "NxpEse.h"
-
+#ifdef NXP_BOOTTIME_UPDATE
+#include "eSEClient.h"
+#endif
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
 
-#include "eSEClient.h"
 #include "phNxpEse_Api.h"
 
 namespace vendor {
@@ -164,6 +165,7 @@ exit1:
       virtualISOCallback->onStateChange(false);
   }
 }
+#ifdef NXP_BOOTTIME_UPDATE
 Return<void> NxpEse::ioctlHandler(uint64_t ioctlType,
                                   ese_nxp_IoctlInOutData_t& inpOutData) {
   switch (ioctlType) {
@@ -180,6 +182,7 @@ Return<void> NxpEse::ioctlHandler(uint64_t ioctlType,
   }
   return Void();
 }
+#endif
 
 Return<void> NxpEse::ioctl(uint64_t ioctlType,
                            const hidl_vec<uint8_t>& inOutData,
@@ -192,15 +195,19 @@ Return<void> NxpEse::ioctl(uint64_t ioctlType,
    * underlying HAL implementation since it's an inout argument*/
   memcpy(&inpOutData, pInOutData, sizeof(ese_nxp_IoctlInOutData_t));
   ESESTATUS status = phNxpEse_spiIoctl(ioctlType, &inpOutData);
+#ifdef NXP_BOOTTIME_UPDATE
   ioctlHandler(ioctlType, inpOutData);
+#endif
   /*copy data and additional fields indicating status of ioctl operation
    * and context of the caller. Then invoke the corresponding proxy callback*/
   inpOutData.out.ioctlType = ioctlType;
   inpOutData.out.result = status;
+#ifdef NXP_BOOTTIME_UPDATE
   if (ioctlType == HAL_ESE_IOCTL_GET_ESE_UPDATE_STATE) {
     inpOutData.out.data.status =
         (getJcopUpdateRequired() | (getLsUpdateRequired() << 8));
   }
+#endif
   EseData outputData;
   outputData.setToExternal((uint8_t*)&inpOutData.out,
                            sizeof(ese_nxp_ExtnOutputData_t));
