@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2021 NXP
+ *  Copyright 2018-2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -104,20 +104,30 @@ Return<void> SecureElement::init(
   phNxpEse_setWtxCountLimit(OsuHalExtn::getInstance().getOSUMaxWtxCount());
   status = phNxpEse_open(initParams);
   if (status == ESESTATUS_SUCCESS || ESESTATUS_BUSY == status) {
+    ESESTATUS initStatus = ESESTATUS_SUCCESS;
     ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
-    if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0) &&
-        ESESTATUS_SUCCESS == phNxpEse_init(initParams)) {
-      /*update OS mode during first init*/
-      IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
+    if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0)) {
+      initStatus = phNxpEse_init(initParams);
+      if (ESESTATUS_SUCCESS == initStatus) {
+        /*update OS mode during first init*/
+        IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
 
-      if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)) {
-        LOG(INFO) << "ESE SPI init complete!!!";
-        mIsInitDone = true;
+        if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)) {
+          LOG(INFO) << "ESE SPI init complete!!!";
+          mIsInitDone = true;
+        }
+        deInitStatus = phNxpEse_deInit();
+        if (ESESTATUS_SUCCESS != deInitStatus) mIsInitDone = false;
       }
-      deInitStatus = phNxpEse_deInit();
-      if (ESESTATUS_SUCCESS != deInitStatus) mIsInitDone = false;
     }
     status = phNxpEse_close(deInitStatus);
+    /*Enable terminal post recovery(i.e. close success) from transmit failure */
+    if (status == ESESTATUS_SUCCESS &&
+        (initStatus == ESESTATUS_TRANSCEIVE_FAILED ||
+         initStatus == ESESTATUS_FAILED)) {
+      IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
+      mIsInitDone = true;
+    }
   }
   phNxpEse_setWtxCountLimit(RESET_APP_WTX_COUNT);
   if (status == ESESTATUS_SUCCESS && mIsInitDone) {
@@ -168,20 +178,30 @@ Return<void> SecureElement::init_1_1(
   phNxpEse_setWtxCountLimit(OsuHalExtn::getInstance().getOSUMaxWtxCount());
   status = phNxpEse_open(initParams);
   if (status == ESESTATUS_SUCCESS || ESESTATUS_BUSY == status) {
+    ESESTATUS initStatus = ESESTATUS_SUCCESS;
     ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
-    if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0) &&
-        ESESTATUS_SUCCESS == phNxpEse_init(initParams)) {
-      /*update OS mode during first init*/
-      IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
+    if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0)) {
+      initStatus = phNxpEse_init(initParams);
+      if (initStatus == ESESTATUS_SUCCESS) {
+        /*update OS mode during first init*/
+        IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
 
-      if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)) {
-        LOG(INFO) << "ESE SPI init complete!!!";
-        mIsInitDone = true;
+        if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)) {
+          LOG(INFO) << "ESE SPI init complete!!!";
+          mIsInitDone = true;
+        }
+        deInitStatus = phNxpEse_deInit();
+        if (ESESTATUS_SUCCESS != deInitStatus) mIsInitDone = false;
       }
-      deInitStatus = phNxpEse_deInit();
-      if (ESESTATUS_SUCCESS != deInitStatus) mIsInitDone = false;
     }
     status = phNxpEse_close(deInitStatus);
+    /*Enable terminal post recovery(i.e. close success) from transmit failure */
+    if (status == ESESTATUS_SUCCESS &&
+        (initStatus == ESESTATUS_TRANSCEIVE_FAILED ||
+         initStatus == ESESTATUS_FAILED)) {
+      IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
+      mIsInitDone = true;
+    }
   }
   phNxpEse_setWtxCountLimit(RESET_APP_WTX_COUNT);
   if (status == ESESTATUS_SUCCESS && mIsInitDone) {

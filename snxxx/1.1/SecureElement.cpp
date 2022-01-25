@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2021 NXP
+ *  Copyright 2018-2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -95,17 +95,26 @@ Return<void> SecureElement::init(
 
   status = phNxpEse_open(initParams);
   if (status == ESESTATUS_SUCCESS || ESESTATUS_BUSY == status) {
+    ESESTATUS initStatus = ESESTATUS_SUCCESS;
     ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
-    if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0) &&
-        ESESTATUS_SUCCESS == phNxpEse_init(initParams)) {
-      if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)) {
-        LOG(INFO) << "ESE SPI init complete!!!";
-        mIsInitDone = true;
+    if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0)) {
+      initStatus = phNxpEse_init(initParams)
+      if (initStatus == ESESTATUS_SUCCESS) {
+        if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)) {
+          LOG(INFO) << "ESE SPI init complete!!!";
+          mIsInitDone = true;
+        }
+        deInitStatus = phNxpEse_deInit();
+        if (ESESTATUS_SUCCESS != deInitStatus) mIsInitDone = false;
       }
-      deInitStatus = phNxpEse_deInit();
-      if (ESESTATUS_SUCCESS != deInitStatus) mIsInitDone = false;
     }
     status = phNxpEse_close(deInitStatus);
+    /*Enable terminal post recovery(i.e. close success) from transmit failure */
+    if (status == ESESTATUS_SUCCESS &&
+        (initStatus == ESESTATUS_TRANSCEIVE_FAILED ||
+         initStatus == ESESTATUS_FAILED)) {
+      mIsInitDone = true;
+    }
   }
   if (status == ESESTATUS_SUCCESS && mIsInitDone) {
     mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2) ? 0x0C : 0x04;
@@ -152,17 +161,26 @@ Return<void> SecureElement::init_1_1(
 
   status = phNxpEse_open(initParams);
   if (status == ESESTATUS_SUCCESS || ESESTATUS_BUSY == status) {
+    ESESTATUS initStatus = ESESTATUS_SUCCESS;
     ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
-    if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0) &&
-        ESESTATUS_SUCCESS == phNxpEse_init(initParams)) {
-      if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)) {
-        LOG(INFO) << "ESE SPI init complete!!!";
-        mIsInitDone = true;
+    if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0)) {
+      initStatus = phNxpEse_init(initParams);
+      if (initStatus == ESESTATUS_SUCCESS) {
+        if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)) {
+          LOG(INFO) << "ESE SPI init complete!!!";
+          mIsInitDone = true;
+        }
+        deInitStatus = phNxpEse_deInit();
+        if (ESESTATUS_SUCCESS != deInitStatus) mIsInitDone = false;
       }
-      deInitStatus = phNxpEse_deInit();
-      if (ESESTATUS_SUCCESS != deInitStatus) mIsInitDone = false;
     }
     status = phNxpEse_close(deInitStatus);
+    /*Enable terminal post recovery(i.e. close success) from transmit failure */
+    if (status == ESESTATUS_SUCCESS &&
+        (initStatus == ESESTATUS_TRANSCEIVE_FAILED ||
+         initStatus == ESESTATUS_FAILED)) {
+      mIsInitDone = true;
+    }
   }
   if (status == ESESTATUS_SUCCESS && mIsInitDone) {
     mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2) ? 0x0C : 0x04;
