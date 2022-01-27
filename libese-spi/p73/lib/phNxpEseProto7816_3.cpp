@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2021 NXP
+ *  Copyright 2018-2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -1560,6 +1560,7 @@ static ESESTATUS TransceiveProcess(void) {
   sFrameInfo_t sFrameInfo;
   memset(&sFrameInfo, 0, sizeof(sFrameInfo_t));
 
+  phNxpEse_FlushData();
   ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
   while (phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState !=
          IDLE_STATE) {
