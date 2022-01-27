@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2019,2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -162,4 +162,30 @@ static ESESTATUS phNxpEse_DeletList(phNxpEse_sCoreRecvBuff_List_t* head) {
   }
   head = NULL;
   return status;
+}
+
+/******************************************************************************
+ * Function         phNxpEse_FlushData
+ *
+ * Description      This function flushes the data from the data list
+ *
+ * Returns          void
+ *
+ ******************************************************************************/
+void phNxpEse_FlushData() {
+  phNxpEse_data pRes;
+  phNxpEse_memset(&pRes, 0x00, sizeof(phNxpEse_data));
+
+  /* read if any residual data is there */
+  if ((total_len > 0) &&
+      (ESESTATUS_SUCCESS == phNxpEse_GetData(&pRes.len, &pRes.p_data))) {
+    ALOGD_IF(ese_debug_enabled,
+             "%s Flushed data"
+             " DataLen = %d",
+             __FUNCTION__, pRes.len);
+  }
+  if (pRes.p_data != NULL) {
+    phNxpEse_free(pRes.p_data);
+    pRes.p_data = NULL;
+  }
 }
