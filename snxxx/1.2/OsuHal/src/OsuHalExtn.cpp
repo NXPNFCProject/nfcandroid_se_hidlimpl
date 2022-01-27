@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2020-2021 NXP
+ *  Copyright 2020-2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -45,6 +45,12 @@ OsuHalExtn::OsuApduMode OsuHalExtn::isOsuMode(const hidl_vec<uint8_t>& evt,
 
   switch (type) {
     case OPENBASIC:
+
+      phNxpEse_data atrData;
+      if (phNxpEse_getAtr(&atrData) != ESESTATUS_SUCCESS) {
+        LOG(ERROR) << "phNxpEse_getAtr failed";
+      }
+      checkAndUpdateOsuMode();
       /*
        * update & return OSU_PROP_MODE if OpenBasicChannel AID request matches
        * OSU_AID
