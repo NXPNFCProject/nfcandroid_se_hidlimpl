@@ -209,6 +209,9 @@ ESESTATUS phPalEse_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
 *******************************************************************************/
 void phPalEse_print_packet(const char* pString, const uint8_t* p_data,
                            uint16_t len) {
+  if(!ese_debug_enabled)
+    return;
+
   uint32_t i;
   char print_buffer[len * 3 + 1];
 
