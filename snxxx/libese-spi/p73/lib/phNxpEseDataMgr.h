@@ -25,10 +25,10 @@
  *
  */
 typedef struct phNxpEse_DataPacket {
-  uint8_t sbuffer[MAX_DATA_LEN]; /*!<buffer to be used to store the received packet */
+  uint8_t sbuffer[MAX_DATA_LEN]; /*!<buffer to be used to store the received
+                                    packet */
   uint16_t wLen;                 /*!<hold the length of the buffer */
 } phNxpEse_DataPacket_t;
-
 
 /*!
  * \brief eSE data receive buffer linkedlist

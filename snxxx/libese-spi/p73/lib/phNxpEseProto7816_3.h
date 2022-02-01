@@ -35,8 +35,8 @@
 typedef enum sFrameTypes {
   RESYNCH_REQ = 0x00, /*!< Re-synchronisation request between host and ESE */
   RESYNCH_RSP = 0x20, /*!< Re-synchronisation response between host and ESE */
-  IFS_REQ = 0x01,    /*!< IFSC size request */
-  IFS_RES = 0x21,    /*!< IFSC size response */
+  IFS_REQ = 0x01,     /*!< IFSC size request */
+  IFS_RES = 0x21,     /*!< IFSC size response */
   ABORT_REQ = 0x02,   /*!< Abort request */
   ABORT_RES = 0x22,   /*!< Abort response */
   WTX_REQ = 0x03,     /*!< WTX request */
@@ -45,10 +45,10 @@ typedef enum sFrameTypes {
   INTF_RESET_RSP = 0x24,    /*!< Interface reset response */
   PROP_END_APDU_REQ = 0x05, /*!< Proprietary Enf of APDU request */
   PROP_END_APDU_RSP = 0x25, /*!< Proprietary Enf of APDU response */
-  HARD_RESET_REQ = 0x06,/*!< Chip reset request */
-  HARD_RESET_RSP = 0x26,/*!< Chip reset request */
-  ATR_REQ = 0x07,    /*!< ATR request */
-  ATR_RSP = 0x27,    /*!< ATR response */
+  HARD_RESET_REQ = 0x06,    /*!< Chip reset request */
+  HARD_RESET_RSP = 0x26,    /*!< Chip reset request */
+  ATR_REQ = 0x07,           /*!< ATR request */
+  ATR_RSP = 0x27,           /*!< ATR response */
   INVALID_REQ_RES           /*!< Invalid request */
 } sFrameTypes_t;
 
@@ -106,14 +106,15 @@ typedef enum phNxpEseProto7816_TransceiveStates {
                       reset command to be sent */
   SEND_S_EOS,      /*!< 7816-3 protocol transceive state: S-frame end of session
                       command to be sent */
-  SEND_S_HRD_RST, /*!< 7816-3 protocol transceive state: S-frame 
-                        chip/hard reset command to be sent */
+  SEND_S_HRD_RST,  /*!< 7816-3 protocol transceive state: S-frame
+                         chip/hard reset command to be sent */
   SEND_S_WTX_REQ,  /*!< 7816-3 protocol transceive state: S-frame WTX command to
                       be sent */
   SEND_S_WTX_RSP, /*!< 7816-3 protocol transceive state: S-frame WTX response to
                     be sent */
-  SEND_S_IFS_ADJ, /*!< 7816-3 protocol transceive state: S-frame IFS adjustment */
-  SEND_S_ATR_REQ,  /*!< 7816-3 protocol transceive state: S-frame ATR request */
+  SEND_S_IFS_ADJ, /*!< 7816-3 protocol transceive state: S-frame IFS adjustment
+                   */
+  SEND_S_ATR_REQ, /*!< 7816-3 protocol transceive state: S-frame ATR request */
 } phNxpEseProto7816_TransceiveStates_t;
 
 /*!
@@ -124,19 +125,19 @@ typedef enum phNxpEseProto7816_TransceiveStates {
  *
  */
 typedef struct iFrameInfo {
-  bool isChained; /*!< I-frame: Indicates if more frames to follow in the same
-                       data packet or not */
-  uint8_t* p_data;  /*!< I-frame: Actual data (Information field (INF)) */
+  bool isChained;  /*!< I-frame: Indicates if more frames to follow in the same
+                        data packet or not */
+  uint8_t* p_data; /*!< I-frame: Actual data (Information field (INF)) */
 
-  uint8_t seqNo;    /*!< I-frame: Sequence number of the I-frame */
+  uint8_t seqNo; /*!< I-frame: Sequence number of the I-frame */
 
-  uint32_t maxDataLenIFSC;   /*!< I-frame: Maximum data length to be allowed in a
-                            single I-frame */
-  uint32_t defaultDataLenIFSC;   /*!< I-frame: Maximum data length to be allowed in a
-                            single I-frame */
-  uint32_t currentDataLenIFS;   /*!< I-frame: Current data length agreed
-                            between PCD and Card to be allowed in a
-                            single I-frame */
+  uint32_t maxDataLenIFSC; /*!< I-frame: Maximum data length to be allowed in a
+                          single I-frame */
+  uint32_t defaultDataLenIFSC; /*!< I-frame: Maximum data length to be allowed
+                          in a single I-frame */
+  uint32_t currentDataLenIFS;  /*!< I-frame: Current data length agreed
+                           between PCD and Card to be allowed in a
+                           single I-frame */
 
   uint32_t dataOffset;   /*!< I-frame: Offset to the actual data(INF) for the
                             current frame of the packet */
@@ -155,7 +156,7 @@ typedef struct iFrameInfo {
 typedef struct sFrameInfo {
   sFrameTypes_t sFrameType; /*!< S-frame: Type of S-frame cmd/rsp */
   uint8_t* p_data; /*!< S-frame: Actual data (Information field (INF)) */
-  uint8_t len; /*!< S-frame: the length of the I-frame actual data */
+  uint8_t len;     /*!< S-frame: the length of the I-frame actual data */
 } sFrameInfo_t;
 
 /*!
@@ -177,26 +178,28 @@ typedef struct rFrameInfo {
  *
  */
 typedef struct phNxpEseProto7816_ATR_Info {
-  uint8_t len;          /*!< ATR: ATR length in bytes */
-  uint8_t vendorID[5];  /*!< ATR: VendorID according to ISO7816-5 */
-  uint8_t dll_IC;       /*!< ATR: Data Link Layer - Interface Character */
-  uint8_t bgt[2];         /*!< ATR: Minimum guard time in milliseconds for
-                        T=1 blocks sent in opposite directions */
-  uint8_t bwt[2];         /*!< ATR: Maximum allowed command processing
+  uint8_t len;         /*!< ATR: ATR length in bytes */
+  uint8_t vendorID[5]; /*!< ATR: VendorID according to ISO7816-5 */
+  uint8_t dll_IC;      /*!< ATR: Data Link Layer - Interface Character */
+  uint8_t bgt[2];      /*!< ATR: Minimum guard time in milliseconds for
+                     T=1 blocks sent in opposite directions */
+  uint8_t
+      bwt[2];             /*!< ATR: Maximum allowed command processing
                         time in milliseconds before card has sent either
                         command response or S(WTX) requesting processing time extension */
   uint8_t maxFreq[2];     /*!< ATR: Max supported  clock frequency in kHz  */
-  uint8_t checksum;     /*!< ATR: Checksum (0 = LRC / 1 = CRC) */
-  uint8_t defaultIFSC;  /*!< ATR: Default IFS size */
-  uint8_t numChannels;  /*!< ATR: Number of logical connections supported */
+  uint8_t checksum;       /*!< ATR: Checksum (0 = LRC / 1 = CRC) */
+  uint8_t defaultIFSC;    /*!< ATR: Default IFS size */
+  uint8_t numChannels;    /*!< ATR: Number of logical connections supported */
   uint8_t maxIFSC[2];     /*!< ATR: Maximum size of IFS supported */
-  uint8_t capbilities[2]; /*!< ATR: Bitmap to indicate various features supported by SE
-                        Bit-1: SE Data Available Line supported.
-                        Bit-2: SE Data available polarity. 1 - Data available GPIO will be pulled HIGH when SE response is ready
-                        Bit 3: SE chip reset S-blk command supported
-                        Bit-4: Extended frame length feature supported
-                        Bit-5: Support for more than one logical channel
-                        Bit 6 to 16: Reserved for future use
+  uint8_t capbilities[2]; /*!< ATR: Bitmap to indicate various features
+                        supported by SE Bit-1: SE Data Available Line supported.
+                        Bit-2: SE Data available polarity. 1 - Data available
+                        GPIO will be pulled HIGH when SE response is ready Bit
+                        3: SE chip reset S-blk command supported Bit-4: Extended
+                        frame length feature supported Bit-5: Support for more
+                        than one logical channel Bit 6 to 16: Reserved for
+                        future use
                         */
 } phNxpEseProto7816_ATR_Info_t;
 
@@ -264,7 +267,6 @@ typedef struct phNxpEseProto7816SecureTimer {
   unsigned int secureTimer3;
 } phNxpEseProto7816SecureTimer_t;
 
-
 /*!
  * \brief  structure to hold the interface reset parameters
  * secure timer(only for PN8xT products) and atr info.
@@ -322,7 +324,7 @@ typedef struct phNxpEseProto7816 {
  */
 typedef struct phNxpEseProto7816InitParam {
   unsigned long int wtx_counter_limit; /*!< WTX count limit */
-  bool interfaceReset;               /*!< INTF reset required or not>*/
+  bool interfaceReset;                 /*!< INTF reset required or not>*/
   unsigned long int rnack_retry_limit;
   phNxpEseProto7816SecureTimer_t*
       pSecureTimerParams; /*!< Secure timer value updated here >*/
@@ -347,7 +349,6 @@ typedef struct phNxpEseProto7816_PCB_bits {
   uint8_t bit7 : 1; /*!< PCB: bit7 */
   uint8_t msb : 1;  /*!< PCB: msb */
 } phNxpEseProto7816_PCB_bits_t;
-
 
 /*!
  * \brief Max. size of the frame that can be sent
@@ -428,7 +429,7 @@ typedef struct phNxpEseProto7816_PCB_bits {
 /*!
  * \brief 7816-3 S-block hard reset cmd mask
  */
-#define PH_PROTO_7816_S_HRD_RST_CMD  0x06
+#define PH_PROTO_7816_S_HRD_RST_CMD 0x06
 /*!
  * \brief 7816-3 protocol max. error retry counter
  */
@@ -464,7 +465,7 @@ typedef struct phNxpEseProto7816_PCB_bits {
 /*!
  * \brief APIs exposed from the 7816-3 protocol layer
  */
-#define RESET_TYPE_NONE   0x00
+#define RESET_TYPE_NONE 0x00
 /*!
  * \brief APIs exposed from the 7816-3 protocol layer
  */
@@ -484,7 +485,7 @@ typedef struct phNxpEseProto7816_PCB_bits {
 /*!
  * \brief APIs exposed from the 7816-3 protocol layer
  */
-#define PH_SE_OS_VERSION_10            0x10
+#define PH_SE_OS_VERSION_10 0x10
 /*!
  * \brief APIs exposed from the 7816-3 protocol layer
  */
@@ -546,7 +547,8 @@ ESESTATUS phNxpEseProto7816_Open(phNxpEseProto7816InitParam_t initParam);
  *
  *
  */
-ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp);
+ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd,
+                                       phNxpEse_data* pRsp);
 
 /**
  * \ingroup ISO7816-3_protocol_lib
@@ -569,17 +571,19 @@ ESESTATUS phNxpEseProto7816_SetIfs(uint16_t IFS_Size);
  * \ingroup ISO7816-3_protocol_lib
  * \brief This function is used to set the endpoint
  *
- * \param[in]  uEndPoint:   END_POINT_ESE = 0 (eSE services), END_POINT_EUICC =1(UICC services)
+ * \param[in]  uEndPoint:   END_POINT_ESE = 0 (eSE services), END_POINT_EUICC
+ * =1(UICC services)
  *
-*/
+ */
 ESESTATUS phNxpEseProto7816_SetEndPoint(uint8_t uEndPoint);
 /**
  * \ingroup ISO7816-3_protocol_lib
  * \brief This function is used to reset the endpoint
  *
- * \param[in]  uEndPoint:   END_POINT_ESE = 0 (eSE services), END_POINT_EUICC =1(UICC services)
+ * \param[in]  uEndPoint:   END_POINT_ESE = 0 (eSE services), END_POINT_EUICC
+ * =1(UICC services)
  *
-*/
+ */
 ESESTATUS phNxpEseProto7816_ResetEndPoint(uint8_t uEndPoint);
 /**
  * \ingroup ISO7816-3_protocol_lib
@@ -587,7 +591,7 @@ ESESTATUS phNxpEseProto7816_ResetEndPoint(uint8_t uEndPoint);
  *
  * \param[out] pATRRsp: Response ATR bytes from ESE
  *
-*/
+ */
 ESESTATUS phNxpEseProto7816_getAtr(phNxpEse_data* pATRRsp);
 
 /**

@@ -16,13 +16,15 @@
  *
  ******************************************************************************/
 #include "SecureElement.h"
+
 #include <android-base/logging.h>
-#include "phNxpEse_Apdu_Api.h"
-#include "phNxpEse_Api.h"
 #include <android-base/stringprintf.h>
-#include "hal_nxpese.h"
+
 #include "NxpEse.h"
 #include "eSEClient.h"
+#include "hal_nxpese.h"
+#include "phNxpEse_Apdu_Api.h"
+#include "phNxpEse_Api.h"
 /* Mutex to synchronize multiple transceive */
 
 namespace android {
@@ -53,9 +55,7 @@ sp<V1_1::ISecureElementHalCallback> SecureElement::mCallbackV1_1 = nullptr;
 std::vector<bool> SecureElement::mOpenedChannels;
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 SecureElement::SecureElement()
-    : mMaxChannelCount(0),
-      mOpenedchannelCount(0),
-      mIsEseInitialized(false) {}
+    : mMaxChannelCount(0), mOpenedchannelCount(0), mIsEseInitialized(false) {}
 
 void SecureElement::NotifySeWaitExtension(phNxpEse_wtxState state) {
   if (state == WTX_ONGOING) {
@@ -84,13 +84,13 @@ Return<void> SecureElement::init(
     clientCallback->linkToDeath(this, 0 /*cookie*/);
   }
   LOG(INFO) << "SecureElement::init called here";
-  if(ese_update != ESE_UPDATE_COMPLETED) {
+  if (ese_update != ESE_UPDATE_COMPLETED) {
     mCallbackV1_0 = clientCallback;
     clientCallback->onStateChange(false);
     LOG(INFO) << "ESE JCOP Download in progress";
     NxpEse::setSeCallBack(clientCallback);
     return Void();
-    //Register
+    // Register
   }
   if (mIsEseInitialized) {
     clientCallback->onStateChange(true);
@@ -99,10 +99,10 @@ Return<void> SecureElement::init(
 
   phNxpEse_setWtxCountLimit(OsuHalExtn::getInstance().getOSUMaxWtxCount());
   status = phNxpEse_open(initParams);
-  if (status == ESESTATUS_SUCCESS || ESESTATUS_BUSY == status){
+  if (status == ESESTATUS_SUCCESS || ESESTATUS_BUSY == status) {
     ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
     if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0) &&
-      ESESTATUS_SUCCESS == phNxpEse_init(initParams)){
+        ESESTATUS_SUCCESS == phNxpEse_init(initParams)) {
       /*update OS mode during first init*/
       IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
 
@@ -116,21 +116,17 @@ Return<void> SecureElement::init(
     status = phNxpEse_close(deInitStatus);
   }
   phNxpEse_setWtxCountLimit(RESET_APP_WTX_COUNT);
-  if (status == ESESTATUS_SUCCESS && mIsInitDone)
-  {
-    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2)? 0x0C: 0x04;
+  if (status == ESESTATUS_SUCCESS && mIsInitDone) {
+    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2) ? 0x0C : 0x04;
     mOpenedChannels.resize(mMaxChannelCount, false);
     clientCallback->onStateChange(true);
     mCallbackV1_0 = clientCallback;
-  }
-  else
-  {
+  } else {
     LOG(ERROR) << "eSE-Hal Init failed";
     clientCallback->onStateChange(false);
   }
   return Void();
 }
-
 
 Return<void> SecureElement::init_1_1(
     const sp<
@@ -150,47 +146,44 @@ Return<void> SecureElement::init_1_1(
     clientCallback->linkToDeath(this, 0 /*cookie*/);
   }
   LOG(INFO) << "SecureElement::init called here";
-  if(ese_update != ESE_UPDATE_COMPLETED) {
+  if (ese_update != ESE_UPDATE_COMPLETED) {
     mCallbackV1_1 = clientCallback;
     clientCallback->onStateChange_1_1(false, "NXP SE update going on");
     LOG(INFO) << "ESE JCOP Download in progress";
     NxpEse::setSeCallBack_1_1(clientCallback);
     return Void();
-    //Register
+    // Register
   }
   if (mIsEseInitialized) {
     clientCallback->onStateChange_1_1(true, "NXP SE HAL init ok");
     return Void();
   }
 
- phNxpEse_setWtxCountLimit(OsuHalExtn::getInstance().getOSUMaxWtxCount());
- status = phNxpEse_open(initParams);
-  if (status == ESESTATUS_SUCCESS || ESESTATUS_BUSY == status){
+  phNxpEse_setWtxCountLimit(OsuHalExtn::getInstance().getOSUMaxWtxCount());
+  status = phNxpEse_open(initParams);
+  if (status == ESESTATUS_SUCCESS || ESESTATUS_BUSY == status) {
     ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
     if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0) &&
-      ESESTATUS_SUCCESS == phNxpEse_init(initParams)){
+        ESESTATUS_SUCCESS == phNxpEse_init(initParams)) {
       /*update OS mode during first init*/
       IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
 
-      if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)){
+      if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)) {
         LOG(INFO) << "ESE SPI init complete!!!";
         mIsInitDone = true;
       }
       deInitStatus = phNxpEse_deInit();
-      if (ESESTATUS_SUCCESS != deInitStatus)
-        mIsInitDone = false;
+      if (ESESTATUS_SUCCESS != deInitStatus) mIsInitDone = false;
     }
     status = phNxpEse_close(deInitStatus);
   }
   phNxpEse_setWtxCountLimit(RESET_APP_WTX_COUNT);
   if (status == ESESTATUS_SUCCESS && mIsInitDone) {
-    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2)? 0x0C: 0x04;
+    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2) ? 0x0C : 0x04;
     mOpenedChannels.resize(mMaxChannelCount, false);
     clientCallback->onStateChange_1_1(true, "NXP SE HAL init ok");
     mCallbackV1_1 = clientCallback;
-  }
-  else
-  {
+  } else {
     LOG(ERROR) << "eSE-Hal Init failed";
     clientCallback->onStateChange_1_1(false, "NXP SE HAL init failed");
   }
@@ -205,7 +198,7 @@ Return<void> SecureElement::getAtr(getAtr_cb _hidl_cb) {
   ESESTATUS status = ESESTATUS_FAILED;
   bool mIsSeHalInitDone = false;
 
-  //In dedicated mode getATR not allowed
+  // In dedicated mode getATR not allowed
   if (IS_OSU_MODE(OsuHalExtn::getInstance().GETATR)) {
     LOG(ERROR) << "%s: Not allowed in dedicated mode!!!" << __func__;
     _hidl_cb(response);
@@ -215,11 +208,11 @@ Return<void> SecureElement::getAtr(getAtr_cb _hidl_cb) {
   if (!mIsEseInitialized) {
     ESESTATUS status = seHalInit();
     if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << "%s: seHalInit Failed!!!"<< __func__;
-      _hidl_cb(response);/*Return with empty Vector*/
+      LOG(ERROR) << "%s: seHalInit Failed!!!" << __func__;
+      _hidl_cb(response); /*Return with empty Vector*/
       return Void();
-    }else{
-      mIsSeHalInitDone=true;
+    } else {
+      mIsSeHalInitDone = true;
     }
   }
   status = phNxpEse_SetEndPoint_Cntxt(0);
@@ -229,7 +222,7 @@ Return<void> SecureElement::getAtr(getAtr_cb _hidl_cb) {
   status = phNxpEse_getAtr(&atrData);
   if (status != ESESTATUS_SUCCESS) {
     LOG(ERROR) << "phNxpEse_getAtr failed";
-    _hidl_cb(response);/*Return with empty Vector*/
+    _hidl_cb(response); /*Return with empty Vector*/
     return Void();
   } else {
     response.resize(atrData.len);
@@ -242,17 +235,18 @@ Return<void> SecureElement::getAtr(getAtr_cb _hidl_cb) {
   }
 
   if (status != ESESTATUS_SUCCESS) {
-    LOG(INFO) << StringPrintf("ATR Data[BytebyByte]=Look below for %d bytes", atrData.len);
+    LOG(INFO) << StringPrintf("ATR Data[BytebyByte]=Look below for %d bytes",
+                              atrData.len);
     for (auto i = response.begin(); i != response.end(); ++i)
       LOG(INFO) << StringPrintf("0x%x\t", *i);
   }
 
   _hidl_cb(response);
-  if(atrData.p_data != NULL){
+  if (atrData.p_data != NULL) {
     phNxpEse_free(atrData.p_data);
   }
-  if(mIsSeHalInitDone){
-    if(SecureElementStatus::SUCCESS != seHalDeInit())
+  if (mIsSeHalInitDone) {
+    if (SecureElementStatus::SUCCESS != seHalDeInit())
       LOG(ERROR) << "phNxpEse_getAtr seHalDeInit failed";
     mIsEseInitialized = false;
     mIsSeHalInitDone = false;
@@ -272,7 +266,7 @@ Return<void> SecureElement::transmit(const hidl_vec<uint8_t>& data,
   gsTxRxBuffer.cmdData.len = (uint32_t)data.size();
   gsTxRxBuffer.cmdData.p_data =
       (uint8_t*)phNxpEse_memalloc(data.size() * sizeof(uint8_t));
-  if(NULL == gsTxRxBuffer.cmdData.p_data){
+  if (NULL == gsTxRxBuffer.cmdData.p_data) {
     LOG(ERROR) << "transmit failed to allocate the Memory!!!";
     /*Return empty hidl_vec*/
     _hidl_cb(result);
@@ -300,8 +294,7 @@ Return<void> SecureElement::transmit(const hidl_vec<uint8_t>& data,
   if (status != ESESTATUS_SUCCESS) {
     LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
   }
-  status =
-      phNxpEse_Transceive(&gsTxRxBuffer.cmdData, &gsTxRxBuffer.rspData);
+  status = phNxpEse_Transceive(&gsTxRxBuffer.cmdData, &gsTxRxBuffer.rspData);
 
   if (status == ESESTATUS_SUCCESS) {
     result.resize(gsTxRxBuffer.rspData.len);
@@ -319,11 +312,11 @@ Return<void> SecureElement::transmit(const hidl_vec<uint8_t>& data,
   }
 
   _hidl_cb(result);
-  if(NULL != gsTxRxBuffer.cmdData.p_data){
+  if (NULL != gsTxRxBuffer.cmdData.p_data) {
     phNxpEse_free(gsTxRxBuffer.cmdData.p_data);
     gsTxRxBuffer.cmdData.p_data = NULL;
   }
-  if(NULL != gsTxRxBuffer.rspData.p_data){
+  if (NULL != gsTxRxBuffer.rspData.p_data) {
     phNxpEse_free(gsTxRxBuffer.rspData.p_data);
     gsTxRxBuffer.rspData.p_data = NULL;
   }
@@ -343,7 +336,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
 
   LOG(INFO) << "Acquired the lock from SPI openLogicalChannel";
 
-  //In dedicated mode openLogical not allowed
+  // In dedicated mode openLogical not allowed
   if (IS_OSU_MODE(OsuHalExtn::getInstance().OPENLOGICAL)) {
     LOG(ERROR) << "%s: Not allowed in dedicated mode!!!" << __func__;
     _hidl_cb(resApduBuff, SecureElementStatus::IOERROR);
@@ -352,14 +345,14 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   if (!mIsEseInitialized) {
     ESESTATUS status = seHalInit();
     if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << "%s: seHalInit Failed!!!"<< __func__;
+      LOG(ERROR) << "%s: seHalInit Failed!!!" << __func__;
       _hidl_cb(resApduBuff, SecureElementStatus::IOERROR);
       return Void();
     }
   }
 
   if (mOpenedChannels.size() == 0x00) {
-    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2)? 0x0C: 0x04;
+    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2) ? 0x0C : 0x04;
     mOpenedChannels.resize(mMaxChannelCount, false);
   }
 
@@ -394,8 +387,8 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
     mOpenedchannelCount++;
     mOpenedChannels[resApduBuff.channelNumber] = true;
     sestatus = SecureElementStatus::SUCCESS;
-  }else if (((rspApdu.p_data[rspApdu.len - 2] == 0x6E) ||
-            (rspApdu.p_data[rspApdu.len - 2] == 0x6D)) &&
+  } else if (((rspApdu.p_data[rspApdu.len - 2] == 0x6E) ||
+              (rspApdu.p_data[rspApdu.len - 2] == 0x6D)) &&
              rspApdu.p_data[rspApdu.len - 1] == 0x00) {
     sestatus = SecureElementStatus::UNSUPPORTED_OPERATION;
   }
@@ -404,12 +397,12 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   phNxpEse_free(rspApdu.p_data);
 
   if (sestatus != SecureElementStatus::SUCCESS) {
-      if (mOpenedchannelCount == 0) {
-          SecureElementStatus deInitStatus = seHalDeInit();
-          if (deInitStatus != SecureElementStatus::SUCCESS) {
-              LOG(INFO) << "seDeInit Failed";
-          }
+    if (mOpenedchannelCount == 0) {
+      SecureElementStatus deInitStatus = seHalDeInit();
+      if (deInitStatus != SecureElementStatus::SUCCESS) {
+        LOG(INFO) << "seDeInit Failed";
       }
+    }
     /*If manageChanle is failed in any of above cases
     send the callback and return*/
     status = phNxpEse_ResetEndPoint_Cntxt(0);
@@ -428,22 +421,25 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
   phNxpEse_memset(&rpdu, 0x00, sizeof(phNxpEse_7816_rpdu_t));
 
-  if ((resApduBuff.channelNumber > 0x03) && (resApduBuff.channelNumber < 0x14)) {
+  if ((resApduBuff.channelNumber > 0x03) &&
+      (resApduBuff.channelNumber < 0x14)) {
     /* update CLA byte accoridng to GP spec Table 11-12*/
-    cpdu.cla = 0x40 + (resApduBuff.channelNumber-4); /* Class of instruction */
-  }else if ((resApduBuff.channelNumber > 0x00) && (resApduBuff.channelNumber < 0x04)){
+    cpdu.cla =
+        0x40 + (resApduBuff.channelNumber - 4); /* Class of instruction */
+  } else if ((resApduBuff.channelNumber > 0x00) &&
+             (resApduBuff.channelNumber < 0x04)) {
     /* update CLA byte accoridng to GP spec Table 11-11*/
     cpdu.cla = resApduBuff.channelNumber; /* Class of instruction */
   } else {
-    LOG(ERROR) << StringPrintf("%s: Invalid Channel no: %02x",
-              __func__, resApduBuff.channelNumber);
+    LOG(ERROR) << StringPrintf("%s: Invalid Channel no: %02x", __func__,
+                               resApduBuff.channelNumber);
     resApduBuff.channelNumber = 0xff;
     _hidl_cb(resApduBuff, SecureElementStatus::IOERROR);
     return Void();
   }
-  cpdu.ins = 0xA4;                      /* Instruction code */
-  cpdu.p1 = 0x04;                       /* Instruction parameter 1 */
-  cpdu.p2 = p2;                         /* Instruction parameter 2 */
+  cpdu.ins = 0xA4; /* Instruction code */
+  cpdu.p1 = 0x04;  /* Instruction parameter 1 */
+  cpdu.p2 = p2;    /* Instruction parameter 2 */
   cpdu.lc = (uint16_t)aid.size();
   cpdu.le_type = 0x01;
   cpdu.pdata = (uint8_t*)phNxpEse_memalloc(aid.size() * sizeof(uint8_t));
@@ -453,9 +449,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   rpdu.len = 0x02;
   rpdu.pdata = (uint8_t*)phNxpEse_memalloc(cpdu.le * sizeof(uint8_t));
 
-
   status = phNxpEse_7816_Transceive(&cpdu, &rpdu);
-
 
   if (status != ESESTATUS_SUCCESS) {
     /*Transceive failed*/
@@ -502,7 +496,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
     SecureElementStatus closeChannelStatus =
         internalCloseChannel(resApduBuff.channelNumber);
     if (closeChannelStatus != SecureElementStatus::SUCCESS) {
-      LOG(ERROR)<<"%s: closeChannel Failed"<< __func__;
+      LOG(ERROR) << "%s: closeChannel Failed" << __func__;
     } else {
       resApduBuff.channelNumber = 0xff;
     }
@@ -527,7 +521,7 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
   phNxpEse_7816_rpdu_t rpdu;
   hidl_vec<uint8_t> result;
   hidl_vec<uint8_t> ls_aid = {0xA0, 0x00, 0x00, 0x03, 0x96, 0x41, 0x4C,
-              0x41, 0x01, 0x43, 0x4F, 0x52, 0x01};
+                              0x41, 0x01, 0x43, 0x4F, 0x52, 0x01};
 
   LOG(ERROR) << "Acquired the lock in SPI openBasicChannel";
   OsuHalExtn::OsuApduMode mode =
@@ -539,7 +533,7 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
     if (mIsEseInitialized) {
       /*Close existing sessions if any to start dedicated OSU Mode
        * with OSU specific settings in TZ/TEE*/
-      if(seHalDeInit() != SecureElementStatus::SUCCESS) {
+      if (seHalDeInit() != SecureElementStatus::SUCCESS) {
         LOG(INFO) << "seDeInit Failed";
         _hidl_cb(result, SecureElementStatus::IOERROR);
         return Void();
@@ -558,7 +552,7 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
       _hidl_cb(result, SecureElementStatus::IOERROR);
       return Void();
     }
-    if(phNxpEse_doResetProtection(true) != ESESTATUS_SUCCESS) {
+    if (phNxpEse_doResetProtection(true) != ESESTATUS_SUCCESS) {
       LOG(ERROR) << "%s: Enable Reset Protection Failed!!!" << __func__;
       _hidl_cb(result, SecureElementStatus::FAILED);
     } else {
@@ -574,14 +568,14 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
   if (!mIsEseInitialized) {
     ESESTATUS status = seHalInit();
     if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << "%s: seHalInit Failed!!!"<< __func__;
+      LOG(ERROR) << "%s: seHalInit Failed!!!" << __func__;
       _hidl_cb(result, SecureElementStatus::IOERROR);
       return Void();
     }
   }
 
   if (mOpenedChannels.size() == 0x00) {
-    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2)? 0x0C: 0x04;
+    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2) ? 0x0C : 0x04;
     mOpenedChannels.resize(mMaxChannelCount, false);
   }
   phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
@@ -661,7 +655,7 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
     SecureElementStatus closeChannelStatus =
         internalCloseChannel(DEFAULT_BASIC_CHANNEL);
     if (closeChannelStatus != SecureElementStatus::SUCCESS) {
-      LOG(ERROR)<<"%s: closeChannel Failed"<< __func__;
+      LOG(ERROR) << "%s: closeChannel Failed" << __func__;
     }
   }
   _hidl_cb(result, sestatus);
@@ -670,8 +664,8 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
   return Void();
 }
 
-Return<SecureElementStatus>
-SecureElement::internalCloseChannel(uint8_t channelNumber) {
+Return<SecureElementStatus> SecureElement::internalCloseChannel(
+    uint8_t channelNumber) {
   ESESTATUS status = ESESTATUS_SUCCESS;
   SecureElementStatus sestatus = SecureElementStatus::FAILED;
   phNxpEse_7816_cpdu_t cpdu;
@@ -679,17 +673,17 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
 
   LOG(ERROR) << "Acquired the lock in SPI internalCloseChannel";
   LOG(INFO) << StringPrintf("mMaxChannelCount = %d, Closing Channel = %d",
-                                mMaxChannelCount, channelNumber);
+                            mMaxChannelCount, channelNumber);
   if (channelNumber >= mMaxChannelCount) {
-    LOG(ERROR) << StringPrintf("invalid channel!!! %d",channelNumber);
-  } else if (channelNumber > DEFAULT_BASIC_CHANNEL){
+    LOG(ERROR) << StringPrintf("invalid channel!!! %d", channelNumber);
+  } else if (channelNumber > DEFAULT_BASIC_CHANNEL) {
     phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
     phNxpEse_memset(&rpdu, 0x00, sizeof(phNxpEse_7816_rpdu_t));
     cpdu.cla = channelNumber; /* Class of instruction */
-    //For Suplementary Channel update CLA byte according to GP
+    // For Suplementary Channel update CLA byte according to GP
     if ((channelNumber > 0x03) && (channelNumber < 0x14)) {
       /* update CLA byte accoridng to GP spec Table 11-12*/
-      cpdu.cla = 0x40 + (channelNumber-4); /* Class of instruction */
+      cpdu.cla = 0x40 + (channelNumber - 4); /* Class of instruction */
     }
     cpdu.ins = 0x70;          /* Instruction code */
     cpdu.p1 = 0x80;           /* Instruction parameter 1 */
@@ -711,8 +705,8 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
       LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     }
   }
-  if(channelNumber < mMaxChannelCount) {
-    if(mOpenedChannels[channelNumber]) {
+  if (channelNumber < mMaxChannelCount) {
+    if (mOpenedChannels[channelNumber]) {
       mOpenedChannels[channelNumber] = false;
       mOpenedchannelCount--;
     }
@@ -726,11 +720,9 @@ SecureElement::internalCloseChannel(uint8_t channelNumber) {
   return sestatus;
 }
 
-
-Return<SecureElementStatus>
-SecureElement::closeChannel(uint8_t channelNumber) {
+Return<SecureElementStatus> SecureElement::closeChannel(uint8_t channelNumber) {
   AutoMutex guard(seHalLock);
-  //Close internal allowed when not in dedicated Mode
+  // Close internal allowed when not in dedicated Mode
   if (!IS_OSU_MODE(OsuHalExtn::getInstance().CLOSE, channelNumber)) {
     return internalCloseChannel(channelNumber);
   } else {
@@ -747,49 +739,48 @@ SecureElement::closeChannel(uint8_t channelNumber) {
 }
 
 void SecureElement::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
-    LOG(ERROR) << " SecureElement serviceDied!!!";
-    mIsEseInitialized = false;
-    if(seHalDeInit() != SecureElementStatus::SUCCESS){
-      LOG(ERROR) << "SE Deinit not successfull";
-    }
+  LOG(ERROR) << " SecureElement serviceDied!!!";
+  mIsEseInitialized = false;
+  if (seHalDeInit() != SecureElementStatus::SUCCESS) {
+    LOG(ERROR) << "SE Deinit not successfull";
   }
-  ESESTATUS SecureElement::seHalInit() {
-    ESESTATUS status = ESESTATUS_SUCCESS;
-    phNxpEse_initParams initParams;
-    ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
-    memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
-    initParams.initMode = ESE_MODE_NORMAL;
-    initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
-    initParams.fPtr_WtxNtf = SecureElement::NotifySeWaitExtension;
+}
+ESESTATUS SecureElement::seHalInit() {
+  ESESTATUS status = ESESTATUS_SUCCESS;
+  phNxpEse_initParams initParams;
+  ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
+  memset(&initParams, 0x00, sizeof(phNxpEse_initParams));
+  initParams.initMode = ESE_MODE_NORMAL;
+  initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
+  initParams.fPtr_WtxNtf = SecureElement::NotifySeWaitExtension;
 
-    status = phNxpEse_open(initParams);
-    if (ESESTATUS_SUCCESS == status || ESESTATUS_BUSY == status) {
-      if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0) &&
-          ESESTATUS_SUCCESS == (status = phNxpEse_init(initParams))) {
-        if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)) {
-          mIsEseInitialized = true;
-          LOG(INFO) << "ESE SPI init complete!!!";
-          return ESESTATUS_SUCCESS;
-        }
-      } else {
-        LOG(INFO) << "ESE SPI init NOT successful";
-        status = ESESTATUS_FAILED;
+  status = phNxpEse_open(initParams);
+  if (ESESTATUS_SUCCESS == status || ESESTATUS_BUSY == status) {
+    if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0) &&
+        ESESTATUS_SUCCESS == (status = phNxpEse_init(initParams))) {
+      if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)) {
+        mIsEseInitialized = true;
+        LOG(INFO) << "ESE SPI init complete!!!";
+        return ESESTATUS_SUCCESS;
       }
-      deInitStatus = phNxpEse_deInit();
-      if(phNxpEse_close(deInitStatus) != ESESTATUS_SUCCESS){
-        LOG(INFO) << "ESE close not successful";
-        status = ESESTATUS_FAILED;
-      }
-      mIsEseInitialized = false;
+    } else {
+      LOG(INFO) << "ESE SPI init NOT successful";
+      status = ESESTATUS_FAILED;
     }
-    return status;
+    deInitStatus = phNxpEse_deInit();
+    if (phNxpEse_close(deInitStatus) != ESESTATUS_SUCCESS) {
+      LOG(INFO) << "ESE close not successful";
+      status = ESESTATUS_FAILED;
+    }
+    mIsEseInitialized = false;
+  }
+  return status;
 }
 
-Return<SecureElementStatus>
-SecureElement::seHalDeInit() {
+Return<SecureElementStatus> SecureElement::seHalDeInit() {
   ESESTATUS status = ESESTATUS_SUCCESS;
   ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
-  bool mIsDeInitDone=true;
+  bool mIsDeInitDone = true;
   SecureElementStatus sestatus = SecureElementStatus::FAILED;
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
@@ -797,8 +788,7 @@ SecureElement::seHalDeInit() {
     mIsDeInitDone = false;
   }
   deInitStatus = phNxpEse_deInit();
-  if(ESESTATUS_SUCCESS != deInitStatus)
-    mIsDeInitDone = false;
+  if (ESESTATUS_SUCCESS != deInitStatus) mIsDeInitDone = false;
   status = phNxpEse_ResetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
     LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
@@ -806,8 +796,8 @@ SecureElement::seHalDeInit() {
   }
   status = phNxpEse_close(deInitStatus);
   if (status == ESESTATUS_SUCCESS && mIsDeInitDone) {
-    sestatus = SecureElementStatus::SUCCESS;;
-  }else {
+    sestatus = SecureElementStatus::SUCCESS;
+  } else {
     LOG(ERROR) << "seHalDeInit: Failed";
   }
   mIsEseInitialized = false;
@@ -837,7 +827,8 @@ SecureElement::reset() {
     } else {
       sestatus = SecureElementStatus::SUCCESS;
       if (mOpenedChannels.size() == 0x00) {
-        mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2)? 0x0C: 0x04;
+        mMaxChannelCount =
+            (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2) ? 0x0C : 0x04;
         mOpenedChannels.resize(mMaxChannelCount, false);
       }
       for (uint8_t xx = 0; xx < mMaxChannelCount; xx++) {
@@ -847,7 +838,7 @@ SecureElement::reset() {
       mCallbackV1_1->onStateChange_1_1(true, "SE initialized");
     }
   }
-  LOG(ERROR) << "%s: Exit" <<  __func__;
+  LOG(ERROR) << "%s: Exit" << __func__;
   return sestatus;
 }
 

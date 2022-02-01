@@ -122,7 +122,7 @@ ESESTATUS phNxpEse_7816_Transceive(pphNxpEse_7816_cpdu_t pCmd,
  *application
  * \param[in]        **pcmd_data - Hold the allocated memory buffer for
  *command.
-  * \param[in]        *cmd_len - Hold the buffer length, update by this
+ * \param[in]        *cmd_len - Hold the buffer length, update by this
  *function
  *
  * \retval  ESESTATUS_SUCCESS on Success else proper error code

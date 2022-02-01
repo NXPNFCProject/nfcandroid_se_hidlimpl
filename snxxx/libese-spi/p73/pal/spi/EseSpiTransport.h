@@ -27,6 +27,8 @@ class EseSpiTransport : public EseTransport {
   int Write(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToWrite);
   ESESTATUS Ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
                   long level);
-private:
-	unsigned long int mConfigSofWrite, mConfigSpiWriteTimeout, mConfigColdResetIntf;
+
+ private:
+  unsigned long int mConfigSofWrite, mConfigSpiWriteTimeout,
+      mConfigColdResetIntf;
 };

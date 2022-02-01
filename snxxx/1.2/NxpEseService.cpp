@@ -16,39 +16,40 @@
  *
  ******************************************************************************/
 #define LOG_TAG "nxpese@1.2-service"
-#include <log/log.h>
-#include <android/hardware/secure_element/1.2/ISecureElement.h>
-#include <vendor/nxp/nxpese/1.0/INxpEse.h>
 #include <android/hardware/nfc/1.2/INfc.h>
-#include "VirtualISO.h"
-
+#include <android/hardware/secure_element/1.2/ISecureElement.h>
 #include <hidl/LegacySupport.h>
+#include <log/log.h>
 #include <string.h>
+#include <vendor/nxp/nxpese/1.0/INxpEse.h>
+
 #include <regex>
+
 #include "NxpEse.h"
 #include "SecureElement.h"
+#include "VirtualISO.h"
 #include "eSEClient.h"
 
-#define MAX_NFC_GET_RETRY           30
-#define NFC_GET_SERVICE_DELAY_MS    100
+#define MAX_NFC_GET_RETRY 30
+#define NFC_GET_SERVICE_DELAY_MS 100
 
 // Generated HIDL files
+using android::OK;
+using android::base::StringPrintf;
+using android::hardware::configureRpcThreadpool;
+using android::hardware::defaultPassthroughServiceImplementation;
+using android::hardware::joinRpcThreadpool;
+using android::hardware::registerPassthroughServiceImplementation;
+using android::hardware::nfc::V1_2::INfc;
 using android::hardware::secure_element::V1_2::ISecureElement;
 using android::hardware::secure_element::V1_2::implementation::SecureElement;
 using vendor::nxp::nxpese::V1_0::INxpEse;
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 using vendor::nxp::virtual_iso::V1_0::implementation::VirtualISO;
-using android::hardware::defaultPassthroughServiceImplementation;
-using android::OK;
-using android::hardware::configureRpcThreadpool;
-using android::hardware::registerPassthroughServiceImplementation;
-using android::hardware::joinRpcThreadpool;
-using android::base::StringPrintf;
-using android::hardware::nfc::V1_2::INfc;
 
+using android::OK;
 using android::sp;
 using android::status_t;
-using android::OK;
 
 static inline void waitForNFCHAL() {
   int retry = 0;
@@ -56,15 +57,15 @@ static inline void waitForNFCHAL() {
 
   ALOGI("Waiting for NFC HAL .. ");
   do {
-     nfc_service = INfc::tryGetService();
-     if (nfc_service !=  nullptr) {
-       ALOGI("NFC HAL service is registered");
-       break;
-     }
-     /* Wait for 100 MS for HAL RETRY*/
-     usleep(NFC_GET_SERVICE_DELAY_MS * 1000);
+    nfc_service = INfc::tryGetService();
+    if (nfc_service != nullptr) {
+      ALOGI("NFC HAL service is registered");
+      break;
+    }
+    /* Wait for 100 MS for HAL RETRY*/
+    usleep(NFC_GET_SERVICE_DELAY_MS * 1000);
   } while (retry++ < MAX_NFC_GET_RETRY);
-  if(nfc_service == nullptr) {
+  if (nfc_service == nullptr) {
     ALOGE("Failed to get NFC HAL Service");
   }
 }

@@ -16,34 +16,35 @@
  *
  ******************************************************************************/
 #define LOG_TAG "nxpese@1.1-service"
-#include <log/log.h>
 #include <android/hardware/secure_element/1.1/ISecureElement.h>
-#include <vendor/nxp/nxpese/1.0/INxpEse.h>
-#include "VirtualISO.h"
-
 #include <hidl/LegacySupport.h>
+#include <log/log.h>
 #include <string.h>
+#include <vendor/nxp/nxpese/1.0/INxpEse.h>
+
 #include <regex>
+
 #include "NxpEse.h"
 #include "SecureElement.h"
+#include "VirtualISO.h"
 #include "eSEClient.h"
 
 // Generated HIDL files
+using android::OK;
+using android::base::StringPrintf;
+using android::hardware::configureRpcThreadpool;
+using android::hardware::defaultPassthroughServiceImplementation;
+using android::hardware::joinRpcThreadpool;
+using android::hardware::registerPassthroughServiceImplementation;
 using android::hardware::secure_element::V1_1::ISecureElement;
 using android::hardware::secure_element::V1_1::implementation::SecureElement;
 using vendor::nxp::nxpese::V1_0::INxpEse;
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 using vendor::nxp::virtual_iso::V1_0::implementation::VirtualISO;
-using android::hardware::defaultPassthroughServiceImplementation;
-using android::OK;
-using android::hardware::configureRpcThreadpool;
-using android::hardware::registerPassthroughServiceImplementation;
-using android::hardware::joinRpcThreadpool;
-using android::base::StringPrintf;
 
+using android::OK;
 using android::sp;
 using android::status_t;
-using android::OK;
 
 int main() {
   status_t status;

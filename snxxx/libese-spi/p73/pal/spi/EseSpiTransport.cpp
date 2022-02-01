@@ -196,12 +196,15 @@ ESESTATUS EseSpiTransport::OpenAndConfigure(pphPalEse_Config_t pConfig) {
   if (EseConfig::hasKey(NAME_NXP_SPI_WRITE_TIMEOUT)) {
     mConfigSpiWriteTimeout = EseConfig::getUnsigned(NAME_NXP_SPI_WRITE_TIMEOUT);
     ALOGD_IF(ese_debug_enabled,
-             "NXP_SPI_WRITE_TIMEOUT value from config file = %ld", mConfigSpiWriteTimeout);
+             "NXP_SPI_WRITE_TIMEOUT value from config file = %ld",
+             mConfigSpiWriteTimeout);
   }
   /* Read eSE cold reset interface from ese config file */
   if (EseConfig::hasKey(NAME_NXP_P61_COLD_RESET_INTERFACE)) {
-    mConfigColdResetIntf = EseConfig::getUnsigned(NAME_NXP_P61_COLD_RESET_INTERFACE);
-    ALOGD_IF(ese_debug_enabled, "mConfigColdResetIntf value from config file = %ld",
+    mConfigColdResetIntf =
+        EseConfig::getUnsigned(NAME_NXP_P61_COLD_RESET_INTERFACE);
+    ALOGD_IF(ese_debug_enabled,
+             "mConfigColdResetIntf value from config file = %ld",
              mConfigColdResetIntf);
   } else {
     mConfigColdResetIntf = 0x01; /* Default interface is NFC HAL */
@@ -397,7 +400,7 @@ ESESTATUS EseSpiTransport::Ioctl(phPalEse_ControlCode_t eControlCode,
       break;
     case phPalEse_e_ChipRst:
       if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-        if (level == 5) {         // SPI driver communication part
+        if (level == 5) {              // SPI driver communication part
           if (!mConfigColdResetIntf) { /* Call the driver IOCTL */
             retioctl =
                 ioctl((intptr_t)pDevHandle, ESE_PERFORM_COLD_RESET, level);
@@ -421,13 +424,13 @@ ESESTATUS EseSpiTransport::Ioctl(phPalEse_ControlCode_t eControlCode,
       break;
     case phPalEse_e_ResetProtection:
       if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-          retioctl = ioctl((intptr_t)pDevHandle, PERFORM_RESET_PROTECTION, level);
-          if (0x00 <= retioctl) {
-            ret = ESESTATUS_SUCCESS;
-          } else {
-            ALOGE("phPalEse_e_ResetProtection ioctl failed status :%x !",
-                    retioctl);
-          }
+        retioctl = ioctl((intptr_t)pDevHandle, PERFORM_RESET_PROTECTION, level);
+        if (0x00 <= retioctl) {
+          ret = ESESTATUS_SUCCESS;
+        } else {
+          ALOGE("phPalEse_e_ResetProtection ioctl failed status :%x !",
+                retioctl);
+        }
       }
       break;
     case phPalEse_e_EnableThroughputMeasurement:
@@ -485,8 +488,7 @@ ESESTATUS EseSpiTransport::Ioctl(phPalEse_ControlCode_t eControlCode,
 
       ret = pNfcAdapt.setEseUpdateState(&inpOutData);
       ALOGD_IF(ese_debug_enabled, "After phPalEse_e_SetClientUpdateState");
-    }
-      break;
+    } break;
 #endif
     case phPalEse_e_DisablePwrCntrl:
       ret = ESESTATUS_SUCCESS;

@@ -109,7 +109,7 @@ bool OsuHalExtn::isOsuMode(uint8_t type, uint8_t channel) {
        * clear osu APP and update JCOP mode
        * */
       if (channel == ISO7816_BASIC_CHANNEL && isOsuMode()) {
-        if(phNxpEse_doResetProtection(false) != ESESTATUS_SUCCESS) {
+        if (phNxpEse_doResetProtection(false) != ESESTATUS_SUCCESS) {
           ALOGE("Disable Reset Protection Failed");
         }
         phNxpEse_setWtxCountLimit(RESET_APP_WTX_COUNT);
@@ -202,7 +202,7 @@ OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(
   size_t length = data.size();
 
   // Validate input buffer processing
-  if(input == NULL) {
+  if (input == NULL) {
     return halMode;
   }
   /*
@@ -253,7 +253,7 @@ OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(
       ALOGE("phNxpEse_SetEndPoint_Cntxt failed!!!");
     }
     phNxpEse_resetJcopUpdate();
-    if (phNxpEse_ResetEndPoint_Cntxt(0) !=  ESESTATUS_SUCCESS) {
+    if (phNxpEse_ResetEndPoint_Cntxt(0) != ESESTATUS_SUCCESS) {
       ALOGE("phNxpEse_ResetEndPoint_Cntxt failed!!!");
     }
     // Update mode after eSE reset
@@ -280,5 +280,6 @@ OsuHalExtn::OsuApduMode OsuHalExtn::checkTransmit(
 **
 *******************************************************************************/
 unsigned long int OsuHalExtn::getOSUMaxWtxCount() {
-  return EseConfig::getUnsigned(NAME_NXP_OSU_MAX_WTX_COUNT, DEFAULT_MAX_WTX_COUNT);
+  return EseConfig::getUnsigned(NAME_NXP_OSU_MAX_WTX_COUNT,
+                                DEFAULT_MAX_WTX_COUNT);
 }

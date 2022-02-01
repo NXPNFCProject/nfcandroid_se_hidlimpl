@@ -20,7 +20,6 @@
 #include <phNxpEseDataMgr.h>
 #include <phNxpEsePal.h>
 
-
 static phNxpEse_sCoreRecvBuff_List_t *head = NULL, *current = NULL;
 static uint32_t total_len = 0;
 
@@ -42,8 +41,9 @@ ESESTATUS phNxpEse_GetData(uint32_t* data_len, uint8_t** pbuffer) {
   if (total_len > 0) {
     pbuff = (uint8_t*)phNxpEse_memalloc(total_len);
     if (NULL != pbuff) {
-      if (ESESTATUS_SUCCESS == phNxpEse_GetDataFromList(&total_data_len, pbuff)) {
-        if(total_data_len == total_len){
+      if (ESESTATUS_SUCCESS ==
+          phNxpEse_GetDataFromList(&total_data_len, pbuff)) {
+        if (total_data_len == total_len) {
           /***** Success Case *****/
           *pbuffer = pbuff;
           *data_len = total_data_len;
@@ -59,19 +59,18 @@ ESESTATUS phNxpEse_GetData(uint32_t* data_len, uint8_t** pbuffer) {
           phNxpEse_free(pbuff);
         }
       } else {
-        ALOGE("%s phNxpEse_GetDataFromList failed",
-                 __FUNCTION__);
+        ALOGE("%s phNxpEse_GetDataFromList failed", __FUNCTION__);
         phNxpEse_free(pbuff);
       }
     } else {
-      ALOGE( "%s Error in malloc ", __FUNCTION__);
+      ALOGE("%s Error in malloc ", __FUNCTION__);
       status = ESESTATUS_NOT_ENOUGH_MEMORY;
     }
   } else {
     ALOGD_IF(ese_debug_enabled, "%s total_len = %d", __FUNCTION__, total_len);
   }
 
-  if(ESESTATUS_SUCCESS != status){
+  if (ESESTATUS_SUCCESS != status) {
     *pbuffer = NULL;
     *data_len = 0;
   }
@@ -93,7 +92,7 @@ ESESTATUS phNxpEse_StoreDatainList(uint32_t data_len, uint8_t* pbuff) {
   newNode = (phNxpEse_sCoreRecvBuff_List_t*)phNxpEse_memalloc(
       sizeof(phNxpEse_sCoreRecvBuff_List_t));
   if (newNode == NULL) {
-    ALOGE( "%s Error in malloc ", __FUNCTION__);
+    ALOGE("%s Error in malloc ", __FUNCTION__);
     return ESESTATUS_NOT_ENOUGH_MEMORY;
   }
   newNode->pNext = NULL;

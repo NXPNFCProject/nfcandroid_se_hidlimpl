@@ -32,34 +32,38 @@ namespace nxpese {
 namespace V1_0 {
 namespace implementation {
 
-using ::android::hidl::base::V1_0::DebugInfo;
-using ::android::hidl::base::V1_0::IBase;
-using ::vendor::nxp::nxpese::V1_0::INxpEse;
+using ::android::sp;
 using ::android::hardware::hidl_array;
 using ::android::hardware::hidl_memory;
 using ::android::hardware::hidl_string;
 using ::android::hardware::hidl_vec;
 using ::android::hardware::Return;
 using ::android::hardware::Void;
-using ::android::sp;
 using ::android::hardware::secure_element::V1_0::ISecureElementHalCallback;
+using ::android::hidl::base::V1_0::DebugInfo;
+using ::android::hidl::base::V1_0::IBase;
+using ::vendor::nxp::nxpese::V1_0::INxpEse;
 struct NxpEse : public INxpEse {
   Return<void> ioctl(uint64_t ioctlType, const hidl_vec<uint8_t>& inOutData,
                      ioctl_cb _hidl_cb) override;
-  static Return<void> setSeCallBack(const android::sp<ISecureElementHalCallback>& clientCallback);
+  static Return<void> setSeCallBack(
+      const android::sp<ISecureElementHalCallback>& clientCallback);
   static Return<void> setSeCallBack_1_1(
       const android::sp<
           ::android::hardware::secure_element::V1_1::ISecureElementHalCallback>&
           clientCallback);
-  static Return<void> setVirtualISOCallBack(const android::sp<ISecureElementHalCallback>& clientCallback);
+  static Return<void> setVirtualISOCallBack(
+      const android::sp<ISecureElementHalCallback>& clientCallback);
   static Return<void> setVirtualISOCallBack_1_1(
       const android::sp<
           ::android::hardware::secure_element::V1_1::ISecureElementHalCallback>&
           clientCallback);
   static void initSEService();
   static void initVIrtualISOService();
-  private:
-  Return<void> ioctlHandler(uint64_t ioctlType, ese_nxp_IoctlInOutData_t &inpOutData);
+
+ private:
+  Return<void> ioctlHandler(uint64_t ioctlType,
+                            ese_nxp_IoctlInOutData_t& inpOutData);
 };
 
 }  // namespace implementation

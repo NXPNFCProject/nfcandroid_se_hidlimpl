@@ -16,10 +16,11 @@
  *
  ******************************************************************************/
 #define LOG_TAG "NxpEseHal-NfcAdaptation"
-#include <log/log.h>
 #include "NfcAdaptation.h"
+
 #include <android/hardware/nfc/1.0/types.h>
 #include <hwbinder/ProcessState.h>
+#include <log/log.h>
 #include <pthread.h>
 
 #undef LOG_TAG
@@ -29,10 +30,10 @@ using android::OK;
 using android::sp;
 using android::status_t;
 
+using android::hardware::hidl_vec;
 using android::hardware::ProcessState;
 using android::hardware::Return;
 using android::hardware::Void;
-using android::hardware::hidl_vec;
 using vendor::nxp::nxpnfc::V2_0::INxpNfc;
 
 sp<INxpNfc> NfcAdaptation::mHalNxpNfc = nullptr;
@@ -48,8 +49,7 @@ void NfcAdaptation::Initialize() {
   if (mHalNxpNfc != nullptr) return;
   mHalNxpNfc = INxpNfc::tryGetService();
   if (mHalNxpNfc != nullptr) {
-    ALOGE("%s: INxpNfc::getService() returned %p (%s)",
-        func, mHalNxpNfc.get(),
+    ALOGE("%s: INxpNfc::getService() returned %p (%s)", func, mHalNxpNfc.get(),
           (mHalNxpNfc->isRemote() ? "remote" : "local"));
   }
   ALOGD_IF(ese_debug_enabled, "%s: exit", func);
@@ -149,7 +149,7 @@ void ThreadMutex::unlock() { pthread_mutex_unlock(&mMutex); }
 ** Returns:     none
 **
 *******************************************************************************/
-NfcAdaptation::NfcAdaptation() {mCurrentIoctlData = NULL;}
+NfcAdaptation::NfcAdaptation() { mCurrentIoctlData = NULL; }
 
 /*******************************************************************************
 **
@@ -160,7 +160,7 @@ NfcAdaptation::NfcAdaptation() {mCurrentIoctlData = NULL;}
 ** Returns:     none
 **
 *******************************************************************************/
-NfcAdaptation::~NfcAdaptation() { mpInstance = NULL;}
+NfcAdaptation::~NfcAdaptation() { mpInstance = NULL; }
 
 /*******************************************************************************
 **
@@ -182,7 +182,7 @@ ESESTATUS NfcAdaptation::resetEse(uint64_t level) {
 
   if (mHalNxpNfc != nullptr) {
     ret = mHalNxpNfc->resetEse(level);
-    if(ret){
+    if (ret) {
       ALOGE("NfcAdaptation::resetEse mHalNxpNfc completed");
       result = ESESTATUS_SUCCESS;
     } else {
@@ -215,8 +215,10 @@ ESESTATUS NfcAdaptation::setEseUpdateState(void* p_data) {
   data.setToExternal((uint8_t*)pInpOutData, sizeof(ese_nxp_IoctlInOutData_t));
 
   if (mHalNxpNfc != nullptr) {
-    ret = mHalNxpNfc->setEseUpdateState((::vendor::nxp::nxpnfc::V2_0::NxpNfcHalEseState)pInpOutData->inp.data.nxpCmd.p_cmd[0]);
-    if(ret){
+    ret = mHalNxpNfc->setEseUpdateState(
+        (::vendor::nxp::nxpnfc::V2_0::NxpNfcHalEseState)
+            pInpOutData->inp.data.nxpCmd.p_cmd[0]);
+    if (ret) {
       ALOGE("NfcAdaptation::setEseUpdateState completed");
       result = ESESTATUS_SUCCESS;
     } else {

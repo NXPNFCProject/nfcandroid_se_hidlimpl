@@ -18,12 +18,13 @@
 #ifndef VENDOR_NXP_VIRTUAL_ISO_V1_0_SECUREELEMENT_H
 #define VENDOR_NXP_VIRTUAL_ISO_V1_0_SECUREELEMENT_H
 
+#include <android-base/stringprintf.h>
 #include <android/hardware/secure_element/1.0/ISecureElement.h>
 #include <hardware/hardware.h>
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>
+
 #include "phNxpEse_Api.h"
-#include <android-base/stringprintf.h>
 
 namespace vendor {
 namespace nxp {
@@ -31,20 +32,20 @@ namespace virtual_iso {
 namespace V1_0 {
 namespace implementation {
 
+using ::android::sp;
 using ::android::wp;
-using ::android::hardware::hidl_death_recipient;
-using ::android::hardware::secure_element::V1_0::LogicalChannelResponse;
-using ::android::hardware::secure_element::V1_0::SecureElementStatus;
-using ::android::hardware::secure_element::V1_0::ISecureElement;
-using ::android::hidl::base::V1_0::IBase;
+using android::base::StringPrintf;
 using ::android::hardware::hidl_array;
+using ::android::hardware::hidl_death_recipient;
 using ::android::hardware::hidl_memory;
 using ::android::hardware::hidl_string;
 using ::android::hardware::hidl_vec;
 using ::android::hardware::Return;
 using ::android::hardware::Void;
-using ::android::sp;
-using android::base::StringPrintf;
+using ::android::hardware::secure_element::V1_0::ISecureElement;
+using ::android::hardware::secure_element::V1_0::LogicalChannelResponse;
+using ::android::hardware::secure_element::V1_0::SecureElementStatus;
+using ::android::hidl::base::V1_0::IBase;
 
 #ifndef DEFAULT_BASIC_CHANNEL
 #define DEFAULT_BASIC_CHANNEL 0x00

@@ -118,7 +118,7 @@ typedef union {
 typedef union {
   uint8_t nfc_jcop_download_state;
 } eseIoctlData_t;
-extern eseIoctlData_t  eseioctldata;
+extern eseIoctlData_t eseioctldata;
 
 /*
  * ese_nxp_ExtnOutputData_t :Apart from outputData_t, there are other

@@ -187,10 +187,8 @@ ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg) {
         wSpmStatus = ESESTATUS_FAILED;
       }
     } break;
-    case SPM_RECOVERY_RESET : {
-
-    }
-    break;
+    case SPM_RECOVERY_RESET: {
+    } break;
   }
   return wSpmStatus;
 }
@@ -476,4 +474,3 @@ ESESTATUS phNxpEse_SPM_RelAccess(void) {
   return status;
 }
 /** @} */
-

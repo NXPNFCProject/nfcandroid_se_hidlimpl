@@ -34,7 +34,6 @@
  */
 #define PH_PALESE_RESETDEVICE (0x00008001)
 
-
 /*!
  * \ingroup eSe_PAL
  *
@@ -55,9 +54,9 @@ typedef enum {
   phPalEse_e_DisablePwrCntrl,
   phPalEse_e_SetJcopDwnldState,    /*!< Set Jcop Download state */
   phPalEse_e_SetClientUpdateState, /*!< Set Jcop Download state */
-  phPalEse_e_SetSecureMode, /*!< Set the Trusted SE Mode */
+  phPalEse_e_SetSecureMode,        /*!< Set the Trusted SE Mode */
   phPalEse_e_ResetProtection,
-} phPalEse_ControlCode_t;   /*!< Control code for IOCTL call */
+} phPalEse_ControlCode_t; /*!< Control code for IOCTL call */
 
 /*!
  * \ingroup eSe_PAL
@@ -155,7 +154,7 @@ int phPalEse_write(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToWrite);
  *
  */
 ESESTATUS phPalEse_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
-                   long level);
+                         long level);
 
 /**
  * \ingroup eSe_PAL

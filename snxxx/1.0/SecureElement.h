@@ -18,14 +18,14 @@
 #ifndef ANDROID_HARDWARE_SECURE_ELEMENT_V1_0_SECUREELEMENT_H
 #define ANDROID_HARDWARE_SECURE_ELEMENT_V1_0_SECUREELEMENT_H
 
+#include <android-base/stringprintf.h>
 #include <android/hardware/secure_element/1.0/ISecureElement.h>
 #include <hardware/hardware.h>
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>
 #include <pthread.h>
-#include "phNxpEse_Api.h"
-#include <android-base/stringprintf.h>
 
+#include "phNxpEse_Api.h"
 
 class ThreadMutex {
  public:
@@ -50,23 +50,21 @@ class AutoThreadMutex {
   ThreadMutex& mm;
 };
 
-
-
 namespace android {
 namespace hardware {
 namespace secure_element {
 namespace V1_0 {
 namespace implementation {
 
-using ::android::hidl::base::V1_0::IBase;
+using ::android::sp;
+using android::base::StringPrintf;
 using ::android::hardware::hidl_array;
 using ::android::hardware::hidl_memory;
 using ::android::hardware::hidl_string;
 using ::android::hardware::hidl_vec;
 using ::android::hardware::Return;
 using ::android::hardware::Void;
-using ::android::sp;
-using android::base::StringPrintf;
+using ::android::hidl::base::V1_0::IBase;
 
 #ifndef MIN_APDU_LENGTH
 #define MIN_APDU_LENGTH 0x04
@@ -74,7 +72,6 @@ using android::base::StringPrintf;
 #ifndef DEFAULT_BASIC_CHANNEL
 #define DEFAULT_BASIC_CHANNEL 0x00
 #endif
-
 
 struct SecureElement : public ISecureElement, public hidl_death_recipient {
   SecureElement();

@@ -17,29 +17,31 @@
  ******************************************************************************/
 
 #include "eSEClient.h"
-#include <log/log.h>
-#include <dirent.h>
-#include <stdlib.h>
+
 #include <IChannel.h>
-#include <pthread.h>
 #include <JcDnld.h>
-#include "phNxpEse_Apdu_Api.h"
-#include <unistd.h>
+#include <LsClient.h>
+#include <dirent.h>
+#include <ese_config.h>
+#include <log/log.h>
+#include <pthread.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
-#include <ese_config.h>
-#include "phNxpEse_Spm.h"
-#include <LsClient.h>
-#include "hal_nxpese.h"
-#include "NxpEse.h"
-#include "NfcAdaptation.h"
+#include <unistd.h>
 #include <vendor/nxp/nxpnfc/2.0/INxpNfc.h>
 
+#include "NfcAdaptation.h"
+#include "NxpEse.h"
+#include "hal_nxpese.h"
+#include "phNxpEse_Apdu_Api.h"
+#include "phNxpEse_Spm.h"
+
+using android::sp;
+using android::hardware::hidl_vec;
+using android::hardware::Void;
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 using vendor::nxp::nxpnfc::V2_0::INxpNfc;
-using android::sp;
-using android::hardware::Void;
-using android::hardware::hidl_vec;
 sp<INxpNfc> mHalNxpNfc = nullptr;
 
 void seteSEClientState(uint8_t state);
@@ -50,64 +52,50 @@ void* eSEClientUpdate_ThreadHandler(void* data);
 void* eSEClientUpdate_Thread(void* data);
 void* eSEUpdate_SE_SeqHandler(void* data);
 void eSEClientUpdate_Thread();
-SESTATUS ESE_ChannelInit(IChannel *ch);
+SESTATUS ESE_ChannelInit(IChannel* ch);
 SESTATUS handleJcopOsDownload();
 void* LSUpdate_Thread(void* data);
 uint8_t performLSUpdate();
 SESTATUS initializeEse(phNxpEse_initMode mode, SEDomainID Id);
 ese_update_state_t ese_update = ESE_UPDATE_COMPLETED;
 SESTATUS eSEUpdate_SeqHandler();
-int16_t SE_Open()
-{
-    return SESTATUS_SUCCESS;
+int16_t SE_Open() { return SESTATUS_SUCCESS; }
+
+void SE_Reset() { phNxpEse_coldReset(); }
+
+bool SE_Transmit(uint8_t* xmitBuffer, int32_t xmitBufferSize,
+                 uint8_t* recvBuffer, int32_t recvBufferMaxSize,
+                 int32_t& recvBufferActualSize, int32_t timeoutMillisec) {
+  phNxpEse_data cmdData;
+  phNxpEse_data rspData;
+
+  cmdData.len = xmitBufferSize;
+  cmdData.p_data = xmitBuffer;
+
+  recvBufferMaxSize++;
+  timeoutMillisec++;
+  if (phNxpEse_Transceive(&cmdData, &rspData) != ESESTATUS_SUCCESS) {
+    ALOGE("%s: Ese Transceive failed", __FUNCTION__);
+  }
+  recvBufferActualSize = rspData.len;
+
+  if (rspData.p_data != NULL && rspData.len) {
+    memcpy(&recvBuffer[0], rspData.p_data, rspData.len);
+  }
+
+  ALOGE("%s: size = 0x%x ", __FUNCTION__, recvBufferActualSize);
+  return true;
 }
 
-void SE_Reset()
-{
-  phNxpEse_coldReset();
-}
+void SE_JcopDownLoadReset() { phNxpEse_resetJcopUpdate(); }
 
-bool SE_Transmit(uint8_t* xmitBuffer, int32_t xmitBufferSize, uint8_t* recvBuffer,
-                     int32_t recvBufferMaxSize, int32_t& recvBufferActualSize, int32_t timeoutMillisec)
-{
-    phNxpEse_data cmdData;
-    phNxpEse_data rspData;
-
-    cmdData.len = xmitBufferSize;
-    cmdData.p_data = xmitBuffer;
-
-    recvBufferMaxSize++;
-    timeoutMillisec++;
-    if (phNxpEse_Transceive(&cmdData, &rspData) != ESESTATUS_SUCCESS) {
-      ALOGE("%s: Ese Transceive failed", __FUNCTION__);
-    }
-    recvBufferActualSize = rspData.len;
-
-    if (rspData.p_data != NULL && rspData.len)
-    {
-      memcpy(&recvBuffer[0], rspData.p_data, rspData.len);
-    }
-
-    ALOGE("%s: size = 0x%x ", __FUNCTION__, recvBufferActualSize);
+bool SE_Close(int16_t mHandle) {
+  if (mHandle != 0)
     return true;
+  else
+    return false;
 }
-
-void SE_JcopDownLoadReset()
-{
-    phNxpEse_resetJcopUpdate();
-}
-
-bool SE_Close(int16_t mHandle)
-{
-    if(mHandle != 0)
-      return true;
-    else
-      return false;
-}
-uint8_t SE_getInterfaceInfo()
-{
-  return INTF_SE;
-}
+uint8_t SE_getInterfaceInfo() { return INTF_SE; }
 
 /***************************************************************************
 **
@@ -119,16 +107,15 @@ uint8_t SE_getInterfaceInfo()
 ** Returns:         SUCCESS of ok
 **
 *******************************************************************************/
-void checkEseClientUpdate()
-{
+void checkEseClientUpdate() {
   ALOGD("%s enter:  ", __func__);
   checkeSEClientRequired(ESE_INTF_SPI);
   se_intf.isJcopUpdateRequired = getJcopUpdateRequired();
   se_intf.isLSUpdateRequired = getLsUpdateRequired();
   se_intf.sJcopUpdateIntferface = getJcopUpdateIntf();
   se_intf.sLsUpdateIntferface = getLsUpdateIntf();
-  if((se_intf.isJcopUpdateRequired && se_intf.sJcopUpdateIntferface)||
-   (se_intf.isLSUpdateRequired && se_intf.sLsUpdateIntferface))
+  if ((se_intf.isJcopUpdateRequired && se_intf.sJcopUpdateIntferface) ||
+      (se_intf.isLSUpdateRequired && se_intf.sLsUpdateIntferface))
     seteSEClientState(ESE_UPDATE_STARTED);
 }
 
@@ -148,16 +135,15 @@ SESTATUS perform_eSEClientUpdate() {
   return SESTATUS_SUCCESS;
 }
 
-SESTATUS ESE_ChannelInit(IChannel *ch)
-{
-    ch->open = SE_Open;
-    ch->close = SE_Close;
-    ch->transceive = SE_Transmit;
-    ch->transceiveRaw = SE_Transmit;
-    ch->doeSE_Reset = SE_Reset;
-    ch->doeSE_JcopDownLoadReset = SE_JcopDownLoadReset;
-    ch->getInterfaceInfo = SE_getInterfaceInfo;
-    return SESTATUS_SUCCESS;
+SESTATUS ESE_ChannelInit(IChannel* ch) {
+  ch->open = SE_Open;
+  ch->close = SE_Close;
+  ch->transceive = SE_Transmit;
+  ch->transceiveRaw = SE_Transmit;
+  ch->doeSE_Reset = SE_Reset;
+  ch->doeSE_JcopDownLoadReset = SE_JcopDownLoadReset;
+  ch->getInterfaceInfo = SE_getInterfaceInfo;
+  return SESTATUS_SUCCESS;
 }
 
 /*******************************************************************************
@@ -169,21 +155,21 @@ SESTATUS ESE_ChannelInit(IChannel *ch)
 ** Returns:         SUCCESS of ok
 **
 *******************************************************************************/
-void eSEClientUpdate_Thread()
-{
+void eSEClientUpdate_Thread() {
   SESTATUS status = SESTATUS_FAILED;
   pthread_t thread;
   pthread_attr_t attr;
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  if (pthread_create(&thread, &attr, &eSEClientUpdate_ThreadHandler, NULL) != 0) {
+  if (pthread_create(&thread, &attr, &eSEClientUpdate_ThreadHandler, NULL) !=
+      0) {
     ALOGD("Thread creation failed");
     status = SESTATUS_FAILED;
   } else {
     status = SESTATUS_SUCCESS;
     ALOGD("Thread creation success");
   }
-    pthread_attr_destroy(&attr);
+  pthread_attr_destroy(&attr);
 }
 /*******************************************************************************
 **
@@ -194,8 +180,7 @@ void eSEClientUpdate_Thread()
 ** Returns:         SUCCESS of ok
 **
 *******************************************************************************/
-void eSEClientUpdate_SE_Thread()
-{
+void eSEClientUpdate_SE_Thread() {
   SESTATUS status = SESTATUS_FAILED;
   pthread_t thread;
   pthread_attr_t attr;
@@ -208,7 +193,7 @@ void eSEClientUpdate_SE_Thread()
     status = SESTATUS_SUCCESS;
     ALOGD("Thread creation success");
   }
-    pthread_attr_destroy(&attr);
+  pthread_attr_destroy(&attr);
 }
 /*******************************************************************************
 **
@@ -240,58 +225,50 @@ void* eSEClientUpdate_ThreadHandler(void* data) {
   int cnt = 0;
 
   ALOGD("%s Enter\n", __func__);
-  while(((mHalNxpNfc == nullptr) && (cnt < 3)))
-  {
+  while (((mHalNxpNfc == nullptr) && (cnt < 3))) {
     mHalNxpNfc = INxpNfc::tryGetService();
-    if(mHalNxpNfc == nullptr)
-      ALOGD(": Failed to retrieve the NXP NFC HAL!");
-    if(mHalNxpNfc != nullptr) {
-    	ALOGD("INxpNfc::getService() returned %p (%s)",
-    		  mHalNxpNfc.get(),
-               (mHalNxpNfc->isRemote() ? "remote" : "local"));
+    if (mHalNxpNfc == nullptr) ALOGD(": Failed to retrieve the NXP NFC HAL!");
+    if (mHalNxpNfc != nullptr) {
+      ALOGD("INxpNfc::getService() returned %p (%s)", mHalNxpNfc.get(),
+            (mHalNxpNfc->isRemote() ? "remote" : "local"));
     }
-    usleep(100*1000);
+    usleep(100 * 1000);
     cnt++;
   }
 
-  if(mHalNxpNfc != nullptr)
-  {
-    if(!se_intf.isJcopUpdateRequired && mHalNxpNfc->isJcopUpdateRequired())
-    {
+  if (mHalNxpNfc != nullptr) {
+    if (!se_intf.isJcopUpdateRequired && mHalNxpNfc->isJcopUpdateRequired()) {
       se_intf.isJcopUpdateRequired = true;
-      ALOGD(" se_intf.isJcopUpdateRequired = %d",se_intf.isJcopUpdateRequired );
+      ALOGD(" se_intf.isJcopUpdateRequired = %d", se_intf.isJcopUpdateRequired);
     }
-    if(!se_intf.isLSUpdateRequired && mHalNxpNfc->isLsUpdateRequired())
-    {
+    if (!se_intf.isLSUpdateRequired && mHalNxpNfc->isLsUpdateRequired()) {
       se_intf.isLSUpdateRequired = true;
       ALOGD("se_intf.isLSUpdateRequired = %d", se_intf.isLSUpdateRequired);
     }
   }
 
-
-  if(se_intf.isJcopUpdateRequired) {
-    if(se_intf.sJcopUpdateIntferface == ESE_INTF_NFC) {
+  if (se_intf.isJcopUpdateRequired) {
+    if (se_intf.sJcopUpdateIntferface == ESE_INTF_NFC) {
       seteSEClientState(ESE_JCOP_UPDATE_REQUIRED);
       return NULL;
-    }
-    else if(se_intf.sJcopUpdateIntferface == ESE_INTF_SPI) {
+    } else if (se_intf.sJcopUpdateIntferface == ESE_INTF_SPI) {
       seteSEClientState(ESE_JCOP_UPDATE_REQUIRED);
     }
   }
 
-  if((ESE_JCOP_UPDATE_REQUIRED != ese_update) && (se_intf.isLSUpdateRequired)) {
-    if(se_intf.sLsUpdateIntferface == ESE_INTF_NFC) {
+  if ((ESE_JCOP_UPDATE_REQUIRED != ese_update) &&
+      (se_intf.isLSUpdateRequired)) {
+    if (se_intf.sLsUpdateIntferface == ESE_INTF_NFC) {
       seteSEClientState(ESE_LS_UPDATE_REQUIRED);
       return NULL;
-    }
-    else if(se_intf.sLsUpdateIntferface == ESE_INTF_SPI) {
+    } else if (se_intf.sLsUpdateIntferface == ESE_INTF_SPI) {
       seteSEClientState(ESE_LS_UPDATE_REQUIRED);
     }
   }
 
-  if((ese_update == ESE_JCOP_UPDATE_REQUIRED) ||
-    (ese_update == ESE_LS_UPDATE_REQUIRED))
-      eSEUpdate_SeqHandler();
+  if ((ese_update == ESE_JCOP_UPDATE_REQUIRED) ||
+      (ese_update == ESE_LS_UPDATE_REQUIRED))
+    eSEUpdate_SeqHandler();
 
   ALOGD("%s Exit eSEClientUpdate_Thread\n", __func__);
   return NULL;
@@ -306,27 +283,22 @@ void* eSEClientUpdate_ThreadHandler(void* data) {
 ** Returns:         SUCCESS of ok
 **
 *******************************************************************************/
-SESTATUS handleJcopOsDownload()
-{
+SESTATUS handleJcopOsDownload() {
   SESTATUS status = SESTATUS_FAILED;
   uint8_t retstat;
   status = initializeEse(ESE_MODE_OSU, ESE);
-  if(status == SESTATUS_SUCCESS)
-  {
+  if (status == SESTATUS_SUCCESS) {
     retstat = JCDNLD_Init(&Ch);
-    if(retstat != STATUS_SUCCESS)
-    {
+    if (retstat != STATUS_SUCCESS) {
       ALOGE("%s: JCDND initialization failed", __FUNCTION__);
       if (phNxpEse_ResetEndPoint_Cntxt(0) != ESESTATUS_SUCCESS) {
         ALOGE("%s: Reset SE EndPoint failed", __FUNCTION__);
       }
       phNxpEse_close(ESESTATUS_SUCCESS);
       return status;
-    } else
-    {
+    } else {
       retstat = JCDNLD_StartDownload();
-      if(retstat != SESTATUS_SUCCESS)
-      {
+      if (retstat != SESTATUS_SUCCESS) {
         ALOGE("%s: JCDNLD_StartDownload failed", __FUNCTION__);
       }
     }
@@ -349,8 +321,7 @@ SESTATUS handleJcopOsDownload()
 ** Returns:         SUCCESS of ok
 **
 *******************************************************************************/
-uint8_t performLSUpdate()
-{
+uint8_t performLSUpdate() {
   const char* SEterminal = "eSEx";
   bool ret = false;
   char terminalID[5];
@@ -359,23 +330,19 @@ uint8_t performLSUpdate()
   bool isVISOPresent = false;
   ret = geteSETerminalId(terminalID);
   ALOGI("performLSUpdate Terminal val = %s", terminalID);
-  if((ret) && (strncmp(SEterminal, terminalID, 3) == 0))
-  {
+  if ((ret) && (strncmp(SEterminal, terminalID, 3) == 0)) {
     isSEPresent = true;
   }
   ret = geteUICCTerminalId(terminalID);
-  if((ret) && (strncmp(SEterminal, terminalID, 3) == 0))
-  {
+  if ((ret) && (strncmp(SEterminal, terminalID, 3) == 0)) {
     isVISOPresent = true;
   }
   seteSEClientState(ESE_UPDATE_STARTED);
-  if(isSEPresent)
-  {
+  if (isSEPresent) {
     ALOGE("%s:On eSE domain ", __FUNCTION__);
     status = initializeEse(ESE_MODE_NORMAL, ESE);
     ALOGE("%s:On eSE domain ", __FUNCTION__);
-    if(status == SESTATUS_SUCCESS)
-    {
+    if (status == SESTATUS_SUCCESS) {
       status = performLSDownload(&Ch);
       if (phNxpEse_ResetEndPoint_Cntxt(ESE) != ESESTATUS_SUCCESS) {
         ALOGE("%s: Reset SE EndPoint failed", __FUNCTION__);
@@ -383,12 +350,10 @@ uint8_t performLSUpdate()
     }
     phNxpEse_close(ESESTATUS_SUCCESS);
   }
-  if(isVISOPresent)
-  {
+  if (isVISOPresent) {
     ALOGE("%s:On eUICC domain ", __FUNCTION__);
     status = initializeEse(ESE_MODE_NORMAL, EUICC);
-    if(status == SESTATUS_SUCCESS)
-    {
+    if (status == SESTATUS_SUCCESS) {
       status = performLSDownload(&Ch);
       if (phNxpEse_ResetEndPoint_Cntxt(EUICC) != ESESTATUS_SUCCESS) {
         ALOGE("%s: Reset SE EndPoint failed", __FUNCTION__);
@@ -408,8 +373,7 @@ uint8_t performLSUpdate()
 ** Returns:         SUCCESS of ok
 **
 *******************************************************************************/
-SESTATUS initializeEse(phNxpEse_initMode mode, SEDomainID Id)
-{
+SESTATUS initializeEse(phNxpEse_initMode mode, SEDomainID Id) {
   uint8_t retstat;
   SESTATUS status = SESTATUS_FAILED;
   phNxpEse_initParams initParams;
@@ -426,8 +390,7 @@ SESTATUS initializeEse(phNxpEse_initMode mode, SEDomainID Id)
     ALOGE("%s: Set SE EndPoint failed", __FUNCTION__);
   }
   retstat = phNxpEse_init(initParams);
-  if(retstat != ESESTATUS_SUCCESS)
-  {
+  if (retstat != ESESTATUS_SUCCESS) {
     if (phNxpEse_ResetEndPoint_Cntxt(Id) != ESESTATUS_SUCCESS) {
       ALOGE("%s: Reset SE EndPoint failed", __FUNCTION__);
     }
@@ -448,8 +411,7 @@ SESTATUS initializeEse(phNxpEse_initMode mode, SEDomainID Id)
 ** Returns:         SUCCESS of ok
 **
 *******************************************************************************/
-void seteSEClientState(uint8_t state)
-{
+void seteSEClientState(uint8_t state) {
   ALOGE("%s: State = %d", __FUNCTION__, state);
   ese_update = (ese_update_state_t)state;
 }
@@ -463,8 +425,7 @@ void seteSEClientState(uint8_t state)
 ** Returns:         SUCCESS of ok
 **
 *******************************************************************************/
-void sendeSEUpdateState(uint8_t state)
-{
+void sendeSEUpdateState(uint8_t state) {
   ALOGE("%s: State = %d", __FUNCTION__, state);
   phNxpEse_SPM_SetEseClientUpdateState(state);
 }
@@ -478,53 +439,48 @@ void sendeSEUpdateState(uint8_t state)
 ** Returns:         SUCCESS of ok
 **
 *******************************************************************************/
-SESTATUS eSEUpdate_SeqHandler()
-{
-    switch(ese_update)
-    {
-      case ESE_UPDATE_STARTED:
-        break;
-      case ESE_JCOP_UPDATE_REQUIRED:
-        ALOGE("%s: ESE_JCOP_UPDATE_REQUIRED", __FUNCTION__);
-        if(se_intf.isJcopUpdateRequired) {
-          if(se_intf.sJcopUpdateIntferface == ESE_INTF_SPI) {
-            handleJcopOsDownload();
-            sendeSEUpdateState(ESE_JCOP_UPDATE_COMPLETED);
-            setJcopUpdateRequired(false);
-          }
-          else if(se_intf.sJcopUpdateIntferface == ESE_INTF_NFC) {
-            return SESTATUS_SUCCESS;
-          }
-        }
-        [[fallthrough]];
-      case ESE_JCOP_UPDATE_COMPLETED:
-        ALOGE("%s: ESE_JCOP_UPDATE_COMPLETED", __FUNCTION__);
-        [[fallthrough]];
-      case ESE_LS_UPDATE_REQUIRED:
-        if(se_intf.isLSUpdateRequired) {
-          if(se_intf.sLsUpdateIntferface == ESE_INTF_SPI) {
-            performLSUpdate();
-            sendeSEUpdateState(ESE_LS_UPDATE_COMPLETED);
-            setLsUpdateRequired(false);
-          }
-          else if(se_intf.sLsUpdateIntferface == ESE_INTF_NFC)
-          {
-            seteSEClientState(ESE_LS_UPDATE_REQUIRED);
-            return SESTATUS_SUCCESS;
-          }
-        }
-        ALOGE("%s: ESE_LS_UPDATE_REQUIRED", __FUNCTION__);
-        [[fallthrough]];
-      case ESE_LS_UPDATE_COMPLETED:
-        ALOGE("%s: ESE_LS_UPDATE_COMPLETED", __FUNCTION__);
-        [[fallthrough]];
-      case ESE_UPDATE_COMPLETED:
-        seteSEClientState(ESE_UPDATE_COMPLETED);
-        sendeSEUpdateState(ESE_UPDATE_COMPLETED);
-        NxpEse::initSEService();
-        NxpEse::initVIrtualISOService();
-        ALOGE("%s: ESE_UPDATE_COMPLETED", __FUNCTION__);
+SESTATUS eSEUpdate_SeqHandler() {
+  switch (ese_update) {
+    case ESE_UPDATE_STARTED:
       break;
-    }
-    return SESTATUS_SUCCESS;
+    case ESE_JCOP_UPDATE_REQUIRED:
+      ALOGE("%s: ESE_JCOP_UPDATE_REQUIRED", __FUNCTION__);
+      if (se_intf.isJcopUpdateRequired) {
+        if (se_intf.sJcopUpdateIntferface == ESE_INTF_SPI) {
+          handleJcopOsDownload();
+          sendeSEUpdateState(ESE_JCOP_UPDATE_COMPLETED);
+          setJcopUpdateRequired(false);
+        } else if (se_intf.sJcopUpdateIntferface == ESE_INTF_NFC) {
+          return SESTATUS_SUCCESS;
+        }
+      }
+      [[fallthrough]];
+    case ESE_JCOP_UPDATE_COMPLETED:
+      ALOGE("%s: ESE_JCOP_UPDATE_COMPLETED", __FUNCTION__);
+      [[fallthrough]];
+    case ESE_LS_UPDATE_REQUIRED:
+      if (se_intf.isLSUpdateRequired) {
+        if (se_intf.sLsUpdateIntferface == ESE_INTF_SPI) {
+          performLSUpdate();
+          sendeSEUpdateState(ESE_LS_UPDATE_COMPLETED);
+          setLsUpdateRequired(false);
+        } else if (se_intf.sLsUpdateIntferface == ESE_INTF_NFC) {
+          seteSEClientState(ESE_LS_UPDATE_REQUIRED);
+          return SESTATUS_SUCCESS;
+        }
+      }
+      ALOGE("%s: ESE_LS_UPDATE_REQUIRED", __FUNCTION__);
+      [[fallthrough]];
+    case ESE_LS_UPDATE_COMPLETED:
+      ALOGE("%s: ESE_LS_UPDATE_COMPLETED", __FUNCTION__);
+      [[fallthrough]];
+    case ESE_UPDATE_COMPLETED:
+      seteSEClientState(ESE_UPDATE_COMPLETED);
+      sendeSEUpdateState(ESE_UPDATE_COMPLETED);
+      NxpEse::initSEService();
+      NxpEse::initVIrtualISOService();
+      ALOGE("%s: ESE_UPDATE_COMPLETED", __FUNCTION__);
+      break;
+  }
+  return SESTATUS_SUCCESS;
 }

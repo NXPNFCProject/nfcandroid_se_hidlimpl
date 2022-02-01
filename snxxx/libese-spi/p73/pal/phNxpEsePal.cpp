@@ -178,7 +178,7 @@ int phPalEse_write(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToWrite) {
 **
 *******************************************************************************/
 ESESTATUS phPalEse_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
-                   long level) {
+                         long level) {
   ESESTATUS ret = ESESTATUS_FAILED;
   ALOGD_IF(ese_debug_enabled, "phPalEse_spi_ioctl(), ioctl %x , level %lx",
            eControlCode, level);

@@ -53,8 +53,8 @@ typedef enum {
  *
  */
 typedef enum {
-  ESE_PROTOCOL_MEDIA_SPI  = 0x08, /*!< Media Type - SPI legacy  */
-  ESE_PROTOCOL_MEDIA_SPI_APDU_GATE =0xD0   /*!Media Type - APDU Gate */
+  ESE_PROTOCOL_MEDIA_SPI = 0x08,          /*!< Media Type - SPI legacy  */
+  ESE_PROTOCOL_MEDIA_SPI_APDU_GATE = 0xD0 /*!Media Type - APDU Gate */
 } phNxpEse_mediaType;
 
 typedef enum {
@@ -79,7 +79,7 @@ typedef void(NotifyWtxReq)(phNxpEse_wtxState);
  *
  */
 typedef struct phNxpEse_initParams {
-  phNxpEse_initMode initMode; /*!< Ese communication mode */
+  phNxpEse_initMode initMode;   /*!< Ese communication mode */
   phNxpEse_mediaType mediaType; /*!< Logical channel for Ese communication */
   NotifyWtxReq* fPtr_WtxNtf;    /*!< Wait extension callback notification*/
 } phNxpEse_initParams;
@@ -100,17 +100,19 @@ typedef struct phNxpEse_initParams {
 #define ESELIB_MW_VERSION_MIN (0x04)
 
 /*!
-* \brief eSE debugging log Level
-*/
+ * \brief eSE debugging log Level
+ */
 extern bool ese_debug_enabled;
 
 /**
  * \ingroup spi_libese
  *
  * \brief  This function is called by Jni/phNxpEse_open during the
- *         initialization of the ESE. It initializes protocol stack instance variables.
+ *         initialization of the ESE. It initializes protocol stack instance
+ * variables.
  *
- * \param[in]    initParams - init parameters to be set while calling phNxpEse_init
+ * \param[in]    initParams - init parameters to be set while calling
+ * phNxpEse_init
  *
  * \retval This function return ESESTATUS_SUCCES (0) in case of success
  *         In case of failure returns other failure value.
@@ -147,7 +149,8 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data);
  * \brief  This function is called by hal interface api before any
  *         communication. It sets the end point variables
  *
- *  \param[in]     uEndPoint - select the end point type (  END_POINT_ESE = 0, END_POINT_eUICC =1 ).
+ *  \param[in]     uEndPoint - select the end point type (  END_POINT_ESE = 0,
+ * END_POINT_eUICC =1 ).
  *
  * \retval This function return ESESTATUS_SUCCES (0) in case of success
  *         In case of failure returns other failure value.
@@ -161,7 +164,8 @@ ESESTATUS phNxpEse_SetEndPoint_Cntxt(uint8_t uEndPoint);
  * \brief  This function is called by hal interface api before any
  *         communication. It resets the end point variables
  *
- * \param[in]     uEndPoint - select the end point type (  END_POINT_ESE = 0, END_POINT_eUICC =1 ).
+ * \param[in]     uEndPoint - select the end point type (  END_POINT_ESE = 0,
+ * END_POINT_eUICC =1 ).
  *
  * \retval This function return ESESTATUS_SUCCES (0) in case of success
  *         In case of failure returns other failure value.
@@ -175,7 +179,8 @@ ESESTATUS phNxpEse_ResetEndPoint_Cntxt(uint8_t uEndPoint);
  *        initialization of the ESE. It opens the physical connection
  *        with ESE () and initializes the protocol stack
  *
- * \param[in]     initParams - Initialize with init mode ( normal/osu) and media type(SPI- legacy/ APDU type).
+ * \param[in]     initParams - Initialize with init mode ( normal/osu) and media
+ * type(SPI- legacy/ APDU type).
  *
  * \retval ESESTATUS_SUCCESS On Success ESESTATUS_SUCCESS else proper error code
  *
@@ -189,7 +194,8 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams);
  *        with ESE () and creates required client thread for
  *        operation.  This will get priority access to ESE for timeout period.
  *
- * \param[in]     initParams - Initialize with init mode ( normal/osu) and media type(SPI- legacy/ APDU type).
+ * \param[in]     initParams - Initialize with init mode ( normal/osu) and media
+ * type(SPI- legacy/ APDU type).
  *
  * \retval ESESTATUS_SUCCESS On Success ESESTATUS_SUCCESS else proper error code
  *
@@ -276,7 +282,6 @@ ESESTATUS phNxpEse_chipReset(void);
  *
  */
 ESESTATUS phNxpEse_setIfs(uint16_t IFS_Size);
-
 
 /**
  * \ingroup spi_libese
@@ -374,13 +379,13 @@ void* phNxpEse_calloc(size_t dataType, size_t size);
 void phNxpEse_free(void* ptr);
 
 /**
-* \ingroup spi_libese
-* \brief This function perfroms disbale/enable power control
-*
-*
-* \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
-*
-*/
+ * \ingroup spi_libese
+ * \brief This function perfroms disbale/enable power control
+ *
+ *
+ * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
+ *
+ */
 ESESTATUS phNxpEse_DisablePwrCntrl(void);
 
 /**

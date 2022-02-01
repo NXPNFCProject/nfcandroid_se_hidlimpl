@@ -58,20 +58,19 @@ typedef enum {
   10 /* Maximum retry count for ESE JCOP OS Dwonload*/
 #define ESE_FW_DWNLD_RETRY_CNT 10 /* Maximum retry count for FW Dwonload*/
 
-
 /*!
  * \brief  Secure timer values F1, F2, F3
  *
  *
  */
 typedef struct phNxpEse_SecureTimer {
-  unsigned int secureTimer1;/*!< Secure timer 1 value */
-  unsigned int secureTimer2;/*!< Secure timer 2 value */
-  unsigned int secureTimer3;/*!< Secure timer 3 value */
+  unsigned int secureTimer1; /*!< Secure timer 1 value */
+  unsigned int secureTimer2; /*!< Secure timer 2 value */
+  unsigned int secureTimer3; /*!< Secure timer 3 value */
 } phNxpEse_SecureTimer_t;
 
 typedef enum nadInfoTx {
-  ESE_NAD_TX = 0x5A, /*!< R-frame Acknowledgement frame indicator */
+  ESE_NAD_TX = 0x5A,  /*!< R-frame Acknowledgement frame indicator */
   EUICC_NAD_TX = 0x4B /*!< R-frame Negative-Acknowledgement frame indicator */
 } nadInfoTx_t;
 
@@ -79,7 +78,7 @@ typedef enum nadInfoTx {
  * \brief R-Frame types used in 7816-3 protocol stack
  */
 typedef enum nadInfoRx {
-  ESE_NAD_RX = 0xA5, /*!< R-frame Acknowledgement frame indicator */
+  ESE_NAD_RX = 0xA5,  /*!< R-frame Acknowledgement frame indicator */
   EUICC_NAD_RX = 0xB4 /*!< R-frame Negative-Acknowledgement frame indicator */
 } nadInfoRx_t;
 
@@ -89,10 +88,9 @@ typedef enum nadInfoRx {
  *
  */
 typedef struct phNxpEseNadInfo {
-  nadInfoTx_t nadTx;/*!< nod address for tx */
-  nadInfoRx_t nadRx;/*!< nod address for rx */
-}phNxpEseNadInfo_t;
-
+  nadInfoTx_t nadTx; /*!< nod address for tx */
+  nadInfoRx_t nadRx; /*!< nod address for rx */
+} phNxpEseNadInfo_t;
 
 /* JCOP download states */
 typedef enum jcop_dwnld_state {
@@ -109,21 +107,22 @@ typedef enum jcop_dwnld_state {
  *
  */
 typedef struct phNxpEse_Context {
-  void* pDevHandle; /*!<device handle */
-  long nadPollingRetryTime;/*!<polling retry for nod address */
-  long invalidFrame_Rnack_Delay;/*!<delay before retrying when rnack is received */
+  void* pDevHandle;                /*!<device handle */
+  long nadPollingRetryTime;        /*!<polling retry for nod address */
+  long invalidFrame_Rnack_Delay;   /*!<delay before retrying when rnack is
+                                      received */
   phNxpEse_LibStatus EseLibStatus; /*!<Indicate if Ese Lib is open or closed */
-  phNxpEse_initParams initParams;/*!<init params */
-  phNxpEse_SecureTimer_t secureTimerParams;/*!<secure timer params */
-  phNxpEseNadInfo_t nadInfo;/*!<nad info */
-  uint8_t p_read_buff[MAX_DATA_LEN];/*!<read buffer */
-  uint8_t p_cmd_data[MAX_DATA_LEN];/*!<cmd  buffer */
-  uint16_t cmd_len;/*!<cmd buffer length */
-  uint8_t pwr_scheme;/*!<eSE power scheme */
-  uint8_t endPointInfo;/*!<info end point*/
-  bool rnack_sent;/*!<rnack send info */
-  bool spm_power_state;/*!<spm_power_state */
-  NotifyWtxReq* fPtr_WtxNtf;/*!< Wait extension callback notification*/
+  phNxpEse_initParams initParams;  /*!<init params */
+  phNxpEse_SecureTimer_t secureTimerParams; /*!<secure timer params */
+  phNxpEseNadInfo_t nadInfo;                /*!<nad info */
+  uint8_t p_read_buff[MAX_DATA_LEN];        /*!<read buffer */
+  uint8_t p_cmd_data[MAX_DATA_LEN];         /*!<cmd  buffer */
+  uint16_t cmd_len;                         /*!<cmd buffer length */
+  uint8_t pwr_scheme;                       /*!<eSE power scheme */
+  uint8_t endPointInfo;                     /*!<info end point*/
+  bool rnack_sent;                          /*!<rnack send info */
+  bool spm_power_state;                     /*!<spm_power_state */
+  NotifyWtxReq* fPtr_WtxNtf; /*!< Wait extension callback notification*/
 } phNxpEse_Context_t;
 
 /* Timeout value to wait for response from

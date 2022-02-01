@@ -18,16 +18,16 @@
 #ifndef ANDROID_HARDWARE_SECURE_ELEMENT_V1_1_SECUREELEMENT_H
 #define ANDROID_HARDWARE_SECURE_ELEMENT_V1_1_SECUREELEMENT_H
 
+#include <SyncEvent.h>
+#include <android-base/stringprintf.h>
 #include <android/hardware/secure_element/1.0/types.h>
 #include <android/hardware/secure_element/1.1/ISecureElement.h>
 #include <hardware/hardware.h>
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>
 #include <pthread.h>
-#include "phNxpEse_Api.h"
-#include <SyncEvent.h>
-#include <android-base/stringprintf.h>
 
+#include "phNxpEse_Api.h"
 
 class ThreadMutex {
  public:
@@ -52,26 +52,24 @@ class AutoThreadMutex {
   ThreadMutex& mm;
 };
 
-
-
 namespace android {
 namespace hardware {
 namespace secure_element {
 namespace V1_1 {
 namespace implementation {
 
-using ::android::hidl::base::V1_0::IBase;
+using ::android::sp;
+using android::base::StringPrintf;
 using ::android::hardware::hidl_array;
 using ::android::hardware::hidl_memory;
 using ::android::hardware::hidl_string;
 using ::android::hardware::hidl_vec;
 using ::android::hardware::Return;
+using ::android::hardware::Void;
 using ::android::hardware::secure_element::V1_0::LogicalChannelResponse;
 using ::android::hardware::secure_element::V1_0::SecureElementStatus;
 using ::android::hardware::secure_element::V1_1::ISecureElement;
-using ::android::hardware::Void;
-using ::android::sp;
-using android::base::StringPrintf;
+using ::android::hidl::base::V1_0::IBase;
 
 #ifndef MIN_APDU_LENGTH
 #define MIN_APDU_LENGTH 0x04
@@ -80,8 +78,8 @@ using android::base::StringPrintf;
 #define DEFAULT_BASIC_CHANNEL 0x00
 #endif
 
-
-struct SecureElement : public V1_1::ISecureElement, public hidl_death_recipient {
+struct SecureElement : public V1_1::ISecureElement,
+                       public hidl_death_recipient {
   SecureElement();
   Return<void> init(
       const sp<
@@ -89,7 +87,8 @@ struct SecureElement : public V1_1::ISecureElement, public hidl_death_recipient 
           clientCallback) override;
   Return<void> init_1_1(
       const sp<
-          ::android::hardware::secure_element::V1_1::ISecureElementHalCallback>& clientCallback) override;
+          ::android::hardware::secure_element::V1_1::ISecureElementHalCallback>&
+          clientCallback) override;
   Return<void> getAtr(getAtr_cb _hidl_cb) override;
   Return<bool> isCardPresent() override;
   Return<void> transmit(const hidl_vec<uint8_t>& data,

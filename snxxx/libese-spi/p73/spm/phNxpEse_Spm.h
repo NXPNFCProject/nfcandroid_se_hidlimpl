@@ -46,7 +46,7 @@ typedef enum spm_state {
   SPM_STATE_SPI_PRIO = 0x1000,     /*!< Start of p61 access by SPI on priority*/
   SPM_STATE_SPI_PRIO_END = 0x2000, /*!< End of p61 access by SPI on priority*/
   SPM_STATE_SPI_FAILED = 0x0010,   /*SPI open/close failed*/
-  SPM_STATE_JCOP_DWNLD = 0x8000 /*!< P73 state JCOP Download*/
+  SPM_STATE_JCOP_DWNLD = 0x8000    /*!< P73 state JCOP Download*/
 } spm_state_t;
 
 /**
@@ -69,7 +69,6 @@ ESESTATUS phNxpEse_SPM_Init(void* pDevHandle);
  */
 ESESTATUS phNxpEse_SPM_DeInit(void);
 
-
 /**
  * \ingroup SPI_Power_Management
  * \brief This function request to the nfc i2c driver
@@ -82,7 +81,6 @@ ESESTATUS phNxpEse_SPM_DeInit(void);
  */
 ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg);
 
-
 /**
  * \ingroup SPI_Power_Management
  * \brief This function request to the nfc i2c driver
@@ -93,7 +91,6 @@ ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg);
  * \retval       -On Success ESESTATUS_SUCCESS else proper error code
  */
 ESESTATUS phNxpEse_SPM_EnablePwr(void);
-
 
 /**
  * \ingroup SPI_Power_Management
@@ -124,7 +121,6 @@ ESESTATUS phNxpEse_SPM_GetState(spm_state_t* current_state);
  */
 ESESTATUS phNxpEse_SPM_ResetPwr(void);
 
-
 /**
  * \ingroup SPI_Power_Management
  * \brief  This function request to get access to eSE
@@ -134,7 +130,6 @@ ESESTATUS phNxpEse_SPM_ResetPwr(void);
  * \retval       -On Success ESESTATUS_SUCCESS else proper error code
  */
 ESESTATUS phNxpEse_SPM_GetAccess(long timeout);
-
 
 /**
  * \ingroup SPI_Power_Management
@@ -155,7 +150,6 @@ ESESTATUS phNxpEse_SPM_SetState(long arg);
  */
 ESESTATUS phNxpEse_SPM_RelAccess(void);
 
-
 /**
  * \ingroup SPI_Power_Management
  * \brief   This function request to the nfc i2c driver
@@ -166,7 +160,6 @@ ESESTATUS phNxpEse_SPM_RelAccess(void);
  * \retval       -On Success ESESTATUS_SUCCESS else proper error code
  */
 ESESTATUS phNxpEse_SPM_SetPwrScheme(long arg);
-
 
 /**
  * \ingroup SPI_Power_Management
