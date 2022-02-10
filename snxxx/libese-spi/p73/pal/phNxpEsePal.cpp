@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020 NXP
+ *  Copyright 2018-2020,2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -209,6 +209,9 @@ ESESTATUS phPalEse_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
 *******************************************************************************/
 void phPalEse_print_packet(const char* pString, const uint8_t* p_data,
                            uint16_t len) {
+  if(!ese_debug_enabled)
+    return; //logging is disabled
+
   uint32_t i;
   char print_buffer[len * 3 + 1];
 
