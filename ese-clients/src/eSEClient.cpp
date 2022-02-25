@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020 NXP
+ *  Copyright 2018-2020, 2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -169,18 +169,14 @@ SESTATUS ESE_ChannelInit(IChannel *ch)
 ** Returns:         SUCCESS of ok
 **
 *******************************************************************************/
-void eSEClientUpdate_Thread()
-{
-  SESTATUS status = SESTATUS_FAILED;
+void eSEClientUpdate_Thread() {
   pthread_t thread;
   pthread_attr_t attr;
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
   if (pthread_create(&thread, &attr, &eSEClientUpdate_ThreadHandler, NULL) != 0) {
     ALOGD("Thread creation failed");
-    status = SESTATUS_FAILED;
   } else {
-    status = SESTATUS_SUCCESS;
     ALOGD("Thread creation success");
   }
     pthread_attr_destroy(&attr);
@@ -194,18 +190,14 @@ void eSEClientUpdate_Thread()
 ** Returns:         SUCCESS of ok
 **
 *******************************************************************************/
-void eSEClientUpdate_SE_Thread()
-{
-  SESTATUS status = SESTATUS_FAILED;
+void eSEClientUpdate_SE_Thread() {
   pthread_t thread;
   pthread_attr_t attr;
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
   if (pthread_create(&thread, &attr, &eSEUpdate_SE_SeqHandler, NULL) != 0) {
     ALOGD("Thread creation failed");
-    status = SESTATUS_FAILED;
   } else {
-    status = SESTATUS_SUCCESS;
     ALOGD("Thread creation success");
   }
     pthread_attr_destroy(&attr);
