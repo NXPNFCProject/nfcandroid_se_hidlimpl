@@ -42,7 +42,7 @@ typedef enum OS_VERSION {
 } phNxpEse_OsVersion_t;
 
 extern phNxpEse_OsVersion_t phNxpEse_getOsVersion();
-extern bool ese_debug_enabled;
+
 #define GET_CHIP_OS_VERSION() phNxpEse_getOsVersion()
 
 #endif /* end of #ifndef NXP_ESE_FEATURES_H */
