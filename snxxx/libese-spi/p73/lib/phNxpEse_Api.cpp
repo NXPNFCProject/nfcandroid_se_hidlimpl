@@ -293,6 +293,8 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   /* initialize trace level */
   phNxpLog_InitializeLogLevel();
 
+  phPalEse_initTimer();
+
   NXP_LOG_ESE_D("phNxpEse_open Enter");
   /*When spi channel is already opened return status as FAILED*/
   if (nxpese_ctxt.EseLibStatus != ESE_STATUS_CLOSE) {
@@ -1130,6 +1132,8 @@ ESESTATUS phNxpEse_deInit(void) {
 ESESTATUS phNxpEse_close(ESESTATUS deInitStatus) {
   ESESTATUS status = ESESTATUS_SUCCESS;
   NXP_LOG_ESE_D("phNxpEse_close Enter");
+
+  phPalEse_deInitTimer();
 
   if ((ESE_STATUS_CLOSE == nxpese_ctxt.EseLibStatus)) {
     NXP_LOG_ESE_E(" %s ESE Not Initialized \n", __FUNCTION__);

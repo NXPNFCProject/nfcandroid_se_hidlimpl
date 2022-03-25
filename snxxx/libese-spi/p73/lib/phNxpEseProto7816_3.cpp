@@ -19,6 +19,7 @@
 #include <ese_logs.h>
 #include <log/log.h>
 #include <phNxpEseProto7816_3.h>
+#include "phNxpEsePal.h"
 
 /**
  * \addtogroup ISO7816-3_protocol_lib
@@ -272,6 +273,13 @@ static phNxpEseProto7816_t phNxpEseProto7816_3_Var;
  * \brief 7816_3 protocol stack instance - pointer variable
  */
 static phNxpEseProto7816_t phNxpEseProto7816_ptr[MAX_END_POINTS];
+
+/*!
+ * \brief  Prints  time taken(in microsecs) in cmd transfer and response
+ *         receival
+ */
+static void printCmdRspTimeDuration(ESESTATUS status, uint32_t cmdLen,
+                                    uint32_t respLen);
 
 /******************************************************************************
  * Function         phNxpEseProto7816_SendRawFrame
@@ -614,6 +622,12 @@ static ESESTATUS phNxpEseProto7816_SendIframe(iFrameInfo_t iFrameData) {
       phNxpEseProto7816_ComputeLRC(p_framebuff, 0, (frame_len - 1));
 
   status = phNxpEseProto7816_SendRawFrame(frame_len, p_framebuff);
+  if (iFrameData.isChained == false) {
+    NXP_LOG_ESE_I("All Iframes are sent");
+    phPalEse_stopTimer(phPalEse_getTimer()->tx_timer);
+
+    phPalEse_startTimer(phPalEse_getTimer()->rx_timer);
+  }
   phNxpEse_free(p_framebuff);
   NXP_LOG_ESE_D("Exit %s ", __FUNCTION__);
   return status;
@@ -1694,7 +1708,13 @@ ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd,
       pCmd->len;
   NXP_LOG_ESE_D("Transceive data ptr 0x%p len:%d", pCmd->p_data, pCmd->len);
   status = phNxpEseProto7816_SetFirstIframeContxt();
+
+  phPalEse_startTimer(phPalEse_getTimer()->tx_timer);
+
   status = TransceiveProcess();
+
+  phPalEse_stopTimer(phPalEse_getTimer()->rx_timer);
+
   if (ESESTATUS_FAILED == status || ESESTATUS_TRANSCEIVE_FAILED == status) {
     /* ESE hard reset to be done */
     NXP_LOG_ESE_E("Transceive failed, hard reset to proceed");
@@ -1716,6 +1736,7 @@ ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd,
     } else
       status = ESESTATUS_FAILED;
   }
+  printCmdRspTimeDuration(status, pCmd->len, pRes.len);
   /* Copy the data to be read by the upper layer via transceive api */
   pRsp->len = pRes.len;
   pRsp->p_data = pRes.p_data;
@@ -1725,6 +1746,32 @@ ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd,
   phNxpEseProto7816_3_Var.reset_type = RESET_TYPE_NONE;
   NXP_LOG_ESE_D("Exit %s Status 0x%x", __FUNCTION__, status);
   return status;
+}
+
+/******************************************************************************
+ * Function         printCmdRspTimeDuration
+ *
+ * Description      Prints time taken(usecs) in sending C-Apdu and receiving
+ *                  R-Apdu
+ *                  Appliacble only when KPI measurement config is enabled
+ *
+ * Returns          void
+ *
+ ******************************************************************************/
+static void printCmdRspTimeDuration(ESESTATUS status, uint32_t cmdLen,
+                                    uint32_t respLen) {
+  if (!phPalEse_getTimer()->is_enabled) return;
+
+  if (status == ESESTATUS_SUCCESS) {
+    NXP_LOG_ESE_I(
+        "TX: Total time taken for sending C-Apdu of size: %d is %lu usecs",
+        cmdLen, phPalEse_timerDuration(phPalEse_getTimer()->tx_timer));
+    NXP_LOG_ESE_I(
+        "RX: Total time taken for receiving R-Apdu of size: %d is %lu usecs",
+        respLen, phPalEse_timerDuration(phPalEse_getTimer()->rx_timer));
+  } else {
+    phPalEse_resetTimer();
+  }
 }
 
 /******************************************************************************

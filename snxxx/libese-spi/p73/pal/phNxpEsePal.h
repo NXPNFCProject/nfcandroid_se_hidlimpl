@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2021 NXP
+ *  Copyright 2018-2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@
 #define _PHNXPESE_PAL_H
 
 /* Basic type definitions */
+#include <NxpTimer.h>
 #include <errno.h>
 #include <phEseStatus.h>
 #include <phNxpEseFeatures.h>
@@ -81,6 +82,26 @@ typedef struct phPalEse_Config {
   void* pDevHandle;
   /*!< Device handle output */
 } phPalEse_Config_t, *pphPalEse_Config_t; /* pointer to phPalEse_Config_t */
+
+/*!
+ * \ingroup eSe_PAL
+ *
+ * \brief NxpTimer struct to measure cmd TX and response RX time.
+ */
+typedef struct phPalEse_NxpTimer {
+  NxpTimer* tx_timer;
+  /*!< timer to capture time taken for cmd transfer
+   */
+
+  NxpTimer* rx_timer;
+  /*!< timer to capture time taken for response receival
+   */
+
+  bool is_enabled;
+  /*!< TRUE if KPI measurement is enabled else FALSE
+   */
+
+} phPalEse_NxpTimer_t;
 
 /* Function declarations */
 /**
@@ -242,6 +263,91 @@ void* phPalEse_calloc(size_t dataType, size_t size);
  *
  */
 void phPalEse_free(void* ptr);
+
+/**
+ * \ingroup eSe_PAL
+ * \brief This is wrapper function for constructing timer objects.
+ *  Timer is used for cmd TX and response RX time measurement.
+ *  Applicable only for KPI measurement
+ *
+ * \param[in]    void
+ *
+ * \retval   void
+ *
+ */
+void phPalEse_initTimer();
+
+/**
+ * \ingroup eSe_PAL
+ * \brief Function for getting handle to initialized timers.
+ *  Applicable only for KPI measurement
+ *
+ * \param[in]    void
+ *
+ * \retval   pointer to global phPalEse_NxpTimer_t struct or null
+ *
+ */
+const phPalEse_NxpTimer_t* phPalEse_getTimer();
+
+/**
+ * \ingroup eSe_PAL
+ * \brief Wrapper function to start timer.
+ *  Applicable only for KPI measurement
+ *
+ * \param[in]    pointer to NxpTimer object
+ *
+ * \retval   void
+ *
+ */
+void phPalEse_startTimer(NxpTimer* timer);
+
+/**
+ * \ingroup eSe_PAL
+ * \brief Wrapper function to stop timer.
+ *  Applicable only for KPI measurement
+ *
+ * \param[in]    pointer to NxpTimer object
+ *
+ * \retval   void
+ *
+ */
+void phPalEse_stopTimer(NxpTimer* timer);
+
+/**
+ * \ingroup eSe_PAL
+ * \brief Wrapper function to get total time recorded by given timer.
+ *  Applicable only for KPI measurement
+ *
+ * \param[in]    pointer to NxpTimer object
+ *
+ * \retval   total time recorded by this timer
+ *
+ */
+unsigned long phPalEse_timerDuration(NxpTimer* timer);
+
+/**
+ * \ingroup eSe_PAL
+ * \brief Wrapper function to reset the both timer state.
+ *  Applicable only for KPI measurement
+ *
+ * \param[in]    void
+ *
+ * \retval   void
+ *
+ */
+void phPalEse_resetTimer();
+
+/**
+ * \ingroup eSe_PAL
+ * \brief Wrapper function to delete the objects created by initTimer.
+ *  Applicable only for KPI measurement
+ *
+ * \param[in]    void
+ *
+ * \retval   void
+ *
+ */
+void phPalEse_deInitTimer();
 
 /** @} */
 #endif /*  _PHNXPESE_PAL_H    */
