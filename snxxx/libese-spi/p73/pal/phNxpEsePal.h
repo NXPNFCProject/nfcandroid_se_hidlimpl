@@ -205,6 +205,19 @@ void phPalEse_sleep(long usec);
 
 /**
  * \ingroup eSe_PAL
+ * \brief This function  suspends execution of the calling thread for
+ *        total_time usecs(max extra delay 1 usecs) with busy loop wait.
+ *        Use this only for short delays (less than 500 microsecs)
+ *
+ * \param[in]    usec                - number of micro seconds to sleep
+ *
+ * \retval   void
+ *
+ */
+void phPalEse_BusyWait(long total_time /* usecs*/);
+
+/**
+ * \ingroup eSe_PAL
  * \brief This function updates destination buffer with val
  *                 data in len size
  *
