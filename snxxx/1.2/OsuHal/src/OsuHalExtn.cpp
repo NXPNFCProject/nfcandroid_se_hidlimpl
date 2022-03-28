@@ -45,12 +45,6 @@ OsuHalExtn::OsuApduMode OsuHalExtn::isOsuMode(const hidl_vec<uint8_t>& evt,
 
   switch (type) {
     case OPENBASIC:
-
-      phNxpEse_data atrData;
-      if (phNxpEse_getAtr(&atrData) != ESESTATUS_SUCCESS) {
-        LOG(ERROR) << "phNxpEse_getAtr failed";
-      }
-      checkAndUpdateOsuMode();
       /*
        * update & return OSU_PROP_MODE if OpenBasicChannel AID request matches
        * OSU_AID
