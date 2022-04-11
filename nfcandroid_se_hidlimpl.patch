@@ -1,0 +1,12 @@
+diff --git a/1.2/android.hardware.secure_element@1.2-service.rc b/1.2/android.hardware.secure_element@1.2-service.rc
+index 4e3bf7b..159746d 100644
+--- a/1.2/android.hardware.secure_element@1.2-service.rc
++++ b/1.2/android.hardware.secure_element@1.2-service.rc
+@@ -3,5 +3,7 @@ service vendor.secure_element_hal_service_1_2 /vendor/bin/hw/android.hardware.se
+     interface android.hardware.secure_element@1.0::ISecureElement eSE1
+     interface android.hardware.secure_element@1.1::ISecureElement eSE1
+     interface android.hardware.secure_element@1.2::ISecureElement eSE1
++    interface vendor.nxp.nxpese@1.0::INxpEse default
++    interface vendor.nxp.eventprocessor@1.0::INxpEseEvtProcessor default
+     user secure_element
+     group secure_element
