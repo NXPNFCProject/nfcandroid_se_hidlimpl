@@ -105,7 +105,7 @@ Return<void> VirtualISO::init(
     status = phNxpEse_close(deInitStatus);
   }
   if (status == ESESTATUS_SUCCESS && mIsInitDone) {
-    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2) ? 0x0C : 0x04;
+    mMaxChannelCount = (GET_CHIP_OS_VERSION() > OS_VERSION_6_2) ? 0x0C : 0x04;
     mOpenedChannels.resize(mMaxChannelCount, false);
     clientCallback->onStateChange(true);
   } else {
@@ -162,7 +162,7 @@ Return<void> VirtualISO::init_1_1(
     status = phNxpEse_close(deInitStatus);
   }
   if (status == ESESTATUS_SUCCESS && mIsInitDone) {
-    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2) ? 0x0C : 0x04;
+    mMaxChannelCount = (GET_CHIP_OS_VERSION() > OS_VERSION_6_2) ? 0x0C : 0x04;
     mOpenedChannels.resize(mMaxChannelCount, false);
     clientCallback->onStateChange_1_1(true, "NXP VISIO HAL init ok");
   } else {
@@ -234,6 +234,18 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
 
   LogicalChannelResponse resApduBuff;
 
+  if (GET_CHIP_OS_VERSION() <= OS_VERSION_6_2) {
+    uint8_t maxLogicalChannelSupported = mMaxChannelCount - 1;
+    uint8_t openedLogicalChannelCount = mOpenedchannelCount;
+    if (mOpenedChannels[0]) openedLogicalChannelCount--;
+
+    if (openedLogicalChannelCount >= maxLogicalChannelSupported) {
+      LOG(ERROR) << "%s: Reached Max supported Logical Channel" << __func__;
+      _hidl_cb(resApduBuff, SecureElementStatus::CHANNEL_NOT_AVAILABLE);
+      return Void();
+    }
+  }
+
   LOG(INFO) << "Acquired the lock in VISO openLogicalChannel";
 
   resApduBuff.channelNumber = 0xff;
@@ -248,7 +260,7 @@ Return<void> VirtualISO::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   }
 
   if (mOpenedChannels.size() == 0x00) {
-    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2) ? 0x0C : 0x04;
+    mMaxChannelCount = (GET_CHIP_OS_VERSION() > OS_VERSION_6_2) ? 0x0C : 0x04;
     mOpenedChannels.resize(mMaxChannelCount, false);
   }
 
@@ -427,7 +439,7 @@ Return<void> VirtualISO::openBasicChannel(const hidl_vec<uint8_t>& aid,
   }
 
   if (mOpenedChannels.size() == 0x00) {
-    mMaxChannelCount = (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2) ? 0x0C : 0x04;
+    mMaxChannelCount = (GET_CHIP_OS_VERSION() > OS_VERSION_6_2) ? 0x0C : 0x04;
     mOpenedChannels.resize(mMaxChannelCount, false);
   }
 
@@ -689,7 +701,7 @@ VirtualISO::reset() {
       sestatus = SecureElementStatus::SUCCESS;
       if (mOpenedChannels.size() == 0x00) {
         mMaxChannelCount =
-            (GET_CHIP_OS_VERSION() >= OS_VERSION_6_2) ? 0x0C : 0x04;
+            (GET_CHIP_OS_VERSION() > OS_VERSION_6_2) ? 0x0C : 0x04;
         mOpenedChannels.resize(mMaxChannelCount, false);
       }
       for (uint8_t xx = 0; xx < mMaxChannelCount; xx++) {
