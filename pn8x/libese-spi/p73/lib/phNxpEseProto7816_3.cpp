@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2019, 2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -1051,6 +1051,7 @@ static bool IsTransceiveAllowed(void) {
 static ESESTATUS TransceiveProcess(void) {
   ESESTATUS status = ESESTATUS_FAILED;
   sFrameInfo_t sFrameInfo;
+  phNxpEse_FlushData();
   ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
 
   {
