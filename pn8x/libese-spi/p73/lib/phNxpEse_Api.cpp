@@ -878,7 +878,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
     }
     ALOGD_IF(ese_debug_enabled, "%s Normal Pkt, delay read %dus", __FUNCTION__,
              READ_WAKE_UP_DELAY * NAD_POLLING_SCALER);
-    phPalEse_sleep(READ_WAKE_UP_DELAY * NAD_POLLING_SCALER);
+    phPalEse_BusyWait(READ_WAKE_UP_DELAY * NAD_POLLING_SCALER);
   } while (sof_counter < ESE_NAD_POLLING_MAX);
   if (pBuffer[0] == RECIEVE_PACKET_SOF) {
     ALOGD_IF(ese_debug_enabled, "%s SOF FOUND", __FUNCTION__);
@@ -929,6 +929,12 @@ ESESTATUS phNxpEse_WriteFrame(uint32_t data_len, const uint8_t* p_data) {
   /* Create local copy of cmd_data */
   phNxpEse_memcpy(nxpese_ctxt.p_cmd_data, p_data, data_len);
   nxpese_ctxt.cmd_len = data_len;
+
+  // eSE requires around 200 usec to switch from tx to rx mode
+  // As per the observation, debug logs when enabled introduces around
+  // same amount of delay, therefore below explicit delay is required
+  // only if debug logs are disabled
+  if (!ese_debug_enabled) phPalEse_BusyWait(200 /*usecs*/);
 
   dwNoBytesWrRd = phPalEse_write(nxpese_ctxt.pDevHandle, nxpese_ctxt.p_cmd_data,
                                  nxpese_ctxt.cmd_len);
