@@ -32,6 +32,7 @@
 #include <unistd.h>
 
 #include <EseTransportFactory.h>
+#include <NxpTimer.h>
 #include <ese_config.h>
 #include <ese_logs.h>
 #include <phEseStatus.h>
@@ -55,6 +56,8 @@
 #define SPI_ENABLED 1
 
 spTransport gpTransportObj;
+
+static phPalEse_NxpTimer_t gNxpTimer;
 
 /*******************************************************************************
 **
@@ -311,4 +314,118 @@ void phPalEse_free(void* ptr) {
     ptr = NULL;
   }
   return;
+}
+/*******************************************************************************
+**
+** Function         phPalEse_initTimer
+**
+** Description      Initializes phPalEse_NxpTimer_t global struct
+**
+** Returns          None
+**
+*******************************************************************************/
+
+void phPalEse_initTimer() {
+  bool is_kpi_enabled =
+      EseConfig::getUnsigned(NAME_SE_KPI_MEASUREMENT_ENABLED, 0);
+  gNxpTimer.is_enabled = (is_kpi_enabled != 0) ? true : false;
+  if (!gNxpTimer.is_enabled) return;
+
+  gNxpTimer.tx_timer = new NxpTimer("TX");
+  gNxpTimer.rx_timer = new NxpTimer("RX");
+}
+/*******************************************************************************
+**
+** Function         phPalEse_getTimer
+**
+** Description      Get handle to phPalEse_NxpTimer_t global struct variable
+**
+** Returns          pointer to phPalEse_NxpTimer_t struct variable
+**
+*******************************************************************************/
+
+const phPalEse_NxpTimer_t* phPalEse_getTimer() { return &gNxpTimer; }
+/*******************************************************************************
+**
+** Function         phPalEse_startTimer
+**
+** Description      Wrapper function to start the given timer
+**
+** Returns          None
+**
+*******************************************************************************/
+
+void phPalEse_startTimer(NxpTimer* timer) {
+  if (!gNxpTimer.is_enabled) return;
+
+  timer->startTimer();
+}
+/*******************************************************************************
+**
+** Function         phPalEse_stopTimer
+**
+** Description      Wrapper function to stop the given timer
+**
+** Returns          None
+**
+*******************************************************************************/
+
+void phPalEse_stopTimer(NxpTimer* timer) {
+  if (!gNxpTimer.is_enabled) return;
+
+  timer->stopTimer();
+}
+/*******************************************************************************
+**
+** Function         phPalEse_timerDuration
+**
+** Description      Wrapper function to get total time (usecs) recorded by the
+**                  given timer
+**
+** Returns          total time (in usecs) recorded by the timer
+**
+*******************************************************************************/
+
+unsigned long phPalEse_timerDuration(NxpTimer* timer) {
+  if (!gNxpTimer.is_enabled) return 0;
+
+  return timer->totalDuration();
+}
+/*******************************************************************************
+**
+** Function         phPalEse_resetTimer
+**
+** Description      Function to reset both timers in gNxpTimer object
+**
+** Returns          None
+**
+*******************************************************************************/
+
+void phPalEse_resetTimer() {
+  if (!gNxpTimer.is_enabled) return;
+
+  gNxpTimer.tx_timer->resetTimer();
+  gNxpTimer.rx_timer->resetTimer();
+}
+
+/*******************************************************************************
+**
+** Function         phPalEse_deInitTimer
+**
+** Description      Wrapper function to de-construct the timer objects
+**
+** Returns          None
+**
+*******************************************************************************/
+
+void phPalEse_deInitTimer() {
+  if (!gNxpTimer.is_enabled) return;
+
+  delete gNxpTimer.tx_timer;
+  gNxpTimer.tx_timer = nullptr;
+
+  delete gNxpTimer.rx_timer;
+  gNxpTimer.rx_timer = nullptr;
+
+  gNxpTimer.is_enabled = false;
 }

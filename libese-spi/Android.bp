@@ -21,6 +21,7 @@ cc_library_shared {
         "p73/pal/phNxpEsePal.cpp",
         "p73/pal/EseTransportFactory.cpp",
         "p73/pal/spi/EseSpiTransport.cpp",
+        "p73/pal/NxpTimer.cpp",
         "p73/spm/phNxpEse_Spm.cpp",
         "p73/utils/ese_config.cpp",
         "p73/utils/config.cpp",
