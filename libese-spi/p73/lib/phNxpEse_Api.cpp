@@ -1334,13 +1334,13 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       if (poll_sof_chained_delay == 1) {
         NXP_LOG_ESE_D("%s Chained Pkt, delay read %dus", __FUNCTION__,
                       GET_WAKE_UP_DELAY() * CHAINED_PKT_SCALER);
-        phPalEse_sleep(GET_WAKE_UP_DELAY() * CHAINED_PKT_SCALER);
+        phPalEse_BusyWait(GET_WAKE_UP_DELAY() * CHAINED_PKT_SCALER);
       } else {
         /*DLOG_IF(INFO, ese_log_level)
          << StringPrintf("%s Normal Pkt, delay read %dus", __FUNCTION__,
          WAKE_UP_DELAY_SN1xx * NAD_POLLING_SCALER_SN1xx);*/
-        phPalEse_sleep(nxpese_ctxt.nadPollingRetryTime * GET_WAKE_UP_DELAY() *
-                       NAD_POLLING_SCALER);
+        phPalEse_BusyWait(nxpese_ctxt.nadPollingRetryTime *
+                          GET_WAKE_UP_DELAY() * NAD_POLLING_SCALER);
       }
       sof_counter++;
     } while (sof_counter < max_sof_counter);
@@ -1584,6 +1584,12 @@ ESESTATUS phNxpEse_WriteFrame(uint32_t data_len, uint8_t* p_data) {
   /* Create local copy of cmd_data */
   phNxpEse_memcpy(nxpese_ctxt.p_cmd_data, p_data, data_len);
   nxpese_ctxt.cmd_len = data_len;
+
+  // eSE requires around 200 usec to switch from tx to rx mode
+  // As per the observation, debug logs when enabled introduces around
+  // same amount of delay, therefore below explicit delay is required
+  // only if debug logs are disabled
+  if (ese_log_level < NXPESE_LOGLEVEL_DEBUG) phPalEse_BusyWait(200 /*usecs*/);
 
   dwNoBytesWrRd = phPalEse_write(nxpese_ctxt.pDevHandle, nxpese_ctxt.p_cmd_data,
                                  nxpese_ctxt.cmd_len);

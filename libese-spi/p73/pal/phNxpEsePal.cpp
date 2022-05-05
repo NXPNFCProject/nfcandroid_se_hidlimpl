@@ -201,6 +201,28 @@ ESESTATUS phPalEse_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
 
   return ret;
 }
+/*******************************************************************************
+**
+** Function         phPalEse_BusyWait
+**
+** Description      This function  suspends execution of the calling thread for
+**                  total_time usecs(max extra delay 1 usecs) with busy wait.
+**                  Use this only for short delays (less than 500 microsecs)
+**
+** Returns          None
+**
+*******************************************************************************/
+
+void phPalEse_BusyWait(long total_time /* usecs*/) {
+  struct timespec ts1, ts2;
+  clock_gettime(CLOCK_MONOTONIC, &ts1);
+  long elapsed_time = 0;  // microseconds
+  do {
+    clock_gettime(CLOCK_MONOTONIC, &ts2);
+    elapsed_time = 1e+6 * ts2.tv_sec + 1e-3 * ts2.tv_nsec -
+                   (1e+6 * ts1.tv_sec + 1e-3 * ts1.tv_nsec);
+  } while (elapsed_time < total_time);
+}
 
 /*******************************************************************************
 **
