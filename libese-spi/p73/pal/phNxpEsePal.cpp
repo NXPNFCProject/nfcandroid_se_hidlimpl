@@ -33,6 +33,7 @@
 
 #include <EseTransportFactory.h>
 #include <ese_config.h>
+#include <ese_logs.h>
 #include <phEseStatus.h>
 #include <string.h>
 
@@ -180,8 +181,8 @@ int phPalEse_write(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToWrite) {
 ESESTATUS phPalEse_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
                    long level) {
   ESESTATUS ret = ESESTATUS_FAILED;
-  ALOGD_IF(ese_debug_enabled, "phPalEse_spi_ioctl(), ioctl %x , level %lx",
-           eControlCode, level);
+  NXP_LOG_ESE_D("phPalEse_spi_ioctl(), ioctl %x , level %lx", eControlCode,
+                level);
   if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
     if (NULL == pDevHandle) {
       return ESESTATUS_IOCTL_FAILED;
@@ -209,8 +210,7 @@ ESESTATUS phPalEse_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
 *******************************************************************************/
 void phPalEse_print_packet(const char* pString, const uint8_t* p_data,
                            uint16_t len) {
-  if(!ese_debug_enabled)
-    return;
+  if (ese_log_level < NXPESE_LOGLEVEL_DEBUG) return;  // debug logs disabled
 
   uint32_t i;
   char print_buffer[len * 3 + 1];
@@ -220,13 +220,10 @@ void phPalEse_print_packet(const char* pString, const uint8_t* p_data,
     snprintf(&print_buffer[i * 2], 3, "%02X", p_data[i]);
   }
   if (0 == memcmp(pString, "SEND", 0x04)) {
-    ALOGD_IF(ese_debug_enabled, "NxpEseDataX len = %3d > %s", len,
-             print_buffer);
+    NXP_LOG_ESE_D("NxpEseDataX len = %3d > %s", len, print_buffer);
   } else if (0 == memcmp(pString, "RECV", 0x04)) {
-    ALOGD_IF(ese_debug_enabled, "NxpEseDataR len = %3d > %s", len,
-             print_buffer);
+    NXP_LOG_ESE_D("NxpEseDataR len = %3d > %s", len, print_buffer);
   }
-
   return;
 }
 

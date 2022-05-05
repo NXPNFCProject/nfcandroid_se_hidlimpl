@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020 NXP
+ *  Copyright 2018-2020,2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,11 +18,12 @@
 #define LOG_TAG "NxpEseHal"
 #include <log/log.h>
 
-#include <cutils/properties.h>
-#include <phNxpEseFeatures.h>
-#include <ese_config.h>
-#include <phNxpEsePal.h>
 #include <EseTransport.h>
+#include <cutils/properties.h>
+#include <ese_config.h>
+#include <ese_logs.h>
+#include <phNxpEseFeatures.h>
+#include <phNxpEsePal.h>
 #include <phNxpEseProto7816_3.h>
 #include <phNxpEse_Internal.h>
 
@@ -37,7 +38,8 @@
   ({                                                            \
       phPalEse_print_packet("RECV", data, len);                 \
   })
-/* 32K(0x8000) Datasize + 10(0xA) Byte Max Header Size + 1 byte negative testcase support */
+/* 32K(0x8000) Datasize + 10(0xA) Byte Max Header Size + 1 byte negative
+ * testcase support */
 #define MAX_SUPPORTED_DATA_SIZE 0x800B
 static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
                                int nNbBytesToRead);
@@ -61,8 +63,8 @@ static unsigned long int app_wtx_cnt = RESET_APP_WTX_COUNT;
 
 /* ESE Context structure */
 phNxpEse_Context_t nxpese_ctxt;
-bool ese_debug_enabled = false;
 
+uint8_t ese_log_level = 0;
 /******************************************************************************
  * Function         phNxpEse_SetEndPoint_Cntxt
  *
@@ -82,9 +84,9 @@ ESESTATUS phNxpEse_SetEndPoint_Cntxt(uint8_t uEndPoint)
       nxpese_ctxt.nadInfo.nadTx = nadInfoTx_ptr[uEndPoint];
       nxpese_ctxt.endPointInfo = uEndPoint;
     }
-    ALOGD_IF(ese_debug_enabled, "%s: Enpoint=%d", __FUNCTION__, uEndPoint);
+    NXP_LOG_ESE_D("%s: Enpoint=%d", __FUNCTION__, uEndPoint);
   } else {
-    ALOGE("%s- Function not supported", __FUNCTION__);
+    NXP_LOG_ESE_E("%s- Function not supported", __FUNCTION__);
   }
   return status;
 }
@@ -103,7 +105,7 @@ ESESTATUS phNxpEse_ResetEndPoint_Cntxt(uint8_t uEndPoint)
   if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
     status = phNxpEseProto7816_ResetEndPoint(uEndPoint);
   } else {
-    ALOGE("%s- Function not supported", __FUNCTION__);
+    NXP_LOG_ESE_E("%s- Function not supported", __FUNCTION__);
   }
   return status;
 }
@@ -118,8 +120,8 @@ ESESTATUS phNxpEse_ResetEndPoint_Cntxt(uint8_t uEndPoint)
  ******************************************************************************/
 
 void phNxpLog_InitializeLogLevel() {
-    ese_debug_enabled =
-      (EseConfig::getUnsigned(NAME_SE_DEBUG_ENABLED, 0) != 0) ? true : false;
+  ese_log_level = EseConfig::getUnsigned(
+      NAME_SE_LOG_LEVEL, NXPESE_LOGLEVEL_DEBUG /*default level*/);
 
   char valueStr[PROPERTY_VALUE_MAX] = {0};
   int len = property_get("vendor.ese.debug_enabled", valueStr, "");
@@ -127,10 +129,10 @@ void phNxpLog_InitializeLogLevel() {
     // let Android property override .conf variable
     unsigned debug_enabled = 0;
     sscanf(valueStr, "%u", &debug_enabled);
-    ese_debug_enabled = (debug_enabled == 0) ? false : true;
+    ese_log_level = debug_enabled;
   }
 
-  ALOGD_IF(ese_debug_enabled, "%s: level=%u", __func__, ese_debug_enabled);
+  NXP_LOG_ESE_I("%s: level=%u", __func__, ese_log_level);
 }
 
 
@@ -157,19 +159,18 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
 
   if(app_wtx_cnt > RESET_APP_WTX_COUNT) {
     protoInitParam.wtx_counter_limit = app_wtx_cnt;
-    ALOGD_IF(ese_debug_enabled, "Wtx_counter limit from app setting - %lu",
-        protoInitParam.wtx_counter_limit);
+    NXP_LOG_ESE_D("Wtx_counter limit from app setting - %lu",
+                  protoInitParam.wtx_counter_limit);
   } else {
-    protoInitParam.wtx_counter_limit =
-      EseConfig::getUnsigned(NAME_NXP_WTX_COUNT_VALUE, PH_PROTO_WTX_DEFAULT_COUNT);
-    ALOGD_IF(ese_debug_enabled, "Wtx_counter read from config file - %lu",
-        protoInitParam.wtx_counter_limit);
+    protoInitParam.wtx_counter_limit = EseConfig::getUnsigned(
+        NAME_NXP_WTX_COUNT_VALUE, PH_PROTO_WTX_DEFAULT_COUNT);
+    NXP_LOG_ESE_D("Wtx_counter read from config file - %lu",
+                  protoInitParam.wtx_counter_limit);
   }
   if (EseConfig::hasKey(NAME_RNACK_RETRY_DELAY)) {
     num = EseConfig::getUnsigned(NAME_RNACK_RETRY_DELAY);
     nxpese_ctxt.invalidFrame_Rnack_Delay = num;
-    ALOGD_IF(ese_debug_enabled, "Rnack retry_delay read from config file - %lu",
-             num);
+    NXP_LOG_ESE_D("Rnack retry_delay read from config file - %lu", num);
   } else {
     nxpese_ctxt.invalidFrame_Rnack_Delay = 7000;
   }
@@ -191,8 +192,8 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
     }
   } else /* OSU mode, no interface reset is required */
   {
-    if(phNxpEse_doResetProtection(true)){
-      ALOGE("%s Reset Potection failed. returning...", __FUNCTION__);
+    if (phNxpEse_doResetProtection(true)) {
+      NXP_LOG_ESE_E("%s Reset Potection failed. returning...", __FUNCTION__);
       return ESESTATUS_FAILED;
     }
     protoInitParam.interfaceReset = false;
@@ -200,8 +201,8 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
   if (EseConfig::hasKey(NAME_NXP_WTX_NTF_COUNT)) {
     num = EseConfig::getUnsigned(NAME_NXP_WTX_NTF_COUNT);
     protoInitParam.wtx_ntf_limit = num;
-    ALOGD_IF(ese_debug_enabled, "Wtx_ntf limit from config file - %lu",
-             protoInitParam.wtx_ntf_limit);
+    NXP_LOG_ESE_D("Wtx_ntf limit from config file - %lu",
+                  protoInitParam.wtx_ntf_limit);
   } else {
     protoInitParam.wtx_ntf_limit = PH_DEFAULT_WTX_NTF_LIMIT;
   }
@@ -210,18 +211,17 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
   protoInitParam.pSecureTimerParams =
       (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams;
 
-  ALOGD_IF(ese_debug_enabled,
-           "%s secureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
-           __FUNCTION__, nxpese_ctxt.secureTimerParams.secureTimer1,
-           nxpese_ctxt.secureTimerParams.secureTimer2,
-           nxpese_ctxt.secureTimerParams.secureTimer3);
+  NXP_LOG_ESE_D("%s secureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
+                __FUNCTION__, nxpese_ctxt.secureTimerParams.secureTimer1,
+                nxpese_ctxt.secureTimerParams.secureTimer2,
+                nxpese_ctxt.secureTimerParams.secureTimer3);
 
   phNxpEse_GetMaxTimer(&maxTimer);
 #ifdef SPM_INTEGRATED
   if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
     wConfigStatus = phNxpEse_SPM_DisablePwrControl(maxTimer);
     if (wConfigStatus != ESESTATUS_SUCCESS) {
-      ALOGE("%s phNxpEse_SPM_DisablePwrControl: failed", __FUNCTION__);
+      NXP_LOG_ESE_E("%s phNxpEse_SPM_DisablePwrControl: failed", __FUNCTION__);
     }
   }
 #endif
@@ -240,36 +240,37 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
   }
 
   if (ESESTATUS_SUCCESS == wConfigStatus) {
-    ALOGD_IF(ese_debug_enabled, "phNxpEseProto7816_Open completed >>>>>");
+    NXP_LOG_ESE_D("phNxpEseProto7816_Open completed >>>>>");
     /* Retrieving the IFS-D value configured in the config file and applying to
      * Card */
     if ((nxpese_ctxt.endPointInfo == END_POINT_ESE) &&
         (EseConfig::hasKey(NAME_NXP_ESE_IFSD_VALUE))) {
       ifsd_value = EseConfig::getUnsigned(NAME_NXP_ESE_IFSD_VALUE);
       if ((0xFFFF > ifsd_value) && (ifsd_value > 0)) {
-        ALOGD_IF(ese_debug_enabled,
-                 "phNxpEseProto7816_SetIFS IFS adjustment requested with %ld",
-                 ifsd_value);
+        NXP_LOG_ESE_D(
+            "phNxpEseProto7816_SetIFS IFS adjustment requested with %ld",
+            ifsd_value);
         phNxpEse_setIfs(ifsd_value);
       } else {
-        ALOGD_IF(ese_debug_enabled,
-                 "phNxpEseProto7816_SetIFS IFS adjustment argument invalid");
+        NXP_LOG_ESE_D(
+            "phNxpEseProto7816_SetIFS IFS adjustment argument invalid");
       }
     } else if ((nxpese_ctxt.endPointInfo == END_POINT_EUICC) &&
                (EseConfig::hasKey(NAME_NXP_EUICC_IFSD_VALUE))) {
       ifsd_value = EseConfig::getUnsigned(NAME_NXP_EUICC_IFSD_VALUE);
       if ((0xFFFF > ifsd_value) && (ifsd_value > 0)) {
-        ALOGD_IF(ese_debug_enabled,
-                 "phNxpEseProto7816_SetIFS IFS adjustment requested with %ld",
-                 ifsd_value);
+        NXP_LOG_ESE_D(
+            "phNxpEseProto7816_SetIFS IFS adjustment requested with %ld",
+            ifsd_value);
         phNxpEse_setIfs(ifsd_value);
       } else {
-        ALOGD_IF(ese_debug_enabled,
-                 "phNxpEseProto7816_SetIFS IFS adjustment argument invalid");
+        NXP_LOG_ESE_D(
+            "phNxpEseProto7816_SetIFS IFS adjustment argument invalid");
       }
     }
   } else {
-    ALOGE("phNxpEseProto7816_Open failed with status = %x", wConfigStatus);
+    NXP_LOG_ESE_E("phNxpEseProto7816_Open failed with status = %x",
+                  wConfigStatus);
   }
 
   return wConfigStatus;
@@ -299,51 +300,48 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   /* initialize trace level */
   phNxpLog_InitializeLogLevel();
 
-  ALOGD_IF(ese_debug_enabled, "phNxpEse_open Enter");
+  NXP_LOG_ESE_D("phNxpEse_open Enter");
   /*When spi channel is already opened return status as FAILED*/
   if (nxpese_ctxt.EseLibStatus != ESE_STATUS_CLOSE) {
-    ALOGD_IF(ese_debug_enabled, "already opened\n");
+    NXP_LOG_ESE_D("already opened\n");
     return ESESTATUS_BUSY;
   }
 
   phNxpEse_memset(&nxpese_ctxt, 0x00, sizeof(nxpese_ctxt));
   phNxpEse_memset(&tPalConfig, 0x00, sizeof(tPalConfig));
 
-  ALOGD_IF(ese_debug_enabled, "MW SEAccessKit Version");
-  ALOGD_IF(ese_debug_enabled, "Android Version:0x%x", NXP_ANDROID_VER);
-  ALOGD_IF(ese_debug_enabled, "Major Version:0x%x", ESELIB_MW_VERSION_MAJ);
-  ALOGD_IF(ese_debug_enabled, "Minor Version:0x%x", ESELIB_MW_VERSION_MIN);
+  NXP_LOG_ESE_D("MW SEAccessKit Version");
+  NXP_LOG_ESE_D("Android Version:0x%x", NXP_ANDROID_VER);
+  NXP_LOG_ESE_D("Major Version:0x%x", ESELIB_MW_VERSION_MAJ);
+  NXP_LOG_ESE_D("Minor Version:0x%x", ESELIB_MW_VERSION_MIN);
 
   if (EseConfig::hasKey(NAME_NXP_OS_VERSION)) {
     num = EseConfig::getUnsigned(NAME_NXP_OS_VERSION);
-    ALOGD_IF(ese_debug_enabled, "Chip type read from config file - %lu", num);
+    NXP_LOG_ESE_D("Chip type read from config file - %lu", num);
     sOsVersion = (num == 1) ? OS_VERSION_4_0
                             : ((num == 2) ? OS_VERSION_5_1 : OS_VERSION_5_2);
   } else {
     sOsVersion = OS_VERSION_5_2;
-    ALOGD_IF(ese_debug_enabled,
-             "Chip type not defined in config file osVersion- %d", sOsVersion);
+    NXP_LOG_ESE_D("Chip type not defined in config file osVersion- %d",
+                  sOsVersion);
   }
   if (EseConfig::hasKey(NAME_NXP_TP_MEASUREMENT)) {
     tpm_enable = EseConfig::getUnsigned(NAME_NXP_TP_MEASUREMENT);
-    ALOGD_IF(
-        ese_debug_enabled,
+    NXP_LOG_ESE_D(
         "SPI Throughput measurement enable/disable read from config file - %lu",
         tpm_enable);
   } else {
-    ALOGD_IF(ese_debug_enabled,
-             "SPI Throughput not defined in config file - %lu", tpm_enable);
+    NXP_LOG_ESE_D("SPI Throughput not defined in config file - %lu",
+                  tpm_enable);
   }
 #if (NXP_POWER_SCHEME_SUPPORT == true)
   if (EseConfig::hasKey(NAME_NXP_POWER_SCHEME)) {
     num = EseConfig::getUnsigned(NAME_NXP_POWER_SCHEME);
     nxpese_ctxt.pwr_scheme = num;
-    ALOGD_IF(ese_debug_enabled, "Power scheme read from config file - %lu",
-             num);
+    NXP_LOG_ESE_D("Power scheme read from config file - %lu", num);
   } else {
     nxpese_ctxt.pwr_scheme = PN67T_POWER_SCHEME;
-    ALOGD_IF(ese_debug_enabled, "Power scheme not defined in config file - %lu",
-             num);
+    NXP_LOG_ESE_D("Power scheme not defined in config file - %lu", num);
   }
 #else
   nxpese_ctxt.pwr_scheme = PN67T_POWER_SCHEME;
@@ -359,9 +357,9 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
     nxpese_ctxt.nadPollingRetryTime = 5;
   }
 
-  ALOGD_IF(ese_debug_enabled, "Nad poll retry time in us - %lu us",
-           nxpese_ctxt.nadPollingRetryTime * GET_WAKE_UP_DELAY() *
-               NAD_POLLING_SCALER);
+  NXP_LOG_ESE_D("Nad poll retry time in us - %lu us",
+                nxpese_ctxt.nadPollingRetryTime * GET_WAKE_UP_DELAY() *
+                    NAD_POLLING_SCALER);
 
   /*Read device node path*/
   ese_node = EseConfig::getString(NAME_NXP_ESE_DEV_NODE, "/dev/pn81a");
@@ -371,62 +369,61 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   /* Initialize PAL layer */
   wConfigStatus = phPalEse_open_and_configure(&tPalConfig);
   if (wConfigStatus != ESESTATUS_SUCCESS) {
-    ALOGE("phPalEse_Init Failed");
+    NXP_LOG_ESE_E("phPalEse_Init Failed");
     if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
       if (ESESTATUS_DRIVER_BUSY == wConfigStatus)
-        ALOGE("Ese Driver is Busy!!!");
+        NXP_LOG_ESE_E("Ese Driver is Busy!!!");
     }
     goto clean_and_return;
   }
   /* Copying device handle to ESE Lib context*/
   nxpese_ctxt.pDevHandle = tPalConfig.pDevHandle;
-  if(ESE_PROTOCOL_MEDIA_SPI == initParams.mediaType){
-    ALOGD_IF(ese_debug_enabled,
-             "Inform eSE about the starting of trusted Mode");
-    wConfigStatus = phPalEse_ioctl(phPalEse_e_SetSecureMode,
-                                     tPalConfig.pDevHandle,0x01);
-    if (ESESTATUS_SUCCESS != wConfigStatus)
-      goto clean_and_return_2;
+  if (ESE_PROTOCOL_MEDIA_SPI == initParams.mediaType) {
+    NXP_LOG_ESE_D("Inform eSE about the starting of trusted Mode");
+    wConfigStatus =
+        phPalEse_ioctl(phPalEse_e_SetSecureMode, tPalConfig.pDevHandle, 0x01);
+    if (ESESTATUS_SUCCESS != wConfigStatus) goto clean_and_return_2;
   }
 #ifdef SPM_INTEGRATED
   /* Get the Access of ESE*/
   wSpmStatus = phNxpEse_SPM_Init(nxpese_ctxt.pDevHandle);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
-    ALOGE("phNxpEse_SPM_Init Failed");
+    NXP_LOG_ESE_E("phNxpEse_SPM_Init Failed");
     wConfigStatus = ESESTATUS_FAILED;
     goto clean_and_return_2;
   }
   wSpmStatus = phNxpEse_SPM_SetPwrScheme(nxpese_ctxt.pwr_scheme);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
-    ALOGE(" %s : phNxpEse_SPM_SetPwrScheme Failed", __FUNCTION__);
+    NXP_LOG_ESE_E(" %s : phNxpEse_SPM_SetPwrScheme Failed", __FUNCTION__);
     wConfigStatus = ESESTATUS_FAILED;
     goto clean_and_return_1;
   }
   if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
     wConfigStatus = phNxpEse_checkFWDwnldStatus();
     if (wConfigStatus != ESESTATUS_SUCCESS) {
-      ALOGE("Failed to open SPI due to VEN pin used by FW download \n");
+      NXP_LOG_ESE_E("Failed to open SPI due to VEN pin used by FW download \n");
       wConfigStatus = ESESTATUS_FAILED;
       goto clean_and_return_1;
     }
   }
   wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
-    ALOGE(" %s : phNxpEse_SPM_GetPwrState Failed", __FUNCTION__);
+    NXP_LOG_ESE_E(" %s : phNxpEse_SPM_GetPwrState Failed", __FUNCTION__);
     wConfigStatus = ESESTATUS_FAILED;
     goto clean_and_return_1;
   } else {
     if (((current_spm_state & SPM_STATE_SPI) |
          (current_spm_state & SPM_STATE_SPI_PRIO)) &&
         !(current_spm_state & SPM_STATE_SPI_FAILED)) {
-      ALOGE(" %s : SPI is already opened...second instance not allowed",
-            __FUNCTION__);
+      NXP_LOG_ESE_E(" %s : SPI is already opened...second instance not allowed",
+                    __FUNCTION__);
       wConfigStatus = ESESTATUS_FAILED;
       goto clean_and_return_1;
     }
   }
   if (current_spm_state & SPM_STATE_JCOP_DWNLD) {
-    ALOGE(" %s : Denying to open JCOP Download in progress", __FUNCTION__);
+    NXP_LOG_ESE_E(" %s : Denying to open JCOP Download in progress",
+                  __FUNCTION__);
     wConfigStatus = ESESTATUS_FAILED;
     goto clean_and_return_1;
   }
@@ -435,17 +432,17 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
     /* Updating ESE power state based on the init mode */
     if (ESE_MODE_OSU == nxpese_ctxt.initParams.initMode) {
-      ALOGD_IF(ese_debug_enabled, "%s Init mode ---->OSU", __FUNCTION__);
+      NXP_LOG_ESE_D("%s Init mode ---->OSU", __FUNCTION__);
       wConfigStatus = phNxpEse_checkJcopDwnldState();
       if (wConfigStatus != ESESTATUS_SUCCESS) {
-        ALOGE("phNxpEse_checkJcopDwnldState failed");
+        NXP_LOG_ESE_E("phNxpEse_checkJcopDwnldState failed");
         goto clean_and_return_1;
       }
     }
   }
   wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_ENABLE);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
-    ALOGE("phNxpEse_SPM_ConfigPwr: enabling power Failed");
+    NXP_LOG_ESE_E("phNxpEse_SPM_ConfigPwr: enabling power Failed");
     if (wSpmStatus == ESESTATUS_BUSY) {
       wConfigStatus = ESESTATUS_BUSY;
     } else if (wSpmStatus == ESESTATUS_DWNLD_BUSY) {
@@ -455,7 +452,7 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
     }
     goto clean_and_return;
   } else {
-    ALOGD_IF(ese_debug_enabled, "nxpese_ctxt.spm_power_state true");
+    NXP_LOG_ESE_D("nxpese_ctxt.spm_power_state true");
     nxpese_ctxt.spm_power_state = true;
   }
 #endif
@@ -464,19 +461,19 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
       wConfigStatus = phPalEse_ioctl(phPalEse_e_EnableThroughputMeasurement,
                                    nxpese_ctxt.pDevHandle, 0);
       if (wConfigStatus != ESESTATUS_SUCCESS) {
-        ALOGE("phPalEse_IoCtl Failed");
+        NXP_LOG_ESE_E("phPalEse_IoCtl Failed");
         goto clean_and_return;
       }
     }
   }
-  ALOGD_IF(ese_debug_enabled, "wConfigStatus %x", wConfigStatus);
+  NXP_LOG_ESE_D("wConfigStatus %x", wConfigStatus);
   return wConfigStatus;
 
 clean_and_return:
 #ifdef SPM_INTEGRATED
   wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_DISABLE);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
-    ALOGE("phNxpEse_SPM_ConfigPwr: disabling power Failed");
+    NXP_LOG_ESE_E("phNxpEse_SPM_ConfigPwr: disabling power Failed");
   }
 clean_and_return_1:
   phNxpEse_SPM_DeInit();
@@ -521,7 +518,7 @@ ESESTATUS phNxpEse_openPrioSession(phNxpEse_initParams initParams) {
 
   /* initialize trace level */
   phNxpLog_InitializeLogLevel();
-  ALOGD_IF(ese_debug_enabled, "phNxpEse_openPrioSession Enter");
+  NXP_LOG_ESE_D("phNxpEse_openPrioSession Enter");
 #ifdef SPM_INTEGRATED
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
   spm_state_t current_spm_state = SPM_STATE_INVALID;
@@ -529,33 +526,29 @@ ESESTATUS phNxpEse_openPrioSession(phNxpEse_initParams initParams) {
   phNxpEse_memset(&nxpese_ctxt, 0x00, sizeof(nxpese_ctxt));
   phNxpEse_memset(&tPalConfig, 0x00, sizeof(tPalConfig));
 
-  ALOGD_IF(ese_debug_enabled, "MW SEAccessKit Version");
-  ALOGD_IF(ese_debug_enabled, "Android Version:0x%x", NXP_ANDROID_VER);
-  ALOGD_IF(ese_debug_enabled, "Major Version:0x%x", ESELIB_MW_VERSION_MAJ);
-  ALOGD_IF(ese_debug_enabled, "Minor Version:0x%x", ESELIB_MW_VERSION_MIN);
+  NXP_LOG_ESE_D("MW SEAccessKit Version");
+  NXP_LOG_ESE_D("Android Version:0x%x", NXP_ANDROID_VER);
+  NXP_LOG_ESE_D("Major Version:0x%x", ESELIB_MW_VERSION_MAJ);
+  NXP_LOG_ESE_D("Minor Version:0x%x", ESELIB_MW_VERSION_MIN);
 
 #if (NXP_POWER_SCHEME_SUPPORT == true)
   if (EseConfig::hasKey(NAME_NXP_POWER_SCHEME)) {
     num = EseConfig::getUnsigned(NAME_NXP_POWER_SCHEME);
     nxpese_ctxt.pwr_scheme = num;
-    ALOGD_IF(ese_debug_enabled, "Power scheme read from config file - %lu",
-             num);
+    NXP_LOG_ESE_D("Power scheme read from config file - %lu", num);
   } else
 #endif
   {
     nxpese_ctxt.pwr_scheme = PN67T_POWER_SCHEME;
-    ALOGD_IF(ese_debug_enabled, "Power scheme not defined in config file - %lu",
-             num);
+    NXP_LOG_ESE_D("Power scheme not defined in config file - %lu", num);
   }
   if (EseConfig::hasKey(NAME_NXP_TP_MEASUREMENT)) {
     tpm_enable = EseConfig::getUnsigned(NAME_NXP_TP_MEASUREMENT);
-    ALOGD_IF(
-        ese_debug_enabled,
+    NXP_LOG_ESE_D(
         "SPI Throughput measurement enable/disable read from config file - %lu",
         tpm_enable);
   } else {
-    ALOGD_IF(ese_debug_enabled,
-             "SPI Throughput not defined in config file - %lu", num);
+    NXP_LOG_ESE_D("SPI Throughput not defined in config file - %lu", num);
   }
 
   tPalConfig.pDevName = (int8_t*)"/dev/p73";
@@ -563,7 +556,7 @@ ESESTATUS phNxpEse_openPrioSession(phNxpEse_initParams initParams) {
   /* Initialize PAL layer */
   wConfigStatus = phPalEse_open_and_configure(&tPalConfig);
   if (wConfigStatus != ESESTATUS_SUCCESS) {
-    ALOGE("phPalEse_Init Failed");
+    NXP_LOG_ESE_E("phPalEse_Init Failed");
     goto clean_and_return;
   }
   /* Copying device handle to hal context*/
@@ -573,39 +566,40 @@ ESESTATUS phNxpEse_openPrioSession(phNxpEse_initParams initParams) {
   /* Get the Access of ESE*/
   wSpmStatus = phNxpEse_SPM_Init(nxpese_ctxt.pDevHandle);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
-    ALOGE("phNxpEse_SPM_Init Failed");
+    NXP_LOG_ESE_E("phNxpEse_SPM_Init Failed");
     wConfigStatus = ESESTATUS_FAILED;
     goto clean_and_return_2;
   }
   wSpmStatus = phNxpEse_SPM_SetPwrScheme(nxpese_ctxt.pwr_scheme);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
-    ALOGE(" %s : phNxpEse_SPM_SetPwrScheme Failed", __FUNCTION__);
+    NXP_LOG_ESE_E(" %s : phNxpEse_SPM_SetPwrScheme Failed", __FUNCTION__);
     wConfigStatus = ESESTATUS_FAILED;
     goto clean_and_return_1;
   }
   wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
-    ALOGE(" %s : phNxpEse_SPM_GetPwrState Failed", __FUNCTION__);
+    NXP_LOG_ESE_E(" %s : phNxpEse_SPM_GetPwrState Failed", __FUNCTION__);
     wConfigStatus = ESESTATUS_FAILED;
     goto clean_and_return_1;
   } else {
     if ((current_spm_state & SPM_STATE_SPI) |
         (current_spm_state & SPM_STATE_SPI_PRIO)) {
-      ALOGE(" %s : SPI is already opened...second instance not allowed",
-            __FUNCTION__);
+      NXP_LOG_ESE_E(" %s : SPI is already opened...second instance not allowed",
+                    __FUNCTION__);
       wConfigStatus = ESESTATUS_FAILED;
       goto clean_and_return_1;
     }
     if (current_spm_state & SPM_STATE_JCOP_DWNLD) {
-      ALOGE(" %s : Denying to open JCOP Download in progress", __FUNCTION__);
+      NXP_LOG_ESE_E(" %s : Denying to open JCOP Download in progress",
+                    __FUNCTION__);
       wConfigStatus = ESESTATUS_FAILED;
       goto clean_and_return_1;
     }
     if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
       wConfigStatus = phNxpEse_checkFWDwnldStatus();
       if (wConfigStatus != ESESTATUS_SUCCESS) {
-        ALOGD_IF(ese_debug_enabled,
-               "Failed to open SPI due to VEN pin used by FW download \n");
+        NXP_LOG_ESE_D(
+            "Failed to open SPI due to VEN pin used by FW download \n");
         wConfigStatus = ESESTATUS_FAILED;
         goto clean_and_return_1;
       }
@@ -618,14 +612,14 @@ ESESTATUS phNxpEse_openPrioSession(phNxpEse_initParams initParams) {
     if (ESE_MODE_OSU == nxpese_ctxt.initParams.initMode) {
       wConfigStatus = phNxpEse_checkJcopDwnldState();
       if (wConfigStatus != ESESTATUS_SUCCESS) {
-        ALOGE("phNxpEse_checkJcopDwnldState failed");
+        NXP_LOG_ESE_E("phNxpEse_checkJcopDwnldState failed");
         goto clean_and_return_1;
       }
     }
   }
   wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_PRIO_ENABLE);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
-    ALOGE("phNxpEse_SPM_ConfigPwr: enabling power for spi prio Failed");
+    NXP_LOG_ESE_E("phNxpEse_SPM_ConfigPwr: enabling power for spi prio Failed");
     if (wSpmStatus == ESESTATUS_BUSY) {
       wConfigStatus = ESESTATUS_BUSY;
     } else if (wSpmStatus == ESESTATUS_DWNLD_BUSY) {
@@ -635,7 +629,7 @@ ESESTATUS phNxpEse_openPrioSession(phNxpEse_initParams initParams) {
     }
     goto clean_and_return;
   } else {
-    ALOGE("nxpese_ctxt.spm_power_state true");
+    NXP_LOG_ESE_E("nxpese_ctxt.spm_power_state true");
     nxpese_ctxt.spm_power_state = true;
   }
 #endif
@@ -644,29 +638,29 @@ ESESTATUS phNxpEse_openPrioSession(phNxpEse_initParams initParams) {
   wConfigStatus =
       phPalEse_ioctl(phPalEse_e_ResetDevice, nxpese_ctxt.pDevHandle, 2);
   if (wConfigStatus != ESESTATUS_SUCCESS) {
-    ALOGE("phPalEse_IoCtl Failed");
+    NXP_LOG_ESE_E("phPalEse_IoCtl Failed");
     goto clean_and_return;
   }
 #endif
   wConfigStatus =
       phPalEse_ioctl(phPalEse_e_EnableLog, nxpese_ctxt.pDevHandle, 0);
   if (wConfigStatus != ESESTATUS_SUCCESS) {
-    ALOGE("phPalEse_IoCtl Failed");
+    NXP_LOG_ESE_E("phPalEse_IoCtl Failed");
     goto clean_and_return;
   }
   wConfigStatus =
       phPalEse_ioctl(phPalEse_e_EnablePollMode, nxpese_ctxt.pDevHandle, 1);
   if (wConfigStatus != ESESTATUS_SUCCESS) {
-    ALOGE("phPalEse_IoCtl Failed");
+    NXP_LOG_ESE_E("phPalEse_IoCtl Failed");
     goto clean_and_return;
   }
-  ALOGD_IF(ese_debug_enabled, "wConfigStatus %x", wConfigStatus);
+  NXP_LOG_ESE_D("wConfigStatus %x", wConfigStatus);
   if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
     if (tpm_enable) {
       wConfigStatus = phPalEse_ioctl(phPalEse_e_EnableThroughputMeasurement,
                                    nxpese_ctxt.pDevHandle, 0);
       if (wConfigStatus != ESESTATUS_SUCCESS) {
-        ALOGE("phPalEse_IoCtl Failed");
+        NXP_LOG_ESE_E("phPalEse_IoCtl Failed");
         goto clean_and_return;
       }
     }
@@ -677,7 +671,7 @@ clean_and_return:
 #ifdef SPM_INTEGRATED
   wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_DISABLE);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
-    ALOGE("phNxpEse_SPM_ConfigPwr: disabling power Failed");
+    NXP_LOG_ESE_E("phNxpEse_SPM_ConfigPwr: disabling power Failed");
   }
 clean_and_return_1:
   phNxpEse_SPM_DeInit();
@@ -704,12 +698,12 @@ clean_and_return_2:
 static ESESTATUS phNxpEse_setJcopDwnldState(phNxpEse_JcopDwnldState state) {
 
   ESESTATUS wConfigStatus = ESESTATUS_FAILED;
-  ALOGD_IF(ese_debug_enabled, "phNxpEse_setJcopDwnldState Enter");
+  NXP_LOG_ESE_D("phNxpEse_setJcopDwnldState Enter");
 
   if(GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
     wConfigStatus = phNxpEse_SPM_SetJcopDwnldState(state);
   } else {
-    ALOGE("%s function not supported", __FUNCTION__);
+    NXP_LOG_ESE_E("%s function not supported", __FUNCTION__);
   }
   return wConfigStatus;
 }
@@ -724,7 +718,7 @@ static ESESTATUS phNxpEse_setJcopDwnldState(phNxpEse_JcopDwnldState state) {
  *
  ******************************************************************************/
 static ESESTATUS phNxpEse_checkJcopDwnldState(void) {
-  ALOGD_IF(ese_debug_enabled, "phNxpEse_checkJcopDwnld Enter");
+  NXP_LOG_ESE_D("phNxpEse_checkJcopDwnld Enter");
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
   spm_state_t current_spm_state = SPM_STATE_INVALID;
   uint8_t ese_dwnld_retry = 0x00;
@@ -740,7 +734,7 @@ static ESESTATUS phNxpEse_checkJcopDwnldState(void) {
     status = phNxpEse_setJcopDwnldState(JCP_DWNLD_INIT);
     if (status == ESESTATUS_SUCCESS) {
       while (ese_dwnld_retry < ESE_JCOP_OS_DWNLD_RETRY_CNT) {
-        ALOGD_IF(ese_debug_enabled, "ESE_JCOP_OS_DWNLD_RETRY_CNT retry count");
+        NXP_LOG_ESE_D("ESE_JCOP_OS_DWNLD_RETRY_CNT retry count");
         wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
         if (wSpmStatus == ESESTATUS_SUCCESS) {
           if ((current_spm_state & SPM_STATE_JCOP_DWNLD)) {
@@ -758,7 +752,7 @@ static ESESTATUS phNxpEse_checkJcopDwnldState(void) {
     }
   }
 
-  ALOGD_IF(ese_debug_enabled, "phNxpEse_checkJcopDwnldState status %x", status);
+  NXP_LOG_ESE_D("phNxpEse_checkJcopDwnldState status %x", status);
   return status;
 }
 
@@ -776,26 +770,27 @@ ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp) {
   if ((NULL == pCmd) || (NULL == pRsp)) return ESESTATUS_INVALID_PARAMETER;
 
   if ((pCmd->len == 0) || pCmd->p_data == NULL) {
-    ALOGE(" phNxpEse_Transceive - Invalid Parameter no data\n");
+    NXP_LOG_ESE_E(" phNxpEse_Transceive - Invalid Parameter no data\n");
     return ESESTATUS_INVALID_PARAMETER;
   } else if (pCmd->len > MAX_SUPPORTED_DATA_SIZE) {
-    ALOGE(" phNxpEse_Transceive - Invalid data size \n");
+    NXP_LOG_ESE_E(" phNxpEse_Transceive - Invalid data size \n");
     return ESESTATUS_INVALID_RECEIVE_LENGTH;
   } else if ((ESE_STATUS_CLOSE == nxpese_ctxt.EseLibStatus)) {
-    ALOGE(" %s ESE Not Initialized \n", __FUNCTION__);
+    NXP_LOG_ESE_E(" %s ESE Not Initialized \n", __FUNCTION__);
     return ESESTATUS_NOT_INITIALISED;
   } else if ((ESE_STATUS_BUSY == nxpese_ctxt.EseLibStatus)) {
-    ALOGE(" %s ESE - BUSY \n", __FUNCTION__);
+    NXP_LOG_ESE_E(" %s ESE - BUSY \n", __FUNCTION__);
     return ESESTATUS_BUSY;
   } else if ((ESE_STATUS_RECOVERY == nxpese_ctxt.EseLibStatus)) {
-    ALOGE(" %s ESE - RECOVERY \n", __FUNCTION__);
+    NXP_LOG_ESE_E(" %s ESE - RECOVERY \n", __FUNCTION__);
     return ESESTATUS_RECOVERY_STARTED;
   } else {
     nxpese_ctxt.EseLibStatus = ESE_STATUS_BUSY;
     status = phNxpEseProto7816_Transceive((phNxpEse_data*)pCmd,
                                            (phNxpEse_data*)pRsp);
     if (ESESTATUS_SUCCESS != status) {
-      ALOGE(" %s phNxpEseProto7816_Transceive- Failed \n", __FUNCTION__);
+      NXP_LOG_ESE_E(" %s phNxpEseProto7816_Transceive- Failed \n",
+                    __FUNCTION__);
       if (ESESTATUS_TRANSCEIVE_FAILED == status) {
         /*MAX WTX reached*/
         nxpese_ctxt.EseLibStatus = ESE_STATUS_RECOVERY;
@@ -808,8 +803,7 @@ ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp) {
     }
     nxpese_ctxt.rnack_sent = false;
 
-    ALOGD_IF(ese_debug_enabled, " %s Exit status 0x%x \n", __FUNCTION__,
-             status);
+    NXP_LOG_ESE_D(" %s Exit status 0x%x \n", __FUNCTION__, status);
     return status;
   }
 }
@@ -830,15 +824,14 @@ ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp) {
  ******************************************************************************/
 ESESTATUS phNxpEse_coldReset(void) {
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
-  ALOGD_IF(ese_debug_enabled, " %s Enter \n", __FUNCTION__);
+  NXP_LOG_ESE_D(" %s Enter \n", __FUNCTION__);
   if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
     wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
   } else {
     wSpmStatus = ESESTATUS_FAILED;
-    ALOGE(" %s Function not supported \n", __FUNCTION__);
+    NXP_LOG_ESE_E(" %s Function not supported \n", __FUNCTION__);
   }
-  ALOGD_IF(ese_debug_enabled, " %s Exit status 0x%x \n", __FUNCTION__,
-           wSpmStatus);
+  NXP_LOG_ESE_D(" %s Exit status 0x%x \n", __FUNCTION__, wSpmStatus);
   return wSpmStatus;
 }
 
@@ -859,33 +852,32 @@ ESESTATUS phNxpEse_reset(void) {
 #endif
 
   /* TBD : Call the ioctl to reset the ESE */
-  ALOGD_IF(ese_debug_enabled, " %s Enter \n", __FUNCTION__);
+  NXP_LOG_ESE_D(" %s Enter \n", __FUNCTION__);
   /* Do an interface reset, don't wait to see if JCOP went through a full power
    * cycle or not */
   status = phNxpEseProto7816_IntfReset(
       (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
   if (status) {
-    ALOGE("%s Ese status Failed", __FUNCTION__);
+    NXP_LOG_ESE_E("%s Ese status Failed", __FUNCTION__);
   }
 
-  ALOGD_IF(ese_debug_enabled,
-           "%s secureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
-           __FUNCTION__, nxpese_ctxt.secureTimerParams.secureTimer1,
-           nxpese_ctxt.secureTimerParams.secureTimer2,
-           nxpese_ctxt.secureTimerParams.secureTimer3);
+  NXP_LOG_ESE_D("%s secureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
+                __FUNCTION__, nxpese_ctxt.secureTimerParams.secureTimer1,
+                nxpese_ctxt.secureTimerParams.secureTimer2,
+                nxpese_ctxt.secureTimerParams.secureTimer3);
   phNxpEse_GetMaxTimer(&maxTimer);
 #ifdef SPM_INTEGRATED
   if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
     status = phNxpEse_SPM_DisablePwrControl(maxTimer);
     if (status != ESESTATUS_SUCCESS) {
-      ALOGE("%s phNxpEse_SPM_DisablePwrControl: failed", __FUNCTION__);
+      NXP_LOG_ESE_E("%s phNxpEse_SPM_DisablePwrControl: failed", __FUNCTION__);
     }
   }
   if ((nxpese_ctxt.pwr_scheme == PN67T_POWER_SCHEME) ||
       (nxpese_ctxt.pwr_scheme == PN80T_LEGACY_SCHEME)) {
     wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_RESET);
     if (wSpmStatus != ESESTATUS_SUCCESS) {
-      ALOGE("phNxpEse_SPM_ConfigPwr: reset Failed");
+      NXP_LOG_ESE_E("phNxpEse_SPM_ConfigPwr: reset Failed");
     }
   }
 #else
@@ -894,10 +886,10 @@ ESESTATUS phNxpEse_reset(void) {
    */
   status = phPalEse_ioctl(phPalEse_e_ResetDevice, nxpese_ctxt.pDevHandle, 2);
   if (status != ESESTATUS_SUCCESS) {
-    ALOGE("phNxpEse_reset Failed");
+    NXP_LOG_ESE_E("phNxpEse_reset Failed");
   }
 #endif
-  ALOGD_IF(ese_debug_enabled, " %s Exit \n", __FUNCTION__);
+  NXP_LOG_ESE_D(" %s Exit \n", __FUNCTION__);
   return status;
 }
 
@@ -918,7 +910,7 @@ ESESTATUS phNxpEse_resetJcopUpdate(void) {
 #endif
 
   /* TBD : Call the ioctl to reset the  */
-  ALOGD_IF(ese_debug_enabled, " %s Enter \n", __FUNCTION__);
+  NXP_LOG_ESE_D(" %s Enter \n", __FUNCTION__);
 
   /* Reset interface after every reset irrespective of
   whether JCOP did a full power cycle or not. */
@@ -931,15 +923,13 @@ ESESTATUS phNxpEse_resetJcopUpdate(void) {
   if (EseConfig::hasKey(NAME_NXP_ESE_IFSD_VALUE)) {
     unsigned long int ifsd_value = 0;
     ifsd_value = EseConfig::getUnsigned(NAME_NXP_ESE_IFSD_VALUE);
-    if((0xFFFF > ifsd_value) &&
-      (ifsd_value > 0)) {
-      ALOGD_IF(ese_debug_enabled,
-               "phNxpEseProto7816_SetIFS IFS adjustment requested with %ld",
-               ifsd_value);
+    if ((0xFFFF > ifsd_value) && (ifsd_value > 0)) {
+      NXP_LOG_ESE_D(
+          "phNxpEseProto7816_SetIFS IFS adjustment requested with %ld",
+          ifsd_value);
       phNxpEse_setIfs(ifsd_value);
     } else {
-      ALOGD_IF(ese_debug_enabled,
-               "phNxpEseProto7816_SetIFS IFS adjustment argument invalid");
+      NXP_LOG_ESE_D("phNxpEseProto7816_SetIFS IFS adjustment argument invalid");
     }
   }
 #ifdef SPM_INTEGRATED
@@ -947,28 +937,28 @@ ESESTATUS phNxpEse_resetJcopUpdate(void) {
   if (EseConfig::hasKey(NAME_NXP_POWER_SCHEME)) {
     num = EseConfig::getUnsigned(NAME_NXP_POWER_SCHEME);
     if ((num == 1) || (num == 2)) {
-      ALOGD_IF(ese_debug_enabled, " %s Call Config Pwr Reset \n", __FUNCTION__);
+      NXP_LOG_ESE_D(" %s Call Config Pwr Reset \n", __FUNCTION__);
       status = phNxpEse_SPM_ConfigPwr(SPM_POWER_RESET);
       if (status != ESESTATUS_SUCCESS) {
-        ALOGE("phNxpEse_resetJcopUpdate: reset Failed");
+        NXP_LOG_ESE_E("phNxpEse_resetJcopUpdate: reset Failed");
         status = ESESTATUS_FAILED;
       }
     } else if (num == 3) {
-      ALOGD_IF(ese_debug_enabled, " %s Call eSE Chip Reset \n", __FUNCTION__);
+      NXP_LOG_ESE_D(" %s Call eSE Chip Reset \n", __FUNCTION__);
       status = phNxpEse_chipReset();
       if (status != ESESTATUS_SUCCESS) {
-        ALOGE("phNxpEse_resetJcopUpdate: chip reset Failed");
+        NXP_LOG_ESE_E("phNxpEse_resetJcopUpdate: chip reset Failed");
         status = ESESTATUS_FAILED;
       }
     } else {
-      ALOGD_IF(ese_debug_enabled, " %s Invalid Power scheme \n", __FUNCTION__);
+      NXP_LOG_ESE_D(" %s Invalid Power scheme \n", __FUNCTION__);
     }
   }
 #else
   {
     status = phNxpEse_SPM_ConfigPwr(SPM_POWER_RESET);
     if (status != ESESTATUS_SUCCESS) {
-      ALOGE("phNxpEse_SPM_ConfigPwr: reset Failed");
+      NXP_LOG_ESE_E("phNxpEse_SPM_ConfigPwr: reset Failed");
       status = ESESTATUS_FAILED;
     }
   }
@@ -979,11 +969,11 @@ ESESTATUS phNxpEse_resetJcopUpdate(void) {
    */
   status = phPalEse_ioctl(phPalEse_e_ResetDevice, nxpese_ctxt.pDevHandle, 2);
   if (status != ESESTATUS_SUCCESS) {
-    ALOGE("phNxpEse_resetJcopUpdate Failed");
+    NXP_LOG_ESE_E("phNxpEse_resetJcopUpdate Failed");
   }
 #endif
 
-  ALOGD_IF(ese_debug_enabled, " %s Exit \n", __FUNCTION__);
+  NXP_LOG_ESE_D(" %s Exit \n", __FUNCTION__);
   return status;
 }
 /******************************************************************************
@@ -1020,15 +1010,15 @@ ESESTATUS phNxpEse_chipReset(void) {
   if (nxpese_ctxt.pwr_scheme == PN80T_EXT_PMU_SCHEME) {
     bStatus = phNxpEseProto7816_Reset();
     if (!bStatus) {
-      ALOGE("Inside phNxpEse_chipReset, phNxpEseProto7816_Reset Failed");
+      NXP_LOG_ESE_E(
+          "Inside phNxpEse_chipReset, phNxpEseProto7816_Reset Failed");
     }
     status = phPalEse_ioctl(phPalEse_e_ChipRst, nxpese_ctxt.pDevHandle, 6);
     if (status != ESESTATUS_SUCCESS) {
-      ALOGE("phNxpEse_chipReset  Failed");
+      NXP_LOG_ESE_E("phNxpEse_chipReset  Failed");
     }
   } else {
-    ALOGD_IF(ese_debug_enabled,
-             "phNxpEse_chipReset is not supported in legacy power scheme");
+    NXP_LOG_ESE_D("phNxpEse_chipReset is not supported in legacy power scheme");
   }
   return status;
 }
@@ -1069,16 +1059,15 @@ static __inline bool phNxpEse_isColdResetRequired(phNxpEse_initMode mode,
  ******************************************************************************/
  ESESTATUS phNxpEse_doResetProtection(bool flag) {
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
-  ALOGD_IF(ese_debug_enabled, " %s Enter \n", __FUNCTION__);
+  NXP_LOG_ESE_D(" %s Enter \n", __FUNCTION__);
   if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
     wSpmStatus = phPalEse_ioctl(phPalEse_e_ResetProtection,
                          nxpese_ctxt.pDevHandle, flag);
   } else {
     wSpmStatus = ESESTATUS_FAILED;
-    ALOGE(" %s Function not supported \n", __FUNCTION__);
+    NXP_LOG_ESE_E(" %s Function not supported \n", __FUNCTION__);
   }
-  ALOGD_IF(ese_debug_enabled, " %s Exit status 0x%x \n", __FUNCTION__,
-           wSpmStatus);
+  NXP_LOG_ESE_D(" %s Exit status 0x%x \n", __FUNCTION__, wSpmStatus);
   return wSpmStatus;
 }
 
@@ -1116,24 +1105,23 @@ ESESTATUS phNxpEse_deInit(void) {
     status = phNxpEseProto7816_Close(
         (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
     if (status == ESESTATUS_SUCCESS) {
-      ALOGD_IF(ese_debug_enabled,
-               "%s secureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
-               __FUNCTION__, nxpese_ctxt.secureTimerParams.secureTimer1,
-               nxpese_ctxt.secureTimerParams.secureTimer2,
-               nxpese_ctxt.secureTimerParams.secureTimer3);
+      NXP_LOG_ESE_D("%s secureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
+                    __FUNCTION__, nxpese_ctxt.secureTimerParams.secureTimer1,
+                    nxpese_ctxt.secureTimerParams.secureTimer2,
+                    nxpese_ctxt.secureTimerParams.secureTimer3);
       phNxpEse_GetMaxTimer(&maxTimer);
 #ifdef SPM_INTEGRATED
       if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
         status = phNxpEse_SPM_DisablePwrControl(maxTimer);
         if (status != ESESTATUS_SUCCESS) {
-          ALOGE("%s phNxpEseP61_DisablePwrCntrl: failed", __FUNCTION__);
+          NXP_LOG_ESE_E("%s phNxpEseP61_DisablePwrCntrl: failed", __FUNCTION__);
         }
       } else {
-        ALOGD_IF(ese_debug_enabled, "Interface reset for DPD");
+        NXP_LOG_ESE_D("Interface reset for DPD");
         status = phNxpEseProto7816_IntfReset(
             (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
         if (status != ESESTATUS_SUCCESS) {
-          ALOGE("%s IntfReset Failed ", __FUNCTION__);
+          NXP_LOG_ESE_E("%s IntfReset Failed ", __FUNCTION__);
         }
       }
 #endif
@@ -1153,9 +1141,10 @@ ESESTATUS phNxpEse_deInit(void) {
  ******************************************************************************/
 ESESTATUS phNxpEse_close(ESESTATUS deInitStatus) {
   ESESTATUS status = ESESTATUS_SUCCESS;
-  ALOGD_IF(ese_debug_enabled, "phNxpEse_close Enter");
+  NXP_LOG_ESE_D("phNxpEse_close Enter");
+
   if ((ESE_STATUS_CLOSE == nxpese_ctxt.EseLibStatus)) {
-    ALOGE(" %s ESE Not Initialized \n", __FUNCTION__);
+    NXP_LOG_ESE_E(" %s ESE Not Initialized \n", __FUNCTION__);
     return ESESTATUS_NOT_INITIALISED;
   }
 
@@ -1167,7 +1156,7 @@ ESESTATUS phNxpEse_close(ESESTATUS deInitStatus) {
   /* Release the Access of  */
   wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_DISABLE);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
-    ALOGE("phNxpEse_SPM_ConfigPwr: disabling power Failed");
+    NXP_LOG_ESE_E("phNxpEse_SPM_ConfigPwr: disabling power Failed");
   } else {
     nxpese_ctxt.spm_power_state = false;
   }
@@ -1176,35 +1165,35 @@ ESESTATUS phNxpEse_close(ESESTATUS deInitStatus) {
     if (ESE_MODE_OSU == nxpese_ctxt.initParams.initMode) {
       status = phNxpEse_setJcopDwnldState(JCP_SPI_DWNLD_COMPLETE);
       if (status != ESESTATUS_SUCCESS) {
-        ALOGE("%s: phNxpEse_setJcopDwnldState failed", __FUNCTION__);
+        NXP_LOG_ESE_E("%s: phNxpEse_setJcopDwnldState failed", __FUNCTION__);
       }
     }
   } else {
     if (NULL != nxpese_ctxt.pDevHandle) {
       if (ESE_PROTOCOL_MEDIA_SPI == nxpese_ctxt.initParams.mediaType) {
-        ALOGD_IF(ese_debug_enabled, "Inform eSE that trusted Mode is over");
+        NXP_LOG_ESE_D("Inform eSE that trusted Mode is over");
         status = phPalEse_ioctl(phPalEse_e_SetSecureMode,
                                 nxpese_ctxt.pDevHandle, 0x00);
         if (status != ESESTATUS_SUCCESS) {
-          ALOGE("%s: phPalEse_e_SetSecureMode failed", __FUNCTION__);
+          NXP_LOG_ESE_E("%s: phPalEse_e_SetSecureMode failed", __FUNCTION__);
         }
         if (ESESTATUS_SUCCESS != phNxpEseProto7816_CloseAllSessions()) {
-          ALOGD_IF(ese_debug_enabled, "eSE not responding perform hard reset");
+          NXP_LOG_ESE_D("eSE not responding perform hard reset");
           phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
         }
       } else {
         if (nxpese_ctxt.EseLibStatus == ESE_STATUS_RECOVERY ||
             (deInitStatus == ESESTATUS_RESPONSE_TIMEOUT) ||
             ESESTATUS_SUCCESS != phNxpEseProto7816_CloseAllSessions()) {
-          ALOGD_IF(ese_debug_enabled, "eSE not responding perform hard reset");
+          NXP_LOG_ESE_D("eSE not responding perform hard reset");
           phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
         }
       }
-      ALOGD_IF(ese_debug_enabled, "Interface reset for DPD");
+      NXP_LOG_ESE_D("Interface reset for DPD");
       status = phNxpEseProto7816_IntfReset(
           (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
       if (status == ESESTATUS_TRANSCEIVE_FAILED || status == ESESTATUS_FAILED) {
-        ALOGE("%s IntfReset Failed, perform hard reset", __FUNCTION__);
+        NXP_LOG_ESE_E("%s IntfReset Failed, perform hard reset", __FUNCTION__);
         // max wtx or no response of interface reset after protocol recovery
         phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
       }
@@ -1213,14 +1202,13 @@ ESESTATUS phNxpEse_close(ESESTATUS deInitStatus) {
 
   wSpmStatus = phNxpEse_SPM_DeInit();
   if (wSpmStatus != ESESTATUS_SUCCESS) {
-    ALOGE("phNxpEse_SPM_DeInit Failed");
+    NXP_LOG_ESE_E("phNxpEse_SPM_DeInit Failed");
   }
 #endif
   if (NULL != nxpese_ctxt.pDevHandle) {
     phPalEse_close(nxpese_ctxt.pDevHandle);
     phNxpEse_memset(&nxpese_ctxt, 0x00, sizeof(nxpese_ctxt));
-    ALOGD_IF(ese_debug_enabled,
-             "phNxpEse_close - ESE Context deinit completed");
+    NXP_LOG_ESE_D("phNxpEse_close - ESE Context deinit completed");
   }
   /* Return success always */
   return status;
@@ -1243,12 +1231,12 @@ ESESTATUS phNxpEse_read(uint32_t* data_len, uint8_t** pp_data) {
   ESESTATUS status = ESESTATUS_SUCCESS;
   int ret = -1;
 
-  ALOGD_IF(ese_debug_enabled, "%s Enter ..", __FUNCTION__);
+  NXP_LOG_ESE_D("%s Enter ..", __FUNCTION__);
 
   ret = phNxpEse_readPacket(nxpese_ctxt.pDevHandle, nxpese_ctxt.p_read_buff,
                             MAX_DATA_LEN);
   if (ret < 0) {
-    ALOGE("PAL Read status error status = %x", status);
+    NXP_LOG_ESE_E("PAL Read status error status = %x", status);
     *data_len = 2;
     *pp_data = nxpese_ctxt.p_read_buff;
     status = ESESTATUS_FAILED;
@@ -1259,7 +1247,7 @@ ESESTATUS phNxpEse_read(uint32_t* data_len, uint8_t** pp_data) {
     status = ESESTATUS_SUCCESS;
   }
 
-  ALOGD_IF(ese_debug_enabled, "%s Exit", __FUNCTION__);
+  NXP_LOG_ESE_D("%s Exit", __FUNCTION__);
   return status;
 }
 
@@ -1280,7 +1268,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
   int sof_counter = 0; /* one read may take 1 ms*/
   int total_count = 0, numBytesToRead = 0, headerIndex = 0;
 
-  ALOGD_IF(ese_debug_enabled, "%s Enter", __FUNCTION__);
+  NXP_LOG_ESE_D("%s Enter", __FUNCTION__);
   if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
     int max_sof_counter = 0;
     /*Max retry to get SOF in case of chaining*/
@@ -1300,22 +1288,21 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
     if (nxpese_ctxt.rnack_sent) {
       phPalEse_sleep(nxpese_ctxt.invalidFrame_Rnack_Delay);
     }
-    ALOGD_IF(ese_debug_enabled,
-             "read() max_sof_counter: "
-             "%X ESE_POLL_TIMEOUT %2X",
-             max_sof_counter, ESE_POLL_TIMEOUT);
+    NXP_LOG_ESE_D(
+        "read() max_sof_counter: "
+        "%X ESE_POLL_TIMEOUT %2X",
+        max_sof_counter, ESE_POLL_TIMEOUT);
     do {
       ret = -1;
       ret = phPalEse_read(pDevHandle, pBuffer, 2);
       if (ret < 0) {
         /*Polling for read on spi, hence Debug log*/
-        ALOGD_IF(ese_debug_enabled, "_spi_read() [HDR]errno : %x ret : %X",
-                 errno, ret);
+        NXP_LOG_ESE_D("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
       } else {
         if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) ||
             (pBuffer[0] == RECIEVE_PACKET_SOF)) {
           /* Read the HEADR of one byte*/
-          ALOGD_IF(ese_debug_enabled, "%s Read HDR SOF + PCB", __FUNCTION__);
+          NXP_LOG_ESE_D("%s Read HDR SOF + PCB", __FUNCTION__);
           numBytesToRead = 1; /*Read only INF LEN*/
           headerIndex = 1;
           break;
@@ -1323,7 +1310,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
                    ((pBuffer[1] == nxpese_ctxt.nadInfo.nadRx) ||
                     (pBuffer[1] == RECIEVE_PACKET_SOF))) {
           /* Read the HEADR of Two bytes*/
-          ALOGD_IF(ese_debug_enabled, "%s Read HDR only SOF", __FUNCTION__);
+          NXP_LOG_ESE_D("%s Read HDR only SOF", __FUNCTION__);
           pBuffer[0] = pBuffer[1];
           numBytesToRead = 2; /*Read PCB + INF LEN*/
           headerIndex = 0;
@@ -1334,18 +1321,18 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
           // pBuffer[0], pBuffer[1]);
         } else if (ret >= 0) { /* Corruption happened during the receipt from
                                   Card, go flush out the data */
-          ALOGE("_spi_read() Corruption Buf[0]: %X Buf[1]: %X ..len=%d",
-                pBuffer[0], pBuffer[1], ret);
+          NXP_LOG_ESE_E("_spi_read() Corruption Buf[0]: %X Buf[1]: %X ..len=%d",
+                        pBuffer[0], pBuffer[1], ret);
           break;
         }
       }
       /*If it is Chained packet wait for 100 usec*/
       if (poll_sof_chained_delay == 1) {
-        ALOGD_IF(ese_debug_enabled, "%s Chained Pkt, delay read %dus",
-                 __FUNCTION__, GET_WAKE_UP_DELAY() * CHAINED_PKT_SCALER);
+        NXP_LOG_ESE_D("%s Chained Pkt, delay read %dus", __FUNCTION__,
+                      GET_WAKE_UP_DELAY() * CHAINED_PKT_SCALER);
         phPalEse_sleep(GET_WAKE_UP_DELAY() * CHAINED_PKT_SCALER);
       } else {
-        /*DLOG_IF(INFO, ese_debug_enabled)
+        /*DLOG_IF(INFO, ese_log_level)
          << StringPrintf("%s Normal Pkt, delay read %dus", __FUNCTION__,
          WAKE_UP_DELAY_SN1xx * NAD_POLLING_SCALER_SN1xx);*/
         phPalEse_sleep(nxpese_ctxt.nadPollingRetryTime * GET_WAKE_UP_DELAY() *
@@ -1365,24 +1352,24 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       pBuffer[1] = 0xFF;
     } else if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) ||
                (pBuffer[0] == RECIEVE_PACKET_SOF)) {
-      ALOGD_IF(ese_debug_enabled, "%s SOF FOUND", __FUNCTION__);
+      NXP_LOG_ESE_D("%s SOF FOUND", __FUNCTION__);
       /* Read the HEADR of one/Two bytes based on how two bytes read A5 PCB or
        * 00 A5*/
       ret =
           phPalEse_read(pDevHandle, &pBuffer[1 + headerIndex], numBytesToRead);
       if (ret < 0) {
-        ALOGE("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
+        NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
         flushData = true;
       } else {
         if ((pBuffer[1] == CHAINED_PACKET_WITHOUTSEQN) ||
             (pBuffer[1] == CHAINED_PACKET_WITHSEQN)) {
           poll_sof_chained_delay = 1;
-          ALOGD_IF(ese_debug_enabled, "poll_sof_chained_delay value is %d ",
-                   poll_sof_chained_delay);
+          NXP_LOG_ESE_D("poll_sof_chained_delay value is %d ",
+                        poll_sof_chained_delay);
         } else {
           poll_sof_chained_delay = 0;
-          ALOGD_IF(ese_debug_enabled, "poll_sof_chained_delay value is %d ",
-                   poll_sof_chained_delay);
+          NXP_LOG_ESE_D("poll_sof_chained_delay value is %d ",
+                        poll_sof_chained_delay);
         }
         total_count = 3;
         uint8_t pcb;
@@ -1400,7 +1387,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
           } else {
             ret = phPalEse_read(pDevHandle, &pBuffer[3], 2);
             if (ret < 0) {
-              ALOGE("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
+              NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
               flushData = true;
             } else {
               nNbBytesToRead = (pBuffer[3] << 8);
@@ -1408,11 +1395,11 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
               /*If I-Frame received with invalid length respond with RNACK*/
               if ((nNbBytesToRead == 0) || (nNbBytesToRead > MAX_DATA_LEN) ||
                   (nNbBytesToRead > phNxpEseProto7816_GetIfs())) {
-                ALOGD_IF(ese_debug_enabled, "I-Frame with invalid len == %d",
-                         nNbBytesToRead);
+                NXP_LOG_ESE_D("I-Frame with invalid len == %d", nNbBytesToRead);
                 flushData = true;
               } else {
-                ALOGE("_spi_read() [HDR]EXTENDED_FRAME_MARKER, ret=%d", ret);
+                NXP_LOG_ESE_E("_spi_read() [HDR]EXTENDED_FRAME_MARKER, ret=%d",
+                              ret);
                 total_count += 2;
                 headerIndex = 5;
               }
@@ -1428,7 +1415,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
           ret = phPalEse_read(pDevHandle, &pBuffer[headerIndex],
                               (nNbBytesToRead + 1));
           if (ret < 0) {
-            ALOGE("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
+            NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
             ret = -1;
           } else {
             ret = (total_count + (nNbBytesToRead + 1));
@@ -1444,7 +1431,8 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
          Flushing out data in the Rx buffer so that Card can switch the mode */
       uint16_t ifsd_size = phNxpEseProto7816_GetIfs();
       uint32_t total_frame_size = 0;
-      ALOGE("_spi_read() corrupted, IFSD size=%d flushing it out!!", ifsd_size);
+      NXP_LOG_ESE_E("_spi_read() corrupted, IFSD size=%d flushing it out!!",
+                    ifsd_size);
       /* If a non-zero byte is received while polling for NAD byte and the byte
          is not a valid NAD byte (0xA5 or 0xB4): 1)  Read & discard (without
          de-asserting SPI CS line) : a.  Max IFSD size + 5 (remaining four
@@ -1461,10 +1449,9 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       phPalEse_sleep(nxpese_ctxt.invalidFrame_Rnack_Delay);
       ret = phPalEse_read(pDevHandle, &pBuffer[2], total_frame_size);
       if (ret < 0) {
-        ALOGE("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
+        NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
       } else { /* LRC fail expected for this frame to send R-NACK*/
-        ALOGD_IF(
-            ese_debug_enabled,
+        NXP_LOG_ESE_D(
             "_spi_read() SUCCESS  ret : %X LRC fail excpected for this frame",
             ret);
         PH_PAL_ESE_PRINT_PACKET_RX(pBuffer, ret);
@@ -1477,7 +1464,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
   } else {
     ret = phNxpEse_readPacket_legacy(pDevHandle, pBuffer, nNbBytesToRead);
   }
-  ALOGD_IF(ese_debug_enabled, "%s Exit ret = %d", __FUNCTION__, ret);
+  NXP_LOG_ESE_D("%s Exit ret = %d", __FUNCTION__, ret);
   return ret;
 }
 
@@ -1502,18 +1489,17 @@ static int phNxpEse_readPacket_legacy(void* pDevHandle, uint8_t* pBuffer,
     ret = phPalEse_read(pDevHandle, pBuffer, 2);
     if (ret < 0) {
       /*Polling for read on spi, hence Debug log*/
-      ALOGD_IF(ese_debug_enabled, "_spi_read() [HDR]errno : %x ret : %X", errno,
-               ret);
+      NXP_LOG_ESE_D("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
     }
     if (pBuffer[0] == RECIEVE_PACKET_SOF) {
       /* Read the HEADR of one byte*/
-      ALOGD_IF(ese_debug_enabled, "%s Read HDR", __FUNCTION__);
+      NXP_LOG_ESE_D("%s Read HDR", __FUNCTION__);
       numBytesToRead = 1;
       headerIndex = 1;
       break;
     } else if (pBuffer[1] == RECIEVE_PACKET_SOF) {
       /* Read the HEADR of Two bytes*/
-      ALOGD_IF(ese_debug_enabled, "%s Read HDR", __FUNCTION__);
+      NXP_LOG_ESE_D("%s Read HDR", __FUNCTION__);
       pBuffer[0] = RECIEVE_PACKET_SOF;
       numBytesToRead = 2;
       headerIndex = 0;
@@ -1521,39 +1507,39 @@ static int phNxpEse_readPacket_legacy(void* pDevHandle, uint8_t* pBuffer,
     }
     /*If it is Chained packet wait for 100 usec*/
     if (poll_sof_chained_delay == 1) {
-      ALOGD_IF(ese_debug_enabled, "%s Chained Pkt, delay read %dus",
-               __FUNCTION__, GET_WAKE_UP_DELAY() * CHAINED_PKT_SCALER);
+      NXP_LOG_ESE_D("%s Chained Pkt, delay read %dus", __FUNCTION__,
+                    GET_WAKE_UP_DELAY() * CHAINED_PKT_SCALER);
       phPalEse_sleep(GET_WAKE_UP_DELAY() * CHAINED_PKT_SCALER);
     } else {
-      ALOGD_IF(ese_debug_enabled, "%s Normal Pkt, delay read %dus",
-               __FUNCTION__, GET_WAKE_UP_DELAY() * NAD_POLLING_SCALER);
+      NXP_LOG_ESE_D("%s Normal Pkt, delay read %dus", __FUNCTION__,
+                    GET_WAKE_UP_DELAY() * NAD_POLLING_SCALER);
       phPalEse_sleep(GET_WAKE_UP_DELAY() * NAD_POLLING_SCALER);
     }
   } while (sof_counter < ESE_NAD_POLLING_MAX);
   if (pBuffer[0] == RECIEVE_PACKET_SOF) {
-    ALOGD_IF(ese_debug_enabled, "%s SOF FOUND", __FUNCTION__);
+    NXP_LOG_ESE_D("%s SOF FOUND", __FUNCTION__);
     /* Read the HEADR of one/Two bytes based on how two bytes read A5 PCB or
      * 00 A5*/
     ret = phPalEse_read(pDevHandle, &pBuffer[1 + headerIndex], numBytesToRead);
     if (ret < 0) {
-      ALOGE("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
+      NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
     }
     if ((pBuffer[1] == CHAINED_PACKET_WITHOUTSEQN) ||
         (pBuffer[1] == CHAINED_PACKET_WITHSEQN)) {
       poll_sof_chained_delay = 1;
-      ALOGD_IF(ese_debug_enabled, "poll_sof_chained_delay value is %d ",
-               poll_sof_chained_delay);
+      NXP_LOG_ESE_D("poll_sof_chained_delay value is %d ",
+                    poll_sof_chained_delay);
     } else {
       poll_sof_chained_delay = 0;
-      ALOGD_IF(ese_debug_enabled, "poll_sof_chained_delay value is %d ",
-               poll_sof_chained_delay);
+      NXP_LOG_ESE_D("poll_sof_chained_delay value is %d ",
+                    poll_sof_chained_delay);
     }
     total_count = 3;
     nNbBytesToRead = (pBuffer[2] & 0x000000FF);
     /* Read the Complete data + one byte CRC*/
     ret = phPalEse_read(pDevHandle, &pBuffer[3], (nNbBytesToRead + 1));
     if (ret < 0) {
-      ALOGE("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
+      NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
       ret = -1;
     } else {
       ret = (total_count + (nNbBytesToRead + 1));
@@ -1584,7 +1570,7 @@ static int phNxpEse_readPacket_legacy(void* pDevHandle, uint8_t* pBuffer,
 ESESTATUS phNxpEse_WriteFrame(uint32_t data_len, uint8_t* p_data) {
   ESESTATUS status = ESESTATUS_INVALID_PARAMETER;
   int32_t dwNoBytesWrRd = 0;
-  ALOGD_IF(ese_debug_enabled, "Enter %s ", __FUNCTION__);
+  NXP_LOG_ESE_D("Enter %s ", __FUNCTION__);
   if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
     /* TODO where to set the nad id */
     p_data[0] = nxpese_ctxt.nadInfo.nadTx;
@@ -1598,13 +1584,13 @@ ESESTATUS phNxpEse_WriteFrame(uint32_t data_len, uint8_t* p_data) {
   dwNoBytesWrRd = phPalEse_write(nxpese_ctxt.pDevHandle, nxpese_ctxt.p_cmd_data,
                                  nxpese_ctxt.cmd_len);
   if (-1 == dwNoBytesWrRd) {
-    ALOGE(" - Error in SPI Write.....%d\n", errno);
+    NXP_LOG_ESE_E(" - Error in SPI Write.....%d\n", errno);
     status = ESESTATUS_FAILED;
   } else {
     status = ESESTATUS_SUCCESS;
     PH_PAL_ESE_PRINT_PACKET_TX(nxpese_ctxt.p_cmd_data, nxpese_ctxt.cmd_len);
   }
-  ALOGD_IF(ese_debug_enabled, "Exit %s status %x\n", __FUNCTION__, status);
+  NXP_LOG_ESE_I("Exit %s status %x\n", __FUNCTION__, status);
   return status;
 }
 
@@ -1623,7 +1609,7 @@ ESESTATUS phNxpEse_getAtr(phNxpEse_data* pATR) {
   if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
     status = phNxpEseProto7816_getAtr(pATR);
   } else {
-    ALOGE(" %s - Function not supported\n", __FUNCTION__);
+    NXP_LOG_ESE_E(" %s - Function not supported\n", __FUNCTION__);
   }
   return status;
 }
@@ -1740,8 +1726,7 @@ static void phNxpEse_GetMaxTimer(unsigned long* pMaxTimer) {
   /* Add extra 5% to the timer */
   *pMaxTimer +=
       CONVERT_TO_PERCENTAGE(*pMaxTimer, ADDITIONAL_SECURE_TIME_PERCENTAGE);
-  ALOGD_IF(ese_debug_enabled, "%s Max timer value = %lu", __FUNCTION__,
-           *pMaxTimer);
+  NXP_LOG_ESE_D("%s Max timer value = %lu", __FUNCTION__, *pMaxTimer);
   return;
 }
 
@@ -1757,15 +1742,16 @@ static void phNxpEse_GetMaxTimer(unsigned long* pMaxTimer) {
 ESESTATUS phNxpEse_DisablePwrCntrl(void) {
   ESESTATUS status = ESESTATUS_SUCCESS;
   unsigned long maxTimer = 0;
-  ALOGE("%s Enter", __FUNCTION__);
+  NXP_LOG_ESE_E("%s Enter", __FUNCTION__);
   phNxpEse_GetMaxTimer(&maxTimer);
   if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
     status = phNxpEse_SPM_DisablePwrControl(maxTimer);
     if (status != ESESTATUS_SUCCESS) {
-      ALOGE("%s phNxpEseP61_DisablePwrCntrl: failed", __FUNCTION__);
+      NXP_LOG_ESE_E("%s phNxpEseP61_DisablePwrCntrl: failed", __FUNCTION__);
     }
   } else {
-    ALOGE("%s phNxpEseP61_DisablePwrCntrl: not supported", __FUNCTION__);
+    NXP_LOG_ESE_E("%s phNxpEseP61_DisablePwrCntrl: not supported",
+                  __FUNCTION__);
     status = ESESTATUS_FAILED;
   }
   return status;
@@ -1803,7 +1789,7 @@ void phNxpEse_setOsVersion(phNxpEse_OsVersion_t chipType) { sOsVersion = chipTyp
  *
  ******************************************************************************/
 static ESESTATUS phNxpEse_checkFWDwnldStatus(void) {
-  ALOGD_IF(ese_debug_enabled, "phNxpEse_checkFWDwnldStatus Enter");
+  NXP_LOG_ESE_D("phNxpEse_checkFWDwnldStatus Enter");
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
   spm_state_t current_spm_state = SPM_STATE_INVALID;
   uint8_t ese_dwnld_retry = 0x00;
@@ -1813,13 +1799,13 @@ static ESESTATUS phNxpEse_checkFWDwnldStatus(void) {
   if (wSpmStatus == ESESTATUS_SUCCESS) {
     /* Check current_spm_state and update config/Spm status*/
     while (ese_dwnld_retry < ESE_FW_DWNLD_RETRY_CNT) {
-      ALOGD_IF(ese_debug_enabled, "ESE_FW_DWNLD_RETRY_CNT retry count");
+      NXP_LOG_ESE_D("ESE_FW_DWNLD_RETRY_CNT retry count");
       wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
       if (wSpmStatus == ESESTATUS_SUCCESS) {
         if ((current_spm_state & SPM_STATE_DWNLD)) {
           status = ESESTATUS_FAILED;
         } else {
-          ALOGE("Exit polling no FW Download ..");
+          NXP_LOG_ESE_E("Exit polling no FW Download ..");
           status = ESESTATUS_SUCCESS;
           break;
         }
@@ -1832,7 +1818,7 @@ static ESESTATUS phNxpEse_checkFWDwnldStatus(void) {
     }
   }
 
-  ALOGD_IF(ese_debug_enabled, "phNxpEse_checkFWDwnldStatus status %x", status);
+  NXP_LOG_ESE_D("phNxpEse_checkFWDwnldStatus status %x", status);
   return status;
 }
 
@@ -1855,9 +1841,9 @@ ESESTATUS phNxpEse_GetEseStatus(phNxpEse_data* timer_buffer) {
 
   phNxpEse_SecureTimer_t secureTimerParams;
   uint8_t* temp_timer_buffer = NULL;
-  ALOGD_IF(ese_debug_enabled, "%s Enter", __FUNCTION__);
+  NXP_LOG_ESE_D("%s Enter", __FUNCTION__);
   if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-    ALOGE("%s function not supported", __FUNCTION__);
+    NXP_LOG_ESE_E("%s function not supported", __FUNCTION__);
     return status;
   }
   if (timer_buffer != NULL) {
@@ -1872,8 +1858,7 @@ ESESTATUS phNxpEse_GetEseStatus(phNxpEse_data* timer_buffer) {
     phNxpEse_memcpy(&secureTimerParams, &nxpese_ctxt.secureTimerParams,
                     sizeof(phNxpEse_SecureTimer_t));
 
-    ALOGD_IF(
-        ese_debug_enabled,
+    NXP_LOG_ESE_D(
         "%s secureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x len = %d",
         __FUNCTION__, secureTimerParams.secureTimer1,
         secureTimerParams.secureTimer2, secureTimerParams.secureTimer3,
@@ -1903,10 +1888,10 @@ ESESTATUS phNxpEse_GetEseStatus(phNxpEse_data* timer_buffer) {
       }
     }
   } else {
-    ALOGE("%s Invalid timer buffer ", __FUNCTION__);
+    NXP_LOG_ESE_E("%s Invalid timer buffer ", __FUNCTION__);
   }
 
-  ALOGD_IF(ese_debug_enabled, "%s Exit status = 0x%x", __FUNCTION__, status);
+  NXP_LOG_ESE_D("%s Exit status = 0x%x", __FUNCTION__, status);
   return status;
 }
 
@@ -1915,14 +1900,13 @@ static unsigned char* phNxpEse_GgetTimerTlvBuffer(uint8_t* timer_buffer,
   short int count = 0, shift = 3;
   unsigned int mask = 0x000000FF;
   if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-    ALOGE("%s function not supported", __FUNCTION__);
+    NXP_LOG_ESE_E("%s function not supported", __FUNCTION__);
   } else {
-    ALOGD_IF(ese_debug_enabled, "value = %x \n", value);
+    NXP_LOG_ESE_D("value = %x \n", value);
     for (count = 0; count < 4; count++) {
       if (timer_buffer != NULL) {
         *timer_buffer = (value >> (shift * 8) & mask);
-        ALOGD_IF(ese_debug_enabled, "*timer_buffer=0x%x shift=0x%x",
-                *timer_buffer, shift);
+        NXP_LOG_ESE_D("*timer_buffer=0x%x shift=0x%x", *timer_buffer, shift);
         timer_buffer++;
         shift--;
       } else {
@@ -1946,7 +1930,7 @@ void phNxpEse_NotifySEWtxRequest(phNxpEse_wtxState state) {
   if (nxpese_ctxt.fPtr_WtxNtf) {
     (nxpese_ctxt.fPtr_WtxNtf)(state);
   } else {
-    ALOGE("%s function not supported", __FUNCTION__);
+    NXP_LOG_ESE_E("%s function not supported", __FUNCTION__);
   }
 }
 

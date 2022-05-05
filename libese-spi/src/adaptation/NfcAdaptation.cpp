@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020 NXP
+ *  Copyright 2018-2020,2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -16,10 +16,11 @@
  *
  ******************************************************************************/
 #define LOG_TAG "NxpEseHal-NfcAdaptation"
-#include <log/log.h>
 #include "NfcAdaptation.h"
 #include <android/hardware/nfc/1.0/types.h>
+#include <ese_logs.h>
 #include <hwbinder/ProcessState.h>
+#include <log/log.h>
 #include <pthread.h>
 
 #undef LOG_TAG
@@ -44,15 +45,15 @@ int omapi_status;
 
 void NfcAdaptation::Initialize() {
   const char* func = "NfcAdaptation::Initialize";
-  ALOGD_IF(ese_debug_enabled, "%s", func);
+  NXP_LOG_ESE_D("%s", func);
   if (mHalNxpNfc != nullptr) return;
   mHalNxpNfc = INxpNfc::tryGetService();
   if (mHalNxpNfc != nullptr) {
-    ALOGE("%s: INxpNfc::getService() returned %p (%s)",
-        func, mHalNxpNfc.get(),
-          (mHalNxpNfc->isRemote() ? "remote" : "local"));
+    NXP_LOG_ESE_E("%s: INxpNfc::getService() returned %p (%s)", func,
+                  mHalNxpNfc.get(),
+                  (mHalNxpNfc->isRemote() ? "remote" : "local"));
   }
-  ALOGD_IF(ese_debug_enabled, "%s: exit", func);
+  NXP_LOG_ESE_D("%s: exit", func);
 }
 /*******************************************************************************
 **
@@ -178,15 +179,15 @@ ESESTATUS NfcAdaptation::resetEse(uint64_t level) {
   ESESTATUS result = ESESTATUS_FAILED;
   bool ret = 0;
 
-  ALOGD_IF(ese_debug_enabled, "%s : Enter", func);
+  NXP_LOG_ESE_D("%s : Enter", func);
 
   if (mHalNxpNfc != nullptr) {
     ret = mHalNxpNfc->resetEse(level);
-    if(ret){
-      ALOGE("NfcAdaptation::resetEse mHalNxpNfc completed");
+    if (ret) {
+      NXP_LOG_ESE_E("NfcAdaptation::resetEse mHalNxpNfc completed");
       result = ESESTATUS_SUCCESS;
     } else {
-      ALOGE("NfcAdaptation::resetEse mHalNxpNfc failed");
+      NXP_LOG_ESE_E("NfcAdaptation::resetEse mHalNxpNfc failed");
     }
   }
 
@@ -209,18 +210,20 @@ ESESTATUS NfcAdaptation::setEseUpdateState(void* p_data) {
   ESESTATUS result = ESESTATUS_FAILED;
   bool ret = 0;
 
-  ALOGD_IF(ese_debug_enabled, "%s : Enter", func);
+  NXP_LOG_ESE_D("%s : Enter", func);
 
   ese_nxp_IoctlInOutData_t* pInpOutData = (ese_nxp_IoctlInOutData_t*)p_data;
   data.setToExternal((uint8_t*)pInpOutData, sizeof(ese_nxp_IoctlInOutData_t));
 
   if (mHalNxpNfc != nullptr) {
-    ret = mHalNxpNfc->setEseUpdateState((::vendor::nxp::nxpnfc::V2_0::NxpNfcHalEseState)pInpOutData->inp.data.nxpCmd.p_cmd[0]);
-    if(ret){
-      ALOGE("NfcAdaptation::setEseUpdateState completed");
+    ret = mHalNxpNfc->setEseUpdateState(
+        (::vendor::nxp::nxpnfc::V2_0::NxpNfcHalEseState)
+            pInpOutData->inp.data.nxpCmd.p_cmd[0]);
+    if (ret) {
+      NXP_LOG_ESE_E("NfcAdaptation::setEseUpdateState completed");
       result = ESESTATUS_SUCCESS;
     } else {
-      ALOGE("NfcAdaptation::setEseUpdateState failed");
+      NXP_LOG_ESE_E("NfcAdaptation::setEseUpdateState failed");
     }
   }
 
