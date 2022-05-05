@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2020  NXP
+ *  Copyright 2020,2022  NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>
 #include <pthread.h>
+#include <vector>
 #include "OsuHalExtn.h"
 #include "phNxpEse_Api.h"
 
@@ -111,7 +112,14 @@ struct SecureElement : public V1_2::ISecureElement, public hidl_death_recipient 
   bool mIsEseInitialized = false;
   static std::vector<bool> mOpenedChannels;
   static sp<V1_0::ISecureElementHalCallback> mCallbackV1_0;
-  static sp<V1_1::ISecureElementHalCallback> mCallbackV1_1;
+
+  std::vector<sp<V1_1::ISecureElementHalCallback>> mCallbacks;
+
+  void notifyClients(bool connected, std::string reason);
+
+  void registerCallback(const sp<V1_1::ISecureElementHalCallback>& callback);
+  void unregisterCallback(const sp<IBase>& callback);
+
   Return<SecureElementStatus> seHalDeInit();
   ESESTATUS seHalInit();
   Return<SecureElementStatus> internalCloseChannel(uint8_t channelNumber);

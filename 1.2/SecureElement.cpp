@@ -17,6 +17,7 @@
  ******************************************************************************/
 #include "SecureElement.h"
 #include <android-base/logging.h>
+#include <hidl/HidlTransportSupport.h>
 #include "phNxpEse_Apdu_Api.h"
 #include "phNxpEse_Api.h"
 #include <android-base/stringprintf.h>
@@ -31,7 +32,6 @@ namespace secure_element {
 namespace V1_2 {
 namespace implementation {
 
-#define LOG_TAG "nxpese@1.2-service"
 #define DEFAULT_BASIC_CHANNEL 0x00
 #define INVALID_LEN_SW1 0x64
 #define INVALID_LEN_SW2 0xFF
@@ -49,7 +49,6 @@ getResponseInternal(uint8_t cla, phNxpEse_7816_rpdu_t& rpdu,
 static sTransceiveBuffer_t gsTxRxBuffer;
 static hidl_vec<uint8_t> gsRspDataBuff(256);
 sp<V1_0::ISecureElementHalCallback> SecureElement::mCallbackV1_0 = nullptr;
-sp<V1_1::ISecureElementHalCallback> SecureElement::mCallbackV1_1 = nullptr;
 std::vector<bool> SecureElement::mOpenedChannels;
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 SecureElement::SecureElement()
@@ -130,8 +129,45 @@ Return<void> SecureElement::init(
   }
   return Void();
 }
+void SecureElement::registerCallback(
+    const sp<V1_1::ISecureElementHalCallback>& callback) {
+  if (callback == nullptr) {
+    return;
+  }
+  mCallbacks.push_back(callback);
 
+  LOG(INFO) << __func__ << " New client " << callback.get()
+            << " registered . total clients = " << mCallbacks.size();
 
+  auto linkRet = callback->linkToDeath(this, 0u /* cookie */);
+  if (!linkRet.withDefault(false)) {
+    LOG(WARNING) << __func__ << " Cannot link to death: "
+                 << (linkRet.isOk() ? "linkToDeath returns false"
+                                    : linkRet.description());
+  }
+}
+
+void SecureElement::unregisterCallback(const sp<IBase>& callback) {
+  if (callback == nullptr) return;
+  bool removed = false;
+
+  for (auto it = mCallbacks.begin(); it != mCallbacks.end();) {
+    if (interfacesEqual(*it, callback)) {
+      it = mCallbacks.erase(it);
+      removed = true;
+    } else {
+      ++it;
+    }
+  }
+  callback->unlinkToDeath(this).isOk();  // ignore errors
+
+  if (removed)
+    LOG(INFO) << __func__ << " client " << callback.get()
+              << " removed. Total clients = " << mCallbacks.size();
+  else
+    LOG(WARNING) << __func__ << " Failed to remove client. total clients = "
+                 << mCallbacks.size();
+}
 Return<void> SecureElement::init_1_1(
     const sp<
         ::android::hardware::secure_element::V1_1::ISecureElementHalCallback>&
@@ -144,20 +180,17 @@ Return<void> SecureElement::init_1_1(
   initParams.initMode = ESE_MODE_NORMAL;
   initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
   initParams.fPtr_WtxNtf = SecureElement::NotifySeWaitExtension;
-  if (clientCallback == nullptr) {
-    return Void();
-  } else {
-    clientCallback->linkToDeath(this, 0 /*cookie*/);
-  }
+
+  if (clientCallback == nullptr) return Void();
+
   LOG(INFO) << "SecureElement::init called here";
   if(ese_update != ESE_UPDATE_COMPLETED) {
-    mCallbackV1_1 = clientCallback;
     clientCallback->onStateChange_1_1(false, "NXP SE update going on");
     LOG(INFO) << "ESE JCOP Download in progress";
     NxpEse::setSeCallBack_1_1(clientCallback);
     return Void();
-    //Register
   }
+  registerCallback(clientCallback);
   if (mIsEseInitialized) {
     clientCallback->onStateChange_1_1(true, "NXP SE HAL init ok");
     return Void();
@@ -187,12 +220,14 @@ Return<void> SecureElement::init_1_1(
     mMaxChannelCount = (GET_CHIP_OS_VERSION() > OS_VERSION_6_2)? 0x0C: 0x04;
     mOpenedChannels.resize(mMaxChannelCount, false);
     clientCallback->onStateChange_1_1(true, "NXP SE HAL init ok");
-    mCallbackV1_1 = clientCallback;
   }
   else
   {
     LOG(ERROR) << "eSE-Hal Init failed";
     clientCallback->onStateChange_1_1(false, "NXP SE HAL init failed");
+    // remove it from the list of registered callbacks
+    // Client anyway has to call the init again
+    unregisterCallback(clientCallback);
   }
   return Void();
 }
@@ -760,13 +795,20 @@ SecureElement::closeChannel(uint8_t channelNumber) {
   }
 }
 
-void SecureElement::serviceDied(uint64_t /*cookie*/, const wp<IBase>& /*who*/) {
-    LOG(ERROR) << " SecureElement serviceDied!!!";
+void SecureElement::serviceDied(uint64_t /*cookie*/, const wp<IBase>& who) {
+  LOG(ERROR) << "Remote client Died!!!";
+  unregisterCallback(who.promote());
+  if (mCallbacks.empty()) {
+    LOG(ERROR) << "No alive registered client, resetting the state";
     mIsEseInitialized = false;
-    if(seHalDeInit() != SecureElementStatus::SUCCESS){
-      LOG(ERROR) << "SE Deinit not successfull";
+    if (seHalDeInit() != SecureElementStatus::SUCCESS) {
+      LOG(ERROR) << "SE Deinit not successful";
     }
+  } else {
+    LOG(INFO) << "There are " << mCallbacks.size()
+              << " alive registered clients left";
   }
+}
   ESESTATUS SecureElement::seHalInit() {
     ESESTATUS status = ESESTATUS_SUCCESS;
     phNxpEse_initParams initParams;
@@ -832,22 +874,36 @@ SecureElement::seHalDeInit() {
 
   return sestatus;
 }
+void SecureElement::notifyClients(bool connected, std::string reason) {
+  LOG(INFO) << "Notifying current state to all " << mCallbacks.size()
+            << " clients";
+
+  for (auto it = mCallbacks.begin(); it != mCallbacks.end();) {
+    auto ret = (*it)->onStateChange_1_1(connected, reason);
+    if (!ret.isOk() && ret.isDeadObject()) {
+      LOG(WARNING) << "client  is dead";
+      it = mCallbacks.erase(it);
+    } else {
+      ++it;
+    }
+  }
+}
 Return<::android::hardware::secure_element::V1_0::SecureElementStatus>
 SecureElement::reset() {
   ESESTATUS status = ESESTATUS_SUCCESS;
   SecureElementStatus sestatus = SecureElementStatus::FAILED;
-  LOG(ERROR) << "%s: Enter" << __func__;
+  LOG(INFO) << __func__ << " Enter";
   if (!mIsEseInitialized) {
     ESESTATUS status = seHalInit();
     if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << "%s: seHalInit Failed!!!" << __func__;
+      LOG(ERROR) << __func__ << " seHalInit Failed!!!";
     }
   }
   if (status == ESESTATUS_SUCCESS) {
-    mCallbackV1_1->onStateChange_1_1(false, "reset the SE");
+    notifyClients(false, "reset the SE");
     status = phNxpEse_reset();
     if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << "%s: SecureElement reset failed!!" << __func__;
+      LOG(ERROR) << __func__ << " SecureElement reset failed!!";
     } else {
       sestatus = SecureElementStatus::SUCCESS;
       if (mOpenedChannels.size() == 0x00) {
@@ -858,10 +914,10 @@ SecureElement::reset() {
         mOpenedChannels[xx] = false;
       }
       mOpenedchannelCount = 0;
-      mCallbackV1_1->onStateChange_1_1(true, "SE initialized");
+      notifyClients(true, "SE initialized");
     }
   }
-  LOG(ERROR) << "%s: Exit" <<  __func__;
+  LOG(ERROR) << __func__ << ": Exit";
   return sestatus;
 }
 
