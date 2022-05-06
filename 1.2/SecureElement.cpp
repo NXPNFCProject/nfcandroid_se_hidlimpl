@@ -614,10 +614,6 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
       _hidl_cb(result, SecureElementStatus::SUCCESS);
     }
     return Void();
-  } else if (mode == OsuHalExtn::OSU_BLOCKED_MODE) {
-    _hidl_cb(result, SecureElementStatus::IOERROR);
-    return Void();
-  } else {
   }
 
   if (!mIsEseInitialized) {
@@ -627,6 +623,21 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
       _hidl_cb(result, SecureElementStatus::IOERROR);
       return Void();
     }
+  }
+
+  phNxpEse_data atrData;
+  if (phNxpEse_getAtr(&atrData) != ESESTATUS_SUCCESS) {
+    LOG(ERROR) << "phNxpEse_getAtr failed";
+  }
+
+  if (phNxpEse_GetOsMode() == OSU_MODE) {
+    if (mOpenedchannelCount == 0) {
+      if (seHalDeInit() != SecureElementStatus::SUCCESS) {
+        LOG(INFO) << "seDeInit Failed";
+      }
+    }
+    _hidl_cb(result, SecureElementStatus::IOERROR);
+    return Void();
   }
 
   if (mOpenedChannels.size() == 0x00) {
