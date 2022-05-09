@@ -922,7 +922,11 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
                                                              : "OSU Mode"));
   }
   if (phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN -
-                                               1] >= PH_SE_OS_VERSION_20) {
+                                               1] >= PH_SE_OS_VERSION_21) {
+    phNxpEse_setOsVersion(OS_VERSION_6_3);
+  } else if (phNxpEseProto7816_3_Var.atrInfo
+                 .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] >=
+             PH_SE_OS_VERSION_20) {
     phNxpEse_setOsVersion(OS_VERSION_6_2);
   } else if (phNxpEseProto7816_3_Var.atrInfo
                  .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] >=
