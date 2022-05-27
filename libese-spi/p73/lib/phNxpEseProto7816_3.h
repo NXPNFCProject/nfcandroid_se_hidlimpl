@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020 NXP
+ *  Copyright 2018-2020,2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -493,6 +493,10 @@ typedef struct phNxpEseProto7816_PCB_bits {
  * \brief OS version on SE for SN220
  */
 #define PH_SE_OS_VERSION_20 0x20
+/*!
+ * \brief OS version on SE for SN220
+ */
+#define PH_SE_OS_VERSION_21 0x21
 /*!
  * \brief Default wait extension notification interval
  */

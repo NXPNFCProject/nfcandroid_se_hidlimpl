@@ -445,5 +445,18 @@ ESESTATUS phNxpEse_doResetProtection(bool flag);
  *
  */
 void phNxpEse_setWtxCountLimit(unsigned long int wtxCount);
+
+/**
+ * \ingroup spi_libese
+ * \brief This function returns whether priority channel enabled or
+ *  not
+ *
+ * \param[in] void
+ *
+ * \retval uint8_t - Priority Access enabled(1)/disabled(0).
+ *
+ */
+bool phNxpEse_isPriorityAccessEnabled(void);
+
 /** @} */
 #endif /* _PHNXPSPILIB_API_H_ */

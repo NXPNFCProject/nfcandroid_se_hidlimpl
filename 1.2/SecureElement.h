@@ -114,6 +114,7 @@ struct SecureElement : public V1_2::ISecureElement, public hidl_death_recipient 
   static sp<V1_0::ISecureElementHalCallback> mCallbackV1_0;
 
   std::vector<sp<V1_1::ISecureElementHalCallback>> mCallbacks;
+  bool mHasPriorityAccess = false;
 
   void notifyClients(bool connected, std::string reason);
 
@@ -123,6 +124,8 @@ struct SecureElement : public V1_2::ISecureElement, public hidl_death_recipient 
   Return<SecureElementStatus> seHalDeInit();
   ESESTATUS seHalInit();
   Return<SecureElementStatus> internalCloseChannel(uint8_t channelNumber);
+  uint8_t getReserveChannelCnt(const hidl_vec<uint8_t>& aid);
+  uint8_t getMaxChannelCnt();
 };
 
 }  // namespace implementation

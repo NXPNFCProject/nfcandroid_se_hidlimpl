@@ -1955,3 +1955,21 @@ void phNxpEse_NotifySEWtxRequest(phNxpEse_wtxState state) {
 void phNxpEse_setWtxCountLimit(unsigned long int wtxCount) {
   app_wtx_cnt = wtxCount;
 }
+
+/******************************************************************************
+ * Function         phNxpEse_isPriorityAccessEnabled
+ *
+ * Description      This function returns whether priority channel enabled or
+ *                  not.
+ *
+ * Returns          Priority Access enabled(1)/disabled(0).
+ *
+ ******************************************************************************/
+bool phNxpEse_isPriorityAccessEnabled(void) {
+  uint8_t isPriorityAccess = 0;
+  if (EseConfig::hasKey(NAME_NXP_SE_PRIORITY_ACCESS)) {
+    isPriorityAccess = EseConfig::getUnsigned(NAME_NXP_SE_PRIORITY_ACCESS);
+  }
+  NXP_LOG_ESE_D("Reserve channel enabled = %d", isPriorityAccess);
+  return (isPriorityAccess != 0);
+}

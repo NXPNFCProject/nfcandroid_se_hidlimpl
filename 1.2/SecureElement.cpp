@@ -36,7 +36,8 @@ namespace implementation {
 #define INVALID_LEN_SW1 0x64
 #define INVALID_LEN_SW2 0xFF
 #define SW1_BYTES_REMAINING 0x61
-
+#define NUM_OF_CH4 0x04
+#define NUM_OF_CH5 0x05
 typedef struct gsTransceiveBuffer {
   phNxpEse_data cmdData;
   phNxpEse_data rspData;
@@ -117,7 +118,8 @@ Return<void> SecureElement::init(
   phNxpEse_setWtxCountLimit(RESET_APP_WTX_COUNT);
   if (status == ESESTATUS_SUCCESS && mIsInitDone)
   {
-    mMaxChannelCount = (GET_CHIP_OS_VERSION() > OS_VERSION_6_2)? 0x0C: 0x04;
+    mHasPriorityAccess = phNxpEse_isPriorityAccessEnabled();
+    mMaxChannelCount = getMaxChannelCnt();
     mOpenedChannels.resize(mMaxChannelCount, false);
     clientCallback->onStateChange(true);
     mCallbackV1_0 = clientCallback;
@@ -217,7 +219,8 @@ Return<void> SecureElement::init_1_1(
   }
   phNxpEse_setWtxCountLimit(RESET_APP_WTX_COUNT);
   if (status == ESESTATUS_SUCCESS && mIsInitDone) {
-    mMaxChannelCount = (GET_CHIP_OS_VERSION() > OS_VERSION_6_2)? 0x0C: 0x04;
+    mHasPriorityAccess = phNxpEse_isPriorityAccessEnabled();
+    mMaxChannelCount = getMaxChannelCnt();
     mOpenedChannels.resize(mMaxChannelCount, false);
     clientCallback->onStateChange_1_1(true, "NXP SE HAL init ok");
   }
@@ -376,18 +379,21 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   resApduBuff.channelNumber = 0xff;
   memset(&resApduBuff, 0x00, sizeof(resApduBuff));
 
-  if (GET_CHIP_OS_VERSION() <= OS_VERSION_6_2) {
-    /*Basic channel is removed from count*/
-    uint8_t maxLogicalChannelSupported = mMaxChannelCount - 1;
-    uint8_t openedLogicalChannelCount = mOpenedchannelCount;
-    if (mOpenedChannels[0]) openedLogicalChannelCount--;
+  /*
+   * Basic channel & reserved channel if any is removed
+   * from count
+   * */
+  uint8_t maxLogicalChannelSupported =
+      mMaxChannelCount - getReserveChannelCnt(aid) - 1;
 
-    if (openedLogicalChannelCount >= maxLogicalChannelSupported) {
-      LOG(ERROR) << StringPrintf("%s: Reached Max supported(%d) Logical Channel",
-                                 __func__, openedLogicalChannelCount);
-      _hidl_cb(resApduBuff, SecureElementStatus::CHANNEL_NOT_AVAILABLE);
-      return Void();
-    }
+  uint8_t openedLogicalChannelCount = mOpenedchannelCount;
+  if (mOpenedChannels[0]) openedLogicalChannelCount--;
+
+  if (openedLogicalChannelCount >= maxLogicalChannelSupported) {
+    LOG(ERROR) << StringPrintf("%s: Reached Max supported(%d) Logical Channel",
+                               __func__, openedLogicalChannelCount);
+    _hidl_cb(resApduBuff, SecureElementStatus::CHANNEL_NOT_AVAILABLE);
+    return Void();
   }
 
   LOG(INFO) << "Acquired the lock from SPI openLogicalChannel";
@@ -408,7 +414,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   }
 
   if (mOpenedChannels.size() == 0x00) {
-    mMaxChannelCount = (GET_CHIP_OS_VERSION() > OS_VERSION_6_2)? 0x0C: 0x04;
+    mMaxChannelCount = getMaxChannelCnt();
     mOpenedChannels.resize(mMaxChannelCount, false);
   }
 
@@ -641,7 +647,7 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
   }
 
   if (mOpenedChannels.size() == 0x00) {
-    mMaxChannelCount = (GET_CHIP_OS_VERSION() > OS_VERSION_6_2)? 0x0C: 0x04;
+    mMaxChannelCount = getMaxChannelCnt();
     mOpenedChannels.resize(mMaxChannelCount, false);
   }
   phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
@@ -918,7 +924,7 @@ SecureElement::reset() {
     } else {
       sestatus = SecureElementStatus::SUCCESS;
       if (mOpenedChannels.size() == 0x00) {
-        mMaxChannelCount = (GET_CHIP_OS_VERSION() > OS_VERSION_6_2)? 0x0C: 0x04;
+        mMaxChannelCount = getMaxChannelCnt();
         mOpenedChannels.resize(mMaxChannelCount, false);
       }
       for (uint8_t xx = 0; xx < mMaxChannelCount; xx++) {
@@ -993,6 +999,37 @@ getResponseInternal(uint8_t cla, phNxpEse_7816_rpdu_t& rpdu,
   return sestatus;
 }
 
+uint8_t SecureElement::getReserveChannelCnt(const hidl_vec<uint8_t>& aid) {
+  const hidl_vec<uint8_t> weaverAid = {0xA0, 0x00, 0x00, 0x03,
+                                       0x96, 0x10, 0x10};
+  const hidl_vec<uint8_t> araAid = {0xA0, 0x00, 0x00, 0x01, 0x51,
+                                    0x41, 0x43, 0x4C, 0x00};
+  uint8_t reserveChannel = 0;
+  // Check priority access enabled then only reserve channel
+  if (mHasPriorityAccess && aid != weaverAid && aid != araAid) {
+    // Exclude basic channel
+    reserveChannel = 1;
+  }
+  return reserveChannel;
+}
+
+uint8_t SecureElement::getMaxChannelCnt() {
+  /*
+   * 1) SN1xx max channel supported 4.
+   * 2) SN220 up to v2 max channel supported 5 (If priority access)
+   *    otherwise 4 channel.
+   * 3) SN220 v3 and higher shall be updated accordingly.
+   * */
+  uint8_t cnt = 0;
+  if (GET_CHIP_OS_VERSION() < OS_VERSION_6_2)
+    cnt = NUM_OF_CH4;
+  else if (GET_CHIP_OS_VERSION() == OS_VERSION_6_2)
+    cnt = (mHasPriorityAccess ? NUM_OF_CH5 : NUM_OF_CH4);
+  else
+    cnt = NUM_OF_CH5;
+
+  return cnt;
+}
 }  // namespace implementation
 }  // namespace V1_2
 }  // namespace secure_element
