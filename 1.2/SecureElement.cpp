@@ -161,7 +161,10 @@ void SecureElement::unregisterCallback(const sp<IBase>& callback) {
       ++it;
     }
   }
-  callback->unlinkToDeath(this).isOk();  // ignore errors
+  auto ret = callback->unlinkToDeath(this);
+  if (!ret.isOk()) {
+    LOG(WARNING) << __func__ << " Cannot unlink to death";
+  }
 
   if (removed)
     LOG(INFO) << __func__ << " client " << callback.get()
