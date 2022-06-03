@@ -18,7 +18,10 @@
 #define LOG_TAG "NxpEseHal"
 #include <log/log.h>
 
+#include "phNxpEseFeatures.h"
+#include "phNxpEse_Spm.h"
 #include <errno.h>
+#include <ese_logs.h>
 #include <fcntl.h>
 #include <phNxpEsePal.h>
 #include <phNxpEse_Internal.h>
@@ -26,8 +29,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "phNxpEseFeatures.h"
-#include "phNxpEse_Spm.h"
 
 /*********************** Global Variables *************************************/
 extern bool ese_debug_enabled;
@@ -69,10 +70,10 @@ ESESTATUS phNxpEse_SPM_Init(void* pDevHandle) {
   ESESTATUS status = ESESTATUS_SUCCESS;
   pEseDeviceHandle = pDevHandle;
   if (NULL == pEseDeviceHandle) {
-    ALOGE("%s : failed, device handle is null", __FUNCTION__);
+    NXP_LOG_ESE_E("%s : failed, device handle is null", __FUNCTION__);
     status = ESESTATUS_FAILED;
   }
-  ALOGD_IF(ese_debug_enabled, "%s : exit status = %d", __FUNCTION__, status);
+  NXP_LOG_ESE_D("%s : exit status = %d", __FUNCTION__, status);
 
   return status;
 }
@@ -107,21 +108,21 @@ ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg) {
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
   spm_state_t current_spm_state = SPM_STATE_INVALID;
 
-  ALOGD_IF(ese_debug_enabled, "%s Enter", __FUNCTION__);
-  ALOGD_IF(ese_debug_enabled,
-           "%ssecureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
-           __FUNCTION__, nxpese_ctxt.secureTimerParams.secureTimer1,
-           nxpese_ctxt.secureTimerParams.secureTimer2,
-           nxpese_ctxt.secureTimerParams.secureTimer3);
+  NXP_LOG_ESE_D("%s Enter", __FUNCTION__);
+  NXP_LOG_ESE_D("%ssecureTimer1 0x%x secureTimer2 0x%x secureTimer3 0x%x",
+                __FUNCTION__, nxpese_ctxt.secureTimerParams.secureTimer1,
+                nxpese_ctxt.secureTimerParams.secureTimer2,
+                nxpese_ctxt.secureTimerParams.secureTimer3);
   gsCurIoctlRequest = arg;
   phNxpEse_GetMaxTimer(&timeInMilliSec);
   if (timeInMilliSec != 0 &&
       (arg == SPM_POWER_DISABLE || arg == SPM_POWER_RESET)) {
     wSpmStatus = phNxpEse_secureTimerStart(timeInMilliSec);
     if (wSpmStatus != ESESTATUS_SUCCESS) {
-      ALOGE("%s phNxpEse_secureTimerStart: failed", __FUNCTION__);
+      NXP_LOG_ESE_E("%s phNxpEse_secureTimerStart: failed", __FUNCTION__);
     } else {
-      ALOGD("%s Disable Ese power After Secure Timer Expired", __FUNCTION__);
+      NXP_LOG_ESE_D("%s Disable Ese power After Secure Timer Expired",
+                    __FUNCTION__);
       wSpmStatus = ESESTATUS_SUCCESS;
       ret = 0;
     }
@@ -131,17 +132,18 @@ ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg) {
   switch (arg) {
     case SPM_POWER_DISABLE: {
       if (ret < 0) {
-        ALOGE("%s : failed errno = 0x%x", __FUNCTION__, errno);
+        NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
         wSpmStatus = ESESTATUS_FAILED;
       }
     } break;
     case SPM_POWER_ENABLE: {
       if (ret < 0) {
-        ALOGE("%s : failed errno = 0x%x", __FUNCTION__, errno);
+        NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
         if (errno == -EBUSY) {
           wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
           if (wSpmStatus != ESESTATUS_SUCCESS) {
-            ALOGE(" %s : phNxpEse_SPM_GetPwrState Failed", __FUNCTION__);
+            NXP_LOG_ESE_E(" %s : phNxpEse_SPM_GetPwrState Failed",
+                          __FUNCTION__);
             return wSpmStatus;
           } else {
             if (current_spm_state & SPM_STATE_DWNLD) {
@@ -158,11 +160,12 @@ ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg) {
     } break;
     case SPM_POWER_RESET: {
       if (ret < 0) {
-        ALOGE("%s : failed errno = 0x%x", __FUNCTION__, errno);
+        NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
         if (errno == -EBUSY) {
           wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
           if (wSpmStatus != ESESTATUS_SUCCESS) {
-            ALOGE(" %s : phNxpEse_SPM_GetPwrState Failed", __FUNCTION__);
+            NXP_LOG_ESE_E(" %s : phNxpEse_SPM_GetPwrState Failed",
+                          __FUNCTION__);
             return wSpmStatus;
           } else {
             if (current_spm_state & SPM_STATE_DWNLD) {
@@ -178,11 +181,12 @@ ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg) {
     } break;
     case SPM_POWER_PRIO_ENABLE: {
       if (ret < 0) {
-        ALOGE("%s : failed errno = 0x%x", __FUNCTION__, errno);
+        NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
         if (errno == -EBUSY) {
           wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
           if (wSpmStatus != ESESTATUS_SUCCESS) {
-            ALOGE(" %s : phNxpEse_SPM_GetPwrState Failed", __FUNCTION__);
+            NXP_LOG_ESE_E(" %s : phNxpEse_SPM_GetPwrState Failed",
+                          __FUNCTION__);
             return wSpmStatus;
           } else {
             if (current_spm_state & SPM_STATE_DWNLD) {
@@ -199,7 +203,7 @@ ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg) {
     } break;
     case SPM_POWER_PRIO_DISABLE: {
       if (ret < 0) {
-        ALOGE("%s : failed errno = 0x%x", __FUNCTION__, errno);
+        NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
         wSpmStatus = ESESTATUS_FAILED;
       }
     } break;
@@ -221,15 +225,15 @@ ESESTATUS phNxpEse_SPM_EnablePwr(void) {
   int32_t ret = -1;
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
   spm_state_t current_spm_state = SPM_STATE_INVALID;
-  ALOGD_IF(ese_debug_enabled, "%s : phNxpEse_SPM_EnablePwr is set to  = 0x%d",
-           __FUNCTION__, 0);
+  NXP_LOG_ESE_D("%s : phNxpEse_SPM_EnablePwr is set to  = 0x%d", __FUNCTION__,
+                0);
   ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle, 0);
   if (ret < 0) {
-    ALOGE("%s : failed errno = 0x%x", __FUNCTION__, errno);
+    NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
     if (errno == -EBUSY) {
       wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
       if (wSpmStatus != ESESTATUS_SUCCESS) {
-        ALOGE(" %s : phNxpEse_SPM_GetPwrState Failed", __FUNCTION__);
+        NXP_LOG_ESE_E(" %s : phNxpEse_SPM_GetPwrState Failed", __FUNCTION__);
         return wSpmStatus;
       } else {
         if (current_spm_state == SPM_STATE_DWNLD) {
@@ -260,11 +264,11 @@ ESESTATUS phNxpEse_SPM_EnablePwr(void) {
 ESESTATUS phNxpEse_SPM_DisablePwr(void) {
   int32_t ret = -1;
   ESESTATUS status = ESESTATUS_SUCCESS;
-  ALOGD_IF(ese_debug_enabled, "%s : phNxpEse_SPM_DisablePwr is set to  = 0x%d",
-           __FUNCTION__, 1);
+  NXP_LOG_ESE_D("%s : phNxpEse_SPM_DisablePwr is set to  = 0x%d", __FUNCTION__,
+                1);
   ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle, 1);
   if (ret < 0) {
-    ALOGE("%s : failed errno = 0x%x", __FUNCTION__, errno);
+    NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
     status = ESESTATUS_FAILED;
   }
 
@@ -283,11 +287,10 @@ ESESTATUS phNxpEse_SPM_SetPwrScheme(long arg) {
   int32_t ret = -1;
   ESESTATUS status = ESESTATUS_SUCCESS;
 
-  ALOGD_IF(ese_debug_enabled, "%s : Power scheme is set to  = 0x%ld",
-           __FUNCTION__, arg);
+  NXP_LOG_ESE_D("%s : Power scheme is set to  = 0x%ld", __FUNCTION__, arg);
   ret = phPalEse_ioctl(phPalEse_e_SetPowerScheme, pEseDeviceHandle, arg);
   if (ret < 0) {
-    ALOGE("%s : failed errno = 0x%x", __FUNCTION__, errno);
+    NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
     status = ESESTATUS_FAILED;
   }
 
@@ -307,11 +310,11 @@ ESESTATUS phNxpEse_SPM_DisablePwrControl(unsigned long arg) {
   int32_t ret = -1;
   ESESTATUS status = ESESTATUS_SUCCESS;
 
-  ALOGD_IF(ese_debug_enabled, "%s : Inhibit power control is set to  = 0x%ld",
-           __FUNCTION__, arg);
+  NXP_LOG_ESE_D("%s : Inhibit power control is set to  = 0x%ld", __FUNCTION__,
+                arg);
   ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle, arg);
   if (ret < 0) {
-    ALOGE("%s : failed errno = 0x%x", __FUNCTION__, errno);
+    NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
     status = ESESTATUS_FAILED;
   }
 
@@ -332,13 +335,13 @@ ESESTATUS phNxpEse_SPM_GetState(spm_state_t* current_state) {
   spm_state_t ese_current_state  = SPM_STATE_INVALID;
 
   if (current_state == NULL) {
-    ALOGE("%s : failed Invalid argument", __FUNCTION__);
+    NXP_LOG_ESE_E("%s : failed Invalid argument", __FUNCTION__);
     return ESESTATUS_FAILED;
   }
   ret = phPalEse_ioctl(phPalEse_e_GetSPMStatus, pEseDeviceHandle,
                        (unsigned long)&ese_current_state);
   if (ret < 0) {
-    ALOGE("%s : failed errno = 0x%x", __FUNCTION__, errno);
+    NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
     status = ESESTATUS_FAILED;
   } else {
     *current_state = ese_current_state; /* Current ESE state */
@@ -359,10 +362,11 @@ ESESTATUS phNxpEse_SPM_SetEseClientUpdateState(long arg) {
   int ret = -1;
   ESESTATUS status = ESESTATUS_SUCCESS;
 
-  ALOGD_IF(ese_debug_enabled, "%s :phNxpEse_SPM_SetEseClientUpdateState  = 0x%ld", __FUNCTION__, arg);
+  NXP_LOG_ESE_D("%s :phNxpEse_SPM_SetEseClientUpdateState  = 0x%ld",
+                __FUNCTION__, arg);
   ret = phPalEse_ioctl(phPalEse_e_SetEseUpdateStatus, pEseDeviceHandle, arg);
   if (ret < 0) {
-    ALOGE("%s : failed errno = 0x%x", __FUNCTION__, errno);
+    NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
     status = ESESTATUS_FAILED;
   }
 
@@ -394,7 +398,7 @@ static IntervalTimer &getSecureTimerInstance() {
  ******************************************************************************/
 static void phNxpEse_secureTimerExpired(union sigval) {
   int32_t ret = -1;
-  ALOGD_IF(ese_debug_enabled, "phNxpEse_secureTimerExpired callback triggered");
+  NXP_LOG_ESE_D("phNxpEse_secureTimerExpired callback triggered");
   if (gsCurIoctlRequest == SPM_POWER_DISABLE) {
     ret = phPalEse_ioctl(phPalEse_e_ChipRst,
                          (void *)((intptr_t)SECURE_TIMER_MAGIC_HANDLE),
@@ -418,14 +422,13 @@ static void phNxpEse_secureTimerExpired(union sigval) {
  ******************************************************************************/
 ESESTATUS phNxpEse_secureTimerStart(unsigned long timeInMilliSec) {
   ESESTATUS wConfigStatus = ESESTATUS_SUCCESS;
-  ALOGD_IF(ese_debug_enabled,
-           "Enter phNxpEse_secureTimerStart time value : %ld ms",
-           timeInMilliSec);
+  NXP_LOG_ESE_D("Enter phNxpEse_secureTimerStart time value : %ld ms",
+                timeInMilliSec);
   if (getSecureTimerInstance().set(timeInMilliSec,
                                    phNxpEse_secureTimerExpired) == true) {
-    ALOGD_IF(ese_debug_enabled, "secure timer started........");
+    NXP_LOG_ESE_D("secure timer started........");
   } else {
-    ALOGD_IF(ese_debug_enabled, "failed to set secure timer");
+    NXP_LOG_ESE_D("failed to set secure timer");
     wConfigStatus = ESESTATUS_FAILED;
   }
 
@@ -444,6 +447,6 @@ ESESTATUS phNxpEse_secureTimerStart(unsigned long timeInMilliSec) {
 **
 *******************************************************************************/
 void phNxpEse_secureTimerStop() {
-  ALOGD_IF(ese_debug_enabled, "Stopping Secure timer...");
+  NXP_LOG_ESE_D("Stopping Secure timer...");
   getSecureTimerInstance().kill();
 }

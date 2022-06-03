@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020 NXP
+ *  Copyright 2018-2020,2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #define LOG_TAG "SpiAddaptation"
 #include "NfcAdaptation.h"
 #include <android/hardware/nfc/1.0/types.h>
+#include <ese_logs.h>
 #include <hwbinder/ProcessState.h>
 #include <log/log.h>
 #include <pthread.h>
@@ -52,7 +53,7 @@ class NxpNfcDeathRecipient : public hidl_death_recipient {
   virtual void serviceDied(
       uint64_t /* cookie */,
       const wp<::android::hidl::base::V1_0::IBase>& /* who */) {
-    ALOGE("NxpNfcDeathRecipient::serviceDied - Nfc HalService died");
+    NXP_LOG_ESE_E("NxpNfcDeathRecipient::serviceDied - Nfc HalService died");
     mHalNxpNfcDeathRsp->unlinkToDeath(this);
     mHalNxpNfcDeathRsp = NULL;
     NfcAdaptation::GetInstance().resetNxpNfcHalReference();
@@ -70,10 +71,10 @@ class NxpNfcDeathRecipient : public hidl_death_recipient {
 *******************************************************************************/
 void NfcAdaptation::Initialize() {
   const char* func = "NfcAdaptation::Initialize";
-  ALOGD_IF(ese_debug_enabled, "%s", func);
+  NXP_LOG_ESE_D("%s", func);
   if (mHalNxpNfc != nullptr) return;
   resetNxpNfcHalReference();
-  ALOGD_IF(ese_debug_enabled, "%s: exit", func);
+  NXP_LOG_ESE_D("%s: exit", func);
 }
 
 /*******************************************************************************
@@ -91,9 +92,9 @@ void NfcAdaptation::resetNxpNfcHalReference() {
     mHalNxpNfc = INxpNfc::tryGetService();
     LOG_FATAL_IF(mHalNxpNfc == nullptr, "Failed to retrieve the NXP NFC HAL!");
     if (mHalNxpNfc != nullptr) {
-      ALOGD_IF(ese_debug_enabled, "%s: INxpNfc::getService() returned %p (%s)",
-               __func__, mHalNxpNfc.get(),
-               (mHalNxpNfc->isRemote() ? "remote" : "local"));
+      NXP_LOG_ESE_D("%s: INxpNfc::getService() returned %p (%s)", __func__,
+                    mHalNxpNfc.get(),
+                    (mHalNxpNfc->isRemote() ? "remote" : "local"));
       mNxpNfcDeathRecipient = new NxpNfcDeathRecipient(mHalNxpNfc);
       mHalNxpNfc->linkToDeath(mNxpNfcDeathRecipient, 0);
     } else {
@@ -101,13 +102,14 @@ void NfcAdaptation::resetNxpNfcHalReference() {
     }
   }
 
-  ALOGD_IF(ese_debug_enabled, "%s: INxpNfcLegacy::getService()", __func__);
+  NXP_LOG_ESE_D("%s: INxpNfcLegacy::getService()", __func__);
   mHalNxpNfcLegacy = INxpNfcLegacy::tryGetService();
   if(mHalNxpNfcLegacy == nullptr) {
-    ALOGD_IF(ese_debug_enabled,"Failed to retrieve the NXPNFC Legacy HAL!");
+    NXP_LOG_ESE_D("Failed to retrieve the NXPNFC Legacy HAL!");
   } else {
-    ALOGD_IF(ese_debug_enabled, "%s: INxpNfcLegacy::getService() returned %p (%s)", __func__, mHalNxpNfcLegacy.get(),
-          (mHalNxpNfcLegacy->isRemote() ? "remote" : "local"));
+    NXP_LOG_ESE_D("%s: INxpNfcLegacy::getService() returned %p (%s)", __func__,
+                  mHalNxpNfcLegacy.get(),
+                  (mHalNxpNfcLegacy->isRemote() ? "remote" : "local"));
   }
 
 }
@@ -169,16 +171,16 @@ ESESTATUS NfcAdaptation::resetEse(uint64_t level) {
   ESESTATUS result = ESESTATUS_FAILED;
   bool ret = 0;
 
-  ALOGD_IF(ese_debug_enabled, "%s : Enter", func);
+  NXP_LOG_ESE_D("%s : Enter", func);
 
   if (mHalNxpNfc != nullptr) {
     ret = mHalNxpNfc->resetEse(level);
     if(ret){
-      ALOGE("NfcAdaptation::resetEse mHalNxpNfc completed");
+      NXP_LOG_ESE_E("NfcAdaptation::resetEse mHalNxpNfc completed");
       result = ESESTATUS_SUCCESS;
     } else {
       result = ESESTATUS_FEATURE_NOT_SUPPORTED;
-      ALOGE("NfcAdaptation::resetEse mHalNxpNfc feature not supported");
+      NXP_LOG_ESE_E("NfcAdaptation::resetEse mHalNxpNfc feature not supported");
     }
   }
 
@@ -201,7 +203,7 @@ ESESTATUS NfcAdaptation::setEseUpdateState(void* p_data) {
   ESESTATUS result = ESESTATUS_FAILED;
   bool ret = 0;
 
-  ALOGD_IF(ese_debug_enabled, "%s : Enter", func);
+  NXP_LOG_ESE_D("%s : Enter", func);
 
   ese_nxp_IoctlInOutData_t* pInpOutData = (ese_nxp_IoctlInOutData_t*)p_data;
   data.setToExternal((uint8_t*)pInpOutData, sizeof(ese_nxp_IoctlInOutData_t));
@@ -209,10 +211,10 @@ ESESTATUS NfcAdaptation::setEseUpdateState(void* p_data) {
   if (mHalNxpNfc != nullptr) {
     ret = mHalNxpNfc->setEseUpdateState((::vendor::nxp::nxpnfc::V2_0::NxpNfcHalEseState)pInpOutData->inp.data.nxpCmd.p_cmd[0]);
     if(ret){
-      ALOGE("NfcAdaptation::setEseUpdateState completed");
+      NXP_LOG_ESE_E("NfcAdaptation::setEseUpdateState completed");
       result = ESESTATUS_SUCCESS;
     } else {
-      ALOGE("NfcAdaptation::setEseUpdateState failed");
+      NXP_LOG_ESE_E("NfcAdaptation::setEseUpdateState failed");
     }
   }
 
@@ -233,16 +235,14 @@ void IoctlCallback(::android::hardware::nfc::V1_0::NfcData outputData) {
   const char* func = "IoctlCallback";
   ese_nxp_ExtnOutputData_t* pOutData =
       (ese_nxp_ExtnOutputData_t*)&outputData[0];
-  ALOGD_IF(ese_debug_enabled, "%s Ioctl Type=%lu", func,
-           (unsigned long)pOutData->ioctlType);
+  NXP_LOG_ESE_D("%s Ioctl Type=%lu", func, (unsigned long)pOutData->ioctlType);
   NfcAdaptation* pAdaptation = (NfcAdaptation*)pOutData->context;
   /*Output Data from stub->Proxy is copied back to output data
    * This data will be sent back to libnfc*/
   memcpy(&pAdaptation->mCurrentIoctlData->out, &outputData[0],
          sizeof(ese_nxp_ExtnOutputData_t));
-  ALOGD_IF(ese_debug_enabled, "%s Ioctl Type value[0]:0x%x and value[3] 0x%x",
-           func, pOutData->data.nxpRsp.p_rsp[0],
-           pOutData->data.nxpRsp.p_rsp[3]);
+  NXP_LOG_ESE_D("%s Ioctl Type value[0]:0x%x and value[3] 0x%x", func,
+                pOutData->data.nxpRsp.p_rsp[0], pOutData->data.nxpRsp.p_rsp[3]);
   omapi_status = pOutData->data.nxpRsp.p_rsp[3];
 }
 
@@ -268,7 +268,7 @@ ESESTATUS NfcAdaptation::HalIoctl(long arg, void* p_data) {
   ESESTATUS result = ESESTATUS_FAILED;
   AutoMutex guard(sIoctlLock);
   ese_nxp_IoctlInOutData_t* pInpOutData = (ese_nxp_IoctlInOutData_t*)p_data;
-  ALOGD_IF(ese_debug_enabled, "%s arg=%ld", func, arg);
+  NXP_LOG_ESE_D("%s arg=%ld", func, arg);
   pInpOutData->inp.context = &NfcAdaptation::GetInstance();
   NfcAdaptation::GetInstance().mCurrentIoctlData = pInpOutData;
   data.setToExternal((uint8_t*)pInpOutData, sizeof(ese_nxp_IoctlInOutData_t));
@@ -277,8 +277,8 @@ ESESTATUS NfcAdaptation::HalIoctl(long arg, void* p_data) {
     mHalNxpNfc->ioctl(arg, data, IoctlCallback);
   }
 #endif
-  ALOGD_IF(ese_debug_enabled, "%s Ioctl Completed for Type=%lu", func,
-           (unsigned long)pInpOutData->out.ioctlType);
+  NXP_LOG_ESE_D("%s Ioctl Completed for Type=%lu", func,
+                (unsigned long)pInpOutData->out.ioctlType);
   result = (ESESTATUS)(pInpOutData->out.result);
   return result;
 }
@@ -296,12 +296,12 @@ ESESTATUS NfcAdaptation::HalIoctl(long arg, void* p_data) {
 ESESTATUS NfcAdaptation::notifyHciEvtProcessComplete() {
   const char* func = "NfcAdaptation::notifyHciEvtProcessComplete";
 
-  ALOGD_IF(ese_debug_enabled, "%s Entry", func);
+  NXP_LOG_ESE_D("%s Entry", func);
   int32_t result = ESESTATUS_FAILED;
   if (mHalNxpNfcLegacy != nullptr) {
     result = mHalNxpNfcLegacy->hciInitUpdateStateComplete();
   }
-  ALOGD_IF(ese_debug_enabled, "%s Exit", func);
+  NXP_LOG_ESE_D("%s Exit", func);
   return (ESESTATUS)result;
 }
 
@@ -318,11 +318,11 @@ ESESTATUS NfcAdaptation::notifyHciEvtProcessComplete() {
  *********************************************************************/
 static void HalNciTransceive_cb(const NxpNciExtnResp& out) {
     const char* func = "HalNciTransceive_cb";
-    ALOGD_IF(ese_debug_enabled, "%s", func);
+    NXP_LOG_ESE_D("%s", func);
     memset(&(NfcAdaptation::GetInstance().mNciResp),0,sizeof(NxpNciExtnResp));
     memcpy(&(NfcAdaptation::GetInstance().mNciResp),&out,sizeof(NxpNciExtnResp));
-    ALOGD_IF(ese_debug_enabled, "%s Ioctl Type value[0]:0x%x and value[3] 0x%x",
-           func, out.p_rsp[0], out.p_rsp[3]);
+    NXP_LOG_ESE_D("%s Ioctl Type value[0]:0x%x and value[3] 0x%x", func,
+                  out.p_rsp[0], out.p_rsp[3]);
     omapi_status = out.p_rsp[3];
   return;
 }
@@ -341,7 +341,7 @@ uint32_t NfcAdaptation::HalNciTransceive(phNxpNci_Extn_Cmd_t* NciCmd,phNxpNci_Ex
   NxpNciExtnCmd inNciCmd;
   uint32_t status = 0;
 
-  ALOGD_IF(ese_debug_enabled,"%s : Enter", func);
+  NXP_LOG_ESE_D("%s : Enter", func);
   memset(&inNciCmd,0,sizeof(NxpNciExtnCmd));
   memcpy(&inNciCmd,NciCmd,sizeof(NxpNciExtnCmd));
 
@@ -351,6 +351,6 @@ uint32_t NfcAdaptation::HalNciTransceive(phNxpNci_Extn_Cmd_t* NciCmd,phNxpNci_Ex
      memcpy(NciResp , &(NfcAdaptation::GetInstance().mNciResp) , sizeof(phNxpNci_Extn_Resp_t));
   }
 
-  ALOGD_IF(ese_debug_enabled,"%s : Exit", func);
+  NXP_LOG_ESE_D("%s : Exit", func);
   return status;
 }

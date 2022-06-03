@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2019,2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@
 #include <phNxpEseFeatures.h>
 
 #define NAME_SE_DEBUG_ENABLED "SE_DEBUG_ENABLED"
+#define NAME_SE_LOG_LEVEL "SE_LOG_LEVEL"
 #define NAME_NXP_JCOPDL_AT_BOOT_ENABLE "NXP_JCOPDL_AT_BOOT_ENABLE"
 #define NAME_NXP_WTX_COUNT_VALUE "NXP_WTX_COUNT_VALUE"
 #define NAME_NXP_MAX_RSP_TIMEOUT "NXP_MAX_RSP_TIMEOUT"

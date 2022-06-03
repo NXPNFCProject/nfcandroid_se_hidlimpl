@@ -25,11 +25,10 @@
 #include <unistd.h>
 
 #include <ese_config.h>
+#include <ese_logs.h>
 #include <phEseStatus.h>
 #include <phNxpEsePal_spi.h>
 #include <string.h>
-
-extern bool ese_debug_enabled;
 
 /*!
  * \brief Normal mode header length
@@ -163,11 +162,11 @@ int phPalEse_write(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToWrite) {
 ESESTATUS phPalEse_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
                          long level) {
   ESESTATUS ret = ESESTATUS_FAILED;
-  ALOGD_IF(ese_debug_enabled, "phPalEse_spi_ioctl(), ioctl %x , level %lx",
-           eControlCode, level);
+  NXP_LOG_ESE_D("phPalEse_spi_ioctl(), ioctl %x , level %lx", eControlCode,
+                level);
 
   if ((NULL == pDevHandle) && (eControlCode != phPalEse_e_SetEseUpdateStatus)) {
-    ALOGD_IF(ese_debug_enabled, "pDevHandle is null");
+    NXP_LOG_ESE_D("pDevHandle is null");
     return ESESTATUS_IOCTL_FAILED;
   }
 #ifdef SPI_ENABLED
@@ -219,13 +218,10 @@ void phPalEse_print_packet(const char* pString, const uint8_t* p_data,
     snprintf(&print_buffer[i * 2], 3, "%02X", p_data[i]);
   }
   if (0 == memcmp(pString, "SEND", 0x04)) {
-    ALOGD_IF(ese_debug_enabled, "NxpEseDataX len = %3d > %s", len,
-             print_buffer);
+    NXP_LOG_ESE_D("NxpEseDataX len = %3d > %s", len, print_buffer);
   } else if (0 == memcmp(pString, "RECV", 0x04)) {
-    ALOGD_IF(ese_debug_enabled, "NxpEseDataR len = %3d > %s", len,
-             print_buffer);
+    NXP_LOG_ESE_D("NxpEseDataR len = %3d > %s", len, print_buffer);
   }
-
   return;
 }
 

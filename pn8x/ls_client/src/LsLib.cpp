@@ -19,11 +19,10 @@
 #include <LsClient.h>
 #include <LsLib.h>
 #include <errno.h>
+#include <ese_logs.h>
 #include <log/log.h>
 #include <stdlib.h>
 #include <string.h>
-
-extern bool ese_debug_enabled;
 
 static int32_t gsTransceiveTimeout = 120000;
 static uint8_t gsCmd_Buffer[64 * 1024];
@@ -54,9 +53,9 @@ LSCSTATUS(*Applet_load_seqhandler[])
 LSCSTATUS Perform_LSC(const char* name, const char* dest, const uint8_t* pdata,
                       uint16_t len, uint8_t* respSW) {
   static const char fn[] = "Perform_LSC";
-  ALOGD_IF(ese_debug_enabled, "%s: enter; sha-len=%d", fn, len);
+  NXP_LOG_ESE_D("%s: enter; sha-len=%d", fn, len);
   if ((pdata == NULL) || (len == 0x00)) {
-    ALOGE("%s: Invalid SHA-data", fn);
+    NXP_LOG_ESE_E("%s: Invalid SHA-data", fn);
     return LSCSTATUS_FAILED;
   }
   gsStoreData[0] = STORE_DATA_TAG;
@@ -69,10 +68,10 @@ LSCSTATUS Perform_LSC(const char* name, const char* dest, const uint8_t* pdata,
     gsLsExecuteResp[3] = LS_ABORT_SW2;
   }
   memcpy(&respSW[0], &gsLsExecuteResp[0], 4);
-  ALOGD_IF(ese_debug_enabled, "%s: lsExecuteScript Response SW=%2x%2x", fn,
-           gsLsExecuteResp[2], gsLsExecuteResp[3]);
+  NXP_LOG_ESE_D("%s: lsExecuteScript Response SW=%2x%2x", fn,
+                gsLsExecuteResp[2], gsLsExecuteResp[3]);
 
-  ALOGD_IF(ese_debug_enabled, "%s: exit; status=0x0%x", fn, status);
+  NXP_LOG_ESE_D("%s: exit; status=0x0%x", fn, status);
   return status;
 }
 
@@ -92,12 +91,12 @@ LSCSTATUS LSC_update_seq_handler(
   static const char fn[] = "LSC_update_seq_handler";
   Lsc_ImageInfo_t update_info;
 
-  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  NXP_LOG_ESE_D("%s: enter", fn);
   memset(&update_info, 0, sizeof(Lsc_ImageInfo_t));
   if (dest != NULL) {
     strlcat(update_info.fls_RespPath, dest, sizeof(update_info.fls_RespPath));
-    ALOGD_IF(ese_debug_enabled,
-             "%s: Loader Service response data path/destination: %s", fn, dest);
+    NXP_LOG_ESE_D("%s: Loader Service response data path/destination: %s", fn,
+                  dest);
     update_info.bytes_wrote = 0xAA;
   } else {
     update_info.bytes_wrote = 0x55;
@@ -107,8 +106,7 @@ LSCSTATUS LSC_update_seq_handler(
   }
   // memcpy(update_info.fls_path, (char*)Lsc_path, sizeof(Lsc_path));
   strlcat(update_info.fls_path, name, sizeof(update_info.fls_path));
-  ALOGD_IF(ese_debug_enabled, "Selected applet to install is: %s",
-           update_info.fls_path);
+  NXP_LOG_ESE_D("Selected applet to install is: %s", update_info.fls_path);
 
   uint16_t seq_counter = 0;
   LSCSTATUS status = LSCSTATUS_FAILED;
@@ -117,7 +115,7 @@ LSCSTATUS LSC_update_seq_handler(
   while ((seq_handler[seq_counter]) != NULL) {
     status = (*(seq_handler[seq_counter]))(&update_info, status, &trans_info);
     if (LSCSTATUS_SUCCESS != status) {
-      ALOGE("%s: exiting; status=0x0%X", fn, status);
+      NXP_LOG_ESE_E("%s: exiting; status=0x0%X", fn, status);
       break;
     }
 
@@ -130,7 +128,7 @@ LSCSTATUS LSC_update_seq_handler(
   }
 
   LSC_CloseChannel(&update_info, LSCSTATUS_FAILED, &trans_info);
-  ALOGD_IF(ese_debug_enabled, "%s: exit; status=0x%x", fn, status);
+  NXP_LOG_ESE_D("%s: exit; status=0x%x", fn, status);
   return status;
 }
 
@@ -147,9 +145,9 @@ LSCSTATUS LSC_OpenChannel(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
                           Lsc_TranscieveInfo_t* pTranscv_Info) {
   static const char fn[] = "LSC_OpenChannel";
 
-  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  NXP_LOG_ESE_D("%s: enter", fn);
   if (Os_info == NULL || pTranscv_Info == NULL) {
-    ALOGE("%s: Invalid parameter", fn);
+    NXP_LOG_ESE_E("%s: Invalid parameter", fn);
     return LSCSTATUS_FAILED;
   }
   phNxpEse_data cmdApdu;
@@ -160,19 +158,19 @@ LSCSTATUS LSC_OpenChannel(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
   cmdApdu.p_data = (uint8_t*)phNxpEse_memalloc(cmdApdu.len * sizeof(uint8_t));
   memcpy(cmdApdu.p_data, OpenChannel, cmdApdu.len);
 
-  ALOGD_IF(ese_debug_enabled, "%s: Calling Secure Element Transceive", fn);
+  NXP_LOG_ESE_D("%s: Calling Secure Element Transceive", fn);
   ESESTATUS eseStat = phNxpEse_Transceive(&cmdApdu, &rspApdu);
 
   if (eseStat != ESESTATUS_SUCCESS && (rspApdu.len < 0x03)) {
     if (rspApdu.len == 0x02)
       memcpy(&gsLsExecuteResp[2], &rspApdu.p_data[rspApdu.len - 2], 2);
     status = LSCSTATUS_FAILED;
-    ALOGE("%s: SE transceive failed status = 0x%X", fn, status);
+    NXP_LOG_ESE_E("%s: SE transceive failed status = 0x%X", fn, status);
   } else if (((rspApdu.p_data[rspApdu.len - 2] != 0x90) &&
               (rspApdu.p_data[rspApdu.len - 1] != 0x00))) {
     memcpy(&gsLsExecuteResp[2], &rspApdu.p_data[rspApdu.len - 2], 2);
     status = LSCSTATUS_FAILED;
-    ALOGE("%s: invalid response = 0x%X", fn, status);
+    NXP_LOG_ESE_E("%s: invalid response = 0x%X", fn, status);
   } else {
     uint8_t cnt = Os_info->channel_cnt;
     Os_info->Channel_Info[cnt].channel_id = rspApdu.p_data[rspApdu.len - 3];
@@ -183,7 +181,7 @@ LSCSTATUS LSC_OpenChannel(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
 
   phNxpEse_free(cmdApdu.p_data);
   phNxpEse_free(rspApdu.p_data);
-  ALOGD_IF(ese_debug_enabled, "%s: exit; status=0x%x", fn, status);
+  NXP_LOG_ESE_D("%s: exit; status=0x%x", fn, status);
   return status;
 }
 /*******************************************************************************
@@ -199,9 +197,9 @@ LSCSTATUS LSC_ResetChannel(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
                            Lsc_TranscieveInfo_t* pTranscv_Info) {
   static const char fn[] = "LSC_ResetChannel";
 
-  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  NXP_LOG_ESE_D("%s: enter", fn);
   if (Os_info == NULL || pTranscv_Info == NULL) {
-    ALOGE("%s: Invalid parameter", fn);
+    NXP_LOG_ESE_E("%s: Invalid parameter", fn);
     return LSCSTATUS_FAILED;
   }
 
@@ -216,15 +214,15 @@ LSCSTATUS LSC_ResetChannel(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
   memcpy(cmdApdu.p_data, OpenChannel, cmdApdu.len);
 
   do {
-    ALOGD_IF(ese_debug_enabled, "%s: Calling Secure Element Transceive", fn);
+    NXP_LOG_ESE_D("%s: Calling Secure Element Transceive", fn);
     eseStat = phNxpEse_Transceive(&cmdApdu, &rspApdu);
     if (eseStat != ESESTATUS_SUCCESS && (rspApdu.len < 0x03)) {
       status = LSCSTATUS_FAILED;
-      ALOGE("%s: SE transceive failed status = 0x%X", fn, status);
+      NXP_LOG_ESE_E("%s: SE transceive failed status = 0x%X", fn, status);
     } else if (((rspApdu.p_data[rspApdu.len - 2] != 0x90) &&
                 (rspApdu.p_data[rspApdu.len - 1] != 0x00))) {
       status = LSCSTATUS_FAILED;
-      ALOGE("%s: invalid response = 0x%X", fn, status);
+      NXP_LOG_ESE_E("%s: invalid response = 0x%X", fn, status);
     } else if (!bResetCompleted) {
       /*close the previously opened channel*/
       uint8_t xx = 0;
@@ -238,7 +236,7 @@ LSCSTATUS LSC_ResetChannel(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
       phNxpEse_free(rspApdu.p_data);
       status = LSCSTATUS_SUCCESS;
     } else {
-      ALOGD_IF(ese_debug_enabled, "%s: Channel reset success", fn);
+      NXP_LOG_ESE_D("%s: Channel reset success", fn);
       status = LSCSTATUS_SUCCESS;
       break;
     }
@@ -246,7 +244,7 @@ LSCSTATUS LSC_ResetChannel(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
 
   phNxpEse_free(cmdApdu.p_data);
   phNxpEse_free(rspApdu.p_data);
-  ALOGD_IF(ese_debug_enabled, "%s: exit; status=0x%x", fn, status);
+  NXP_LOG_ESE_D("%s: exit; status=0x%x", fn, status);
   return status;
 }
 
@@ -264,10 +262,10 @@ LSCSTATUS LSC_SelectLsc(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
                         Lsc_TranscieveInfo_t* pTranscv_Info) {
   static const char fn[] = "LSC_SelectLsc";
 
-  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  NXP_LOG_ESE_D("%s: enter", fn);
 
   if (Os_info == NULL || pTranscv_Info == NULL) {
-    ALOGE("%s: Invalid parameter", fn);
+    NXP_LOG_ESE_E("%s: Invalid parameter", fn);
     return LSCSTATUS_FAILED;
   }
 
@@ -284,20 +282,20 @@ LSCSTATUS LSC_SelectLsc(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
 
   memcpy(&(cmdApdu.p_data[1]), SelectLsc, sizeof(SelectLsc));
 
-  ALOGD_IF(ese_debug_enabled,
-           "%s: Calling Secure Element Transceive with Loader service AID", fn);
+  NXP_LOG_ESE_D("%s: Calling Secure Element Transceive with Loader service AID",
+                fn);
 
   ESESTATUS eseStat = phNxpEse_Transceive(&cmdApdu, &rspApdu);
 
   if (eseStat != ESESTATUS_SUCCESS && (rspApdu.len == 0x00)) {
     status = LSCSTATUS_FAILED;
-    ALOGE("%s: SE transceive failed status = 0x%X", fn, status);
+    NXP_LOG_ESE_E("%s: SE transceive failed status = 0x%X", fn, status);
   } else if (((rspApdu.p_data[rspApdu.len - 2] == 0x90) &&
               (rspApdu.p_data[rspApdu.len - 1] == 0x00))) {
     status = Process_SelectRsp(rspApdu.p_data, (rspApdu.len - 2));
     if (status != LSCSTATUS_SUCCESS) {
-      ALOGE("%s: Select Lsc Rsp doesnt have a valid key; status = 0x%X", fn,
-            status);
+      NXP_LOG_ESE_E("%s: Select Lsc Rsp doesnt have a valid key; status = 0x%X",
+                    fn, status);
     }
   } else if (((rspApdu.p_data[rspApdu.len - 2] != 0x90))) {
     /*Copy the response SW in failure case*/
@@ -307,7 +305,7 @@ LSCSTATUS LSC_SelectLsc(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
   }
   phNxpEse_free(cmdApdu.p_data);
   phNxpEse_free(rspApdu.p_data);
-  ALOGD_IF(ese_debug_enabled, "%s: exit; status=0x%x", fn, status);
+  NXP_LOG_ESE_D("%s: exit; status=0x%x", fn, status);
   return status;
 }
 
@@ -325,9 +323,9 @@ LSCSTATUS LSC_SelectLsc(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
 LSCSTATUS LSC_StoreData(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
                         Lsc_TranscieveInfo_t* pTranscv_Info) {
   static const char fn[] = "LSC_StoreData";
-  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  NXP_LOG_ESE_D("%s: enter", fn);
   if (Os_info == NULL || pTranscv_Info == NULL) {
-    ALOGE("%s: Invalid parameter", fn);
+    NXP_LOG_ESE_E("%s: Invalid parameter", fn);
     return LSCSTATUS_FAILED;
   }
 
@@ -348,15 +346,15 @@ LSCSTATUS LSC_StoreData(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
   cmdApdu.p_data[xx++] = len;
   memcpy(&(cmdApdu.p_data[xx]), gsStoreData, len);
 
-  ALOGD_IF(ese_debug_enabled, "%s: Calling Secure Element Transceive", fn);
+  NXP_LOG_ESE_D("%s: Calling Secure Element Transceive", fn);
   ESESTATUS eseStat = phNxpEse_Transceive(&cmdApdu, &rspApdu);
 
   if ((eseStat != ESESTATUS_SUCCESS) && (rspApdu.len == 0x00)) {
     status = LSCSTATUS_FAILED;
-    ALOGE("%s: SE transceive failed status = 0x%X", fn, status);
+    NXP_LOG_ESE_E("%s: SE transceive failed status = 0x%X", fn, status);
   } else if ((rspApdu.p_data[rspApdu.len - 2] == 0x90) &&
              (rspApdu.p_data[rspApdu.len - 1] == 0x00)) {
-    ALOGD_IF(ese_debug_enabled, "%s: STORE CMD is successful", fn);
+    NXP_LOG_ESE_D("%s: STORE CMD is successful", fn);
     status = LSCSTATUS_SUCCESS;
   } else {
     /*Copy the response SW in failure case*/
@@ -365,7 +363,7 @@ LSCSTATUS LSC_StoreData(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
   }
   phNxpEse_free(cmdApdu.p_data);
   phNxpEse_free(rspApdu.p_data);
-  ALOGD_IF(ese_debug_enabled, "%s: exit; status=0x%x", fn, status);
+  NXP_LOG_ESE_D("%s: exit; status=0x%x", fn, status);
   return status;
 }
 
@@ -382,44 +380,44 @@ LSCSTATUS LSC_loadapplet(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
                          Lsc_TranscieveInfo_t* pTranscv_Info) {
   static const char fn[] = "LSC_loadapplet";
   LSCSTATUS tag40_found = LSCSTATUS_FAILED;
-  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  NXP_LOG_ESE_D("%s: enter", fn);
   if (Os_info == NULL || pTranscv_Info == NULL) {
-    ALOGE("%s: Invalid parameter", fn);
+    NXP_LOG_ESE_E("%s: Invalid parameter", fn);
     return LSCSTATUS_FAILED;
   }
   if (Os_info->bytes_wrote == 0xAA) {
     Os_info->fResp = fopen(Os_info->fls_RespPath, "a+");
     if (Os_info->fResp == NULL) {
-      ALOGE("%s: Error opening response recording file <%s> for reading: %s",
-            fn, Os_info->fls_path, strerror(errno));
+      NXP_LOG_ESE_E(
+          "%s: Error opening response recording file <%s> for reading: %s", fn,
+          Os_info->fls_path, strerror(errno));
       return LSCSTATUS_FAILED;
     }
-    ALOGD_IF(ese_debug_enabled,
-             "%s: Response OUT FILE path is successfully created", fn);
+    NXP_LOG_ESE_D("%s: Response OUT FILE path is successfully created", fn);
   } else {
-    ALOGD_IF(ese_debug_enabled,
-             "%s: Response Out file is optional as per input", fn);
+    NXP_LOG_ESE_D("%s: Response Out file is optional as per input", fn);
   }
 
   Os_info->fp = fopen(Os_info->fls_path, "r");
   if (Os_info->fp == NULL) {
-    ALOGE("%s: Error opening OS image file <%s> for reading: %s", fn,
-          Os_info->fls_path, strerror(errno));
+    NXP_LOG_ESE_E("%s: Error opening OS image file <%s> for reading: %s", fn,
+                  Os_info->fls_path, strerror(errno));
     return LSCSTATUS_FAILED;
   }
   int wResult = fseek(Os_info->fp, 0L, SEEK_END);
   if (wResult) {
-    ALOGE("%s: Error seeking end OS image file %s", fn, strerror(errno));
+    NXP_LOG_ESE_E("%s: Error seeking end OS image file %s", fn,
+                  strerror(errno));
     goto exit;
   }
   Os_info->fls_size = ftell(Os_info->fp);
   if (Os_info->fls_size < 0) {
-    ALOGE("%s: Error ftelling file %s", fn, strerror(errno));
+    NXP_LOG_ESE_E("%s: Error ftelling file %s", fn, strerror(errno));
     goto exit;
   }
   wResult = fseek(Os_info->fp, 0L, SEEK_SET);
   if (wResult) {
-    ALOGE("%s: Error seeking start image file %s", fn, strerror(errno));
+    NXP_LOG_ESE_E("%s: Error seeking start image file %s", fn, strerror(errno));
     goto exit;
   }
 
@@ -449,7 +447,7 @@ LSCSTATUS LSC_loadapplet(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
       len_byte = Numof_lengthbytes(&temp_buf[offset], &wLen);
       /* If the len data not present or len is less than or equal to 32 */
       if ((len_byte == 0) || (wLen <= 32)) {
-        ALOGE("%s: Invalid length zero", fn);
+        NXP_LOG_ESE_E("%s: Invalid length zero", fn);
         goto exit;
       }
 
@@ -464,33 +462,30 @@ LSCSTATUS LSC_loadapplet(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
         if (status == LSCSTATUS_SELF_UPDATE_DONE) {
           status = LSC_CloseAllLogicalChannels(Os_info);
           if (status != LSCSTATUS_SUCCESS) {
-            ALOGE("%s: CleanupLsUpdaterChannels failed", fn);
+            NXP_LOG_ESE_E("%s: CleanupLsUpdaterChannels failed", fn);
           }
           status = LSCSTATUS_SUCCESS;
           goto exit;
         }
-        ALOGE("%s: Sending packet to lsc failed", fn);
+        NXP_LOG_ESE_E("%s: Sending packet to lsc failed", fn);
         goto exit;
       }
     } else if ((temp_buf[offset] == (0x7F)) &&
                (temp_buf[offset + 1] == (0x21))) {
-      ALOGD_IF(ese_debug_enabled,
-               "%s: TAGID: Encountered again certificate tag 7F21", fn);
+      NXP_LOG_ESE_D("%s: TAGID: Encountered again certificate tag 7F21", fn);
       if (tag40_found == LSCSTATUS_SUCCESS) {
-        ALOGD_IF(ese_debug_enabled,
-                 "%s: 2nd Script processing starts with reselect", fn);
+        NXP_LOG_ESE_D("%s: 2nd Script processing starts with reselect", fn);
         status = LSCSTATUS_FAILED;
         status = LSC_SelectLsc(Os_info, status, pTranscv_Info);
         if (status == LSCSTATUS_SUCCESS) {
-          ALOGD_IF(ese_debug_enabled,
-                   "%s: 2nd Script select success next store data command", fn);
+          NXP_LOG_ESE_D("%s: 2nd Script select success next store data command",
+                        fn);
           status = LSCSTATUS_FAILED;
           status = LSC_StoreData(Os_info, status, pTranscv_Info);
           if (status == LSCSTATUS_SUCCESS) {
-            ALOGD_IF(ese_debug_enabled,
-                     "%s: 2nd Script store data success next certificate "
-                     "verification",
-                     fn);
+            NXP_LOG_ESE_D("%s: 2nd Script store data success next certificate "
+                          "verification",
+                          fn);
             offset = offset + 2;
             len_byte = Numof_lengthbytes(&temp_buf[offset], &wLen);
             status = LSC_Check_KeyIdentifier(Os_info, status, pTranscv_Info,
@@ -511,7 +506,7 @@ LSCSTATUS LSC_loadapplet(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
         memset(temp_buf, 0, sizeof(temp_buf));
         status = LSC_ReadScript(Os_info, temp_buf);
         if (status != LSCSTATUS_SUCCESS) {
-          ALOGE("%s: Next Tag has to TAG 60 not found", fn);
+          NXP_LOG_ESE_E("%s: Next Tag has to TAG 60 not found", fn);
           goto exit;
         }
         if (temp_buf[offset] == TAG_JSBL_HDR_ID)
@@ -533,14 +528,14 @@ LSCSTATUS LSC_loadapplet(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
   }
   LSC_UpdateExeStatus(LS_SUCCESS_STATUS);
   wResult = fclose(Os_info->fp);
-  ALOGD_IF(ese_debug_enabled, "%s: exit, status=0x%x", fn, status);
+  NXP_LOG_ESE_D("%s: exit, status=0x%x", fn, status);
   return status;
 exit:
   wResult = fclose(Os_info->fp);
   if (Os_info->bytes_wrote == 0xAA) {
     fclose(Os_info->fResp);
   }
-  ALOGD_IF(ese_debug_enabled, "%s: exit; status= 0x%X", fn, status);
+  NXP_LOG_ESE_D("%s: exit; status= 0x%X", fn, status);
   return status;
 }
 
@@ -564,7 +559,7 @@ LSCSTATUS LSC_Check_KeyIdentifier(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
   int32_t wLen = 0;
   uint8_t certf_found = LSCSTATUS_FAILED;
 
-  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  NXP_LOG_ESE_D("%s: enter", fn);
 
   while (!feof(Os_info->fp) && (Os_info->bytes_read < Os_info->fls_size)) {
     offset = 0x00;
@@ -581,7 +576,7 @@ LSCSTATUS LSC_Check_KeyIdentifier(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
     if (status != LSCSTATUS_SUCCESS) return status;
     if (LSCSTATUS_SUCCESS ==
         Check_Complete_7F21_Tag(Os_info, pTranscv_Info, read_buf, &offset)) {
-      ALOGD_IF(ese_debug_enabled, "%s: Certificate is verified", fn);
+      NXP_LOG_ESE_D("%s: Certificate is verified", fn);
       certf_found = LSCSTATUS_SUCCESS;
       break;
     }
@@ -591,7 +586,7 @@ LSCSTATUS LSC_Check_KeyIdentifier(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
      */
     else if (((read_buf[offset] == TAG_LSC_CMD_ID) &&
               (certf_found != LSCSTATUS_SUCCESS))) {
-      ALOGE("%s: NOT FOUND Root entity identifier's certificate", fn);
+      NXP_LOG_ESE_E("%s: NOT FOUND Root entity identifier's certificate", fn);
       status = LSCSTATUS_FAILED;
       return status;
     }
@@ -605,7 +600,7 @@ LSCSTATUS LSC_Check_KeyIdentifier(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
     if ((read_buf[offset] == TAG_JSBL_HDR_ID) &&
         (certf_found != LSCSTATUS_FAILED)) {
       // TODO check the SElect cmd response and return status accordingly
-      ALOGD_IF(ese_debug_enabled, "%s: TAGID: TAG_JSBL_HDR_ID", fn);
+      NXP_LOG_ESE_D("%s: TAGID: TAG_JSBL_HDR_ID", fn);
       offset = offset + 1;
       len_byte = Numof_lengthbytes(&read_buf[offset], &wLen);
       offset = offset + len_byte;
@@ -613,7 +608,7 @@ LSCSTATUS LSC_Check_KeyIdentifier(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
         offset = offset + 1;
         len_byte = Numof_lengthbytes(&read_buf[offset], &wLen);
         offset = offset + len_byte;
-        ALOGD_IF(ese_debug_enabled, "%s: TAGID: TAG_SIGNATURE_ID", fn);
+        NXP_LOG_ESE_D("%s: TAGID: TAG_SIGNATURE_ID", fn);
 
         pTranscv_Info->sSendlength = wLen + 5;
 
@@ -624,8 +619,8 @@ LSCSTATUS LSC_Check_KeyIdentifier(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
         pTranscv_Info->sSendData[4] = wLen;
 
         memcpy(&(pTranscv_Info->sSendData[5]), &read_buf[offset], wLen);
-        ALOGD_IF(ese_debug_enabled, "%s: start transceive for length %ld", fn,
-                 (long)pTranscv_Info->sSendlength);
+        NXP_LOG_ESE_D("%s: start transceive for length %ld", fn,
+                      (long)pTranscv_Info->sSendlength);
         status = LSC_SendtoLsc(Os_info, status, pTranscv_Info, LS_Sign);
         if (status != LSCSTATUS_SUCCESS) {
           return status;
@@ -635,10 +630,10 @@ LSCSTATUS LSC_Check_KeyIdentifier(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
       status = LSCSTATUS_FAILED;
     }
   } else {
-    ALOGE("%s : Exit certificate verification failed", fn);
+    NXP_LOG_ESE_E("%s : Exit certificate verification failed", fn);
   }
 
-  ALOGD_IF(ese_debug_enabled, "%s: exit: status=0x%x", fn, status);
+  NXP_LOG_ESE_D("%s: exit: status=0x%x", fn, status);
   return status;
 }
 
@@ -655,7 +650,7 @@ LSCSTATUS LSC_ReadScript(Lsc_ImageInfo_t* Os_info, uint8_t* read_buf) {
   static const char fn[] = "LSC_ReadScript";
   int32_t wResult = 0, wCount, wIndex = 0;
 
-  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  NXP_LOG_ESE_D("%s: enter", fn);
 
   for (wCount = 0; (wCount < 2 && !feof(Os_info->fp)); wCount++, wIndex++) {
     wResult = FSCANF_BYTE(Os_info->fp, "%2X", (unsigned int*)&read_buf[wIndex]);
@@ -671,7 +666,7 @@ LSCSTATUS LSC_ReadScript(Lsc_ImageInfo_t* Os_info, uint8_t* read_buf) {
           FSCANF_BYTE(Os_info->fp, "%2X", (unsigned int*)&read_buf[wIndex]);
     }
     if (wResult == 0) {
-      ALOGE("%s: Exit Read Script failed in 7F21 ", fn);
+      NXP_LOG_ESE_E("%s: Exit Read Script failed in 7F21 ", fn);
       return LSCSTATUS_FAILED;
     }
     /*Read_Script from wCount*2 to wCount*1 */
@@ -681,22 +676,21 @@ LSCSTATUS LSC_ReadScript(Lsc_ImageInfo_t* Os_info, uint8_t* read_buf) {
     lenOff = 1;
   } else {
     /*If TAG is neither 7F21 nor 60 nor 40 then ABORT execution*/
-    ALOGE("%s: Invalid TAG 0x%X found in the script", fn, read_buf[0]);
+    NXP_LOG_ESE_E("%s: Invalid TAG 0x%X found in the script", fn, read_buf[0]);
     return LSCSTATUS_FAILED;
   }
 
   uint8_t len_byte = 0;
   int32_t wLen;
   if (read_buf[lenOff] == 0x00) {
-    ALOGE("%s: Invalid length zero", fn);
+    NXP_LOG_ESE_E("%s: Invalid length zero", fn);
     len_byte = 0x00;
     return LSCSTATUS_FAILED;
   } else if ((read_buf[lenOff] & 0x80) == 0x80) {
     len_byte = read_buf[lenOff] & 0x0F;
     len_byte = len_byte + 1;  // 1 byte added for byte 0x81
 
-    ALOGD_IF(ese_debug_enabled, "%s: Length byte Read from 0x80 is 0x%x ", fn,
-             len_byte);
+    NXP_LOG_ESE_D("%s: Length byte Read from 0x80 is 0x%x ", fn, len_byte);
 
     if (len_byte == 0x02) {
       for (wCount = 0; (wCount < 1 && !feof(Os_info->fp)); wCount++, wIndex++) {
@@ -704,40 +698,39 @@ LSCSTATUS LSC_ReadScript(Lsc_ImageInfo_t* Os_info, uint8_t* read_buf) {
             FSCANF_BYTE(Os_info->fp, "%2X", (unsigned int*)&read_buf[wIndex]);
       }
       if (wResult == 0) {
-        ALOGE("%s: Exit Read Script failed in length 0x02 ", fn);
+        NXP_LOG_ESE_E("%s: Exit Read Script failed in length 0x02 ", fn);
         return LSCSTATUS_FAILED;
       }
 
       wLen = read_buf[lenOff + 1];
       Os_info->bytes_read = Os_info->bytes_read + (wCount * 2);
-      ALOGD_IF(ese_debug_enabled,
-               "%s: Length of Read Script in len_byte= 0x02 is 0x%x ", fn,
-               wLen);
+      NXP_LOG_ESE_D("%s: Length of Read Script in len_byte= 0x02 is 0x%x ", fn,
+                    wLen);
     } else if (len_byte == 0x03) {
       for (wCount = 0; (wCount < 2 && !feof(Os_info->fp)); wCount++, wIndex++) {
         wResult =
             FSCANF_BYTE(Os_info->fp, "%2X", (unsigned int*)&read_buf[wIndex]);
       }
       if (wResult == 0) {
-        ALOGE("%s: Exit Read Script failed in length 0x03 ", fn);
+        NXP_LOG_ESE_E("%s: Exit Read Script failed in length 0x03 ", fn);
         return LSCSTATUS_FAILED;
       }
 
       Os_info->bytes_read = Os_info->bytes_read + (wCount * 2);
       wLen = read_buf[lenOff + 1];  // Length of the packet send to LSC
       wLen = ((wLen << 8) | (read_buf[lenOff + 2]));
-      ALOGD_IF(ese_debug_enabled,
-               "%s: Length of Read Script in len_byte= 0x03 is 0x%x ", fn,
-               wLen);
+      NXP_LOG_ESE_D("%s: Length of Read Script in len_byte= 0x03 is 0x%x ", fn,
+                    wLen);
     } else {
       /*Need to provide the support if length is more than 2 bytes*/
-      ALOGE("Length recived is greater than 3");
+      NXP_LOG_ESE_E("Length recived is greater than 3");
       return LSCSTATUS_FAILED;
     }
   } else {
     len_byte = 0x01;
     wLen = read_buf[lenOff];
-    ALOGE("%s: Length of Read Script in len_byte= 0x01 is 0x%x ", fn, wLen);
+    NXP_LOG_ESE_E("%s: Length of Read Script in len_byte= 0x01 is 0x%x ", fn,
+                  wLen);
   }
 
   for (wCount = 0; (wCount < wLen && !feof(Os_info->fp)); wCount++, wIndex++) {
@@ -745,14 +738,14 @@ LSCSTATUS LSC_ReadScript(Lsc_ImageInfo_t* Os_info, uint8_t* read_buf) {
   }
 
   if (wResult == 0) {
-    ALOGE("%s: Exit Read Script failed in fscanf function ", fn);
+    NXP_LOG_ESE_E("%s: Exit Read Script failed in fscanf function ", fn);
     return LSCSTATUS_FAILED;
   }
   Os_info->bytes_read =
       Os_info->bytes_read + (wCount * 2) + 1;  // not sure why 2 added
 
-  ALOGD_IF(ese_debug_enabled, "%s: exit: Num of bytes read=%d and index=%d", fn,
-           Os_info->bytes_read, wIndex);
+  NXP_LOG_ESE_D("%s: exit: Num of bytes read=%d and index=%d", fn,
+                Os_info->bytes_read, wIndex);
 
   return LSCSTATUS_SUCCESS;
 }
@@ -771,7 +764,7 @@ LSCSTATUS LSC_SendtoEse(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
   static const char fn[] = "LSC_SendtoEse";
   bool chanl_open_cmd = false;
 
-  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  NXP_LOG_ESE_D("%s: enter", fn);
 
   /* Bufferize_load_cmds function is implemented in JCOP */
   status = Bufferize_load_cmds(Os_info, status, pTranscv_Info);
@@ -783,8 +776,8 @@ LSCSTATUS LSC_SendtoEse(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
         for (uint8_t cnt = 0; cnt < Os_info->channel_cnt; cnt++) {
           if (Os_info->Channel_Info[cnt].channel_id ==
               pTranscv_Info->sSendData[3]) {
-            ALOGD_IF(ese_debug_enabled, "%s: channel 0%x closed", fn,
-                     Os_info->Channel_Info[cnt].channel_id);
+            NXP_LOG_ESE_D("%s: channel 0%x closed", fn,
+                          Os_info->Channel_Info[cnt].channel_id);
             Os_info->Channel_Info[cnt].isOpend = false;
           }
         }
@@ -803,13 +796,13 @@ LSCSTATUS LSC_SendtoEse(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
     ESESTATUS eseStat = phNxpEse_Transceive(&cmdApdu, &rspApdu);
 
     if (eseStat != ESESTATUS_SUCCESS) {
-      ALOGE("%s: Transceive failed; status=0x%X", fn, eseStat);
+      NXP_LOG_ESE_E("%s: Transceive failed; status=0x%X", fn, eseStat);
       status = LSCSTATUS_FAILED;
     } else {
       if (chanl_open_cmd && (rspApdu.len == 0x03) &&
           ((rspApdu.p_data[rspApdu.len - 2] == 0x90) &&
            (rspApdu.p_data[rspApdu.len - 1] == 0x00))) {
-        ALOGD_IF(ese_debug_enabled, "%s: open channel success", fn);
+        NXP_LOG_ESE_D("%s: open channel success", fn);
         uint8_t cnt = Os_info->channel_cnt;
         Os_info->Channel_Info[cnt].channel_id = rspApdu.p_data[rspApdu.len - 3];
         Os_info->Channel_Info[cnt].isOpend = true;
@@ -838,7 +831,7 @@ LSCSTATUS LSC_SendtoEse(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
     }
   }
 
-  ALOGD_IF(ese_debug_enabled, "%s: exit: status=0x%x", fn, status);
+  NXP_LOG_ESE_D("%s: exit: status=0x%x", fn, status);
   return status;
 }
 
@@ -855,7 +848,7 @@ LSCSTATUS LSC_SendtoLsc(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
                         Lsc_TranscieveInfo_t* pTranscv_Info, Ls_TagType tType) {
   static const char fn[] = "LSC_SendtoLsc";
 
-  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  NXP_LOG_ESE_D("%s: enter", fn);
   pTranscv_Info->sSendData[0] = (0x80 | Os_info->Channel_Info[0].channel_id);
   pTranscv_Info->timeout = gsTransceiveTimeout;
   pTranscv_Info->sRecvlength = 1024;
@@ -871,7 +864,7 @@ LSCSTATUS LSC_SendtoLsc(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
   ESESTATUS eseStat = phNxpEse_Transceive(&cmdApdu, &rspApdu);
 
   if (eseStat != ESESTATUS_SUCCESS) {
-    ALOGE("%s: Transceive failed; status=0x%X", fn, eseStat);
+    NXP_LOG_ESE_E("%s: Transceive failed; status=0x%X", fn, eseStat);
     status = LSCSTATUS_FAILED;
   } else {
     memcpy(pTranscv_Info->sRecvData, rspApdu.p_data, rspApdu.len);
@@ -879,7 +872,7 @@ LSCSTATUS LSC_SendtoLsc(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
   }
   phNxpEse_free(cmdApdu.p_data);
   phNxpEse_free(rspApdu.p_data);
-  ALOGD_IF(ese_debug_enabled, "%s: exit: status=0x%x", fn, status);
+  NXP_LOG_ESE_D("%s: exit: status=0x%x", fn, status);
   return status;
 }
 
@@ -897,10 +890,10 @@ LSCSTATUS LSC_CloseChannel(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
   static const char fn[] = "LSC_CloseChannel";
   status = LSCSTATUS_FAILED;
 
-  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  NXP_LOG_ESE_D("%s: enter", fn);
 
   if (Os_info == NULL || pTranscv_Info == NULL) {
-    ALOGE("%s: Invalid parameter", fn);
+    NXP_LOG_ESE_E("%s: Invalid parameter", fn);
     return LSCSTATUS_FAILED;
   }
   for (uint8_t cnt = 0; (cnt < Os_info->channel_cnt); cnt++) {
@@ -923,24 +916,23 @@ LSCSTATUS LSC_CloseChannel(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
     ESESTATUS eseStat = phNxpEse_Transceive(&cmdApdu, &rspApdu);
 
     if (eseStat != ESESTATUS_SUCCESS || rspApdu.len < 2) {
-      ALOGD_IF(ese_debug_enabled, "%s: Transceive failed; status=0x%X", fn,
-               eseStat);
+      NXP_LOG_ESE_D("%s: Transceive failed; status=0x%X", fn, eseStat);
     } else if ((rspApdu.p_data[rspApdu.len - 2] == 0x90) &&
                (rspApdu.p_data[rspApdu.len - 1] == 0x00)) {
-      ALOGD_IF(ese_debug_enabled, "%s: Close channel id = 0x0%x success", fn,
-               Os_info->Channel_Info[cnt].channel_id);
+      NXP_LOG_ESE_D("%s: Close channel id = 0x0%x success", fn,
+                    Os_info->Channel_Info[cnt].channel_id);
       if (Os_info->Channel_Info[cnt].channel_id == Os_info->initChannelNum) {
         Os_info->initChannelNum = 0x00;
       }
       status = LSCSTATUS_SUCCESS;
     } else {
-      ALOGD_IF(ese_debug_enabled, "%s: Close channel id = 0x0%x failed", fn,
-               Os_info->Channel_Info[cnt].channel_id);
+      NXP_LOG_ESE_D("%s: Close channel id = 0x0%x failed", fn,
+                    Os_info->Channel_Info[cnt].channel_id);
     }
     phNxpEse_free(cmdApdu.p_data);
     phNxpEse_free(rspApdu.p_data);
   }
-  ALOGD_IF(ese_debug_enabled, "%s: exit; status=0x0%x", fn, status);
+  NXP_LOG_ESE_D("%s: exit; status=0x0%x", fn, status);
   return status;
 }
 
@@ -958,21 +950,20 @@ LSCSTATUS LSC_ProcessResp(Lsc_ImageInfo_t* image_info, int32_t recvlen,
   static const char fn[] = "LSC_ProcessResp";
   uint8_t* RecvData = trans_info->sRecvData;
 
-  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  NXP_LOG_ESE_D("%s: enter", fn);
 
   if (RecvData == NULL && recvlen == 0x00) {
-    ALOGE("%s: Invalid parameter.", fn);
+    NXP_LOG_ESE_E("%s: Invalid parameter.", fn);
     return LSCSTATUS_FAILED;
   } else if (recvlen < 2) {
-    ALOGE("%s: Invalid response.", fn);
+    NXP_LOG_ESE_E("%s: Invalid response.", fn);
     return LSCSTATUS_FAILED;
   }
 
   char sw[2];
   sw[0] = RecvData[recvlen - 2];
   sw[1] = RecvData[recvlen - 1];
-  ALOGD_IF(ese_debug_enabled, "%s: Process Response SW, status = 0x%2X%2X", fn,
-           sw[0], sw[1]);
+  NXP_LOG_ESE_D("%s: Process Response SW, status = 0x%2X%2X", fn, sw[0], sw[1]);
 
   /*Update the Global variable for storing response length*/
   gsResp_len = recvlen;
@@ -1007,7 +998,7 @@ LSCSTATUS LSC_ProcessResp(Lsc_ImageInfo_t* image_info, int32_t recvlen,
              ((sw[0] != 0x90) && (sw[0] != 0x63) && (sw[0] != 0x61))) {
     Write_Response_To_OutFile(image_info, RecvData, recvlen, tType);
   }
-  ALOGD_IF(ese_debug_enabled, "%s: exit: status=0x%x", fn, status);
+  NXP_LOG_ESE_D("%s: exit: status=0x%x", fn, status);
   return status;
 }
 
@@ -1025,7 +1016,7 @@ LSCSTATUS Process_EseResponse(Lsc_TranscieveInfo_t* pTranscv_Info,
   static const char fn[] = "Process_EseResponse";
   LSCSTATUS status = LSCSTATUS_SUCCESS;
   uint8_t xx = 0;
-  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  NXP_LOG_ESE_D("%s: enter", fn);
 
   pTranscv_Info->sSendData[xx++] =
       (CLA_BYTE | Os_info->Channel_Info[0].channel_id);
@@ -1054,7 +1045,8 @@ LSCSTATUS Process_EseResponse(Lsc_TranscieveInfo_t* pTranscv_Info,
        */
       status = LSC_SendtoLsc(Os_info, status, pTranscv_Info, LS_Comm);
       if (status != LSCSTATUS_SUCCESS) {
-        ALOGE("%s: Sending packet to Lsc failed: status=0x%x", fn, status);
+        NXP_LOG_ESE_E("%s: Sending packet to Lsc failed: status=0x%x", fn,
+                      status);
         return status;
       }
     }
@@ -1066,7 +1058,7 @@ LSCSTATUS Process_EseResponse(Lsc_TranscieveInfo_t* pTranscv_Info,
     pTranscv_Info->sSendlength = xx + recv_len;
     status = LSC_SendtoLsc(Os_info, status, pTranscv_Info, LS_Comm);
   }
-  ALOGD_IF(ese_debug_enabled, "%s: exit: status=0x%x", fn, status);
+  NXP_LOG_ESE_D("%s: exit: status=0x%x", fn, status);
   return status;
 }
 
@@ -1082,26 +1074,27 @@ LSCSTATUS Process_EseResponse(Lsc_TranscieveInfo_t* pTranscv_Info,
 *******************************************************************************/
 LSCSTATUS Process_SelectRsp(uint8_t* Recv_data, int32_t Recv_len) {
   static const char fn[] = "Process_SelectRsp";
-  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  NXP_LOG_ESE_D("%s: enter", fn);
 
   if (Recv_len < 2) {
-    ALOGE("%s: Invalid response length %d", fn, Recv_len);
+    NXP_LOG_ESE_E("%s: Invalid response length %d", fn, Recv_len);
     return LSCSTATUS_FAILED;
   }
 
   int i = 0;
   if (Recv_data[i] != TAG_SELECT_ID) {
-    ALOGE("%s: Invalid FCI TAG = 0x%x", fn, Recv_data[i]);
+    NXP_LOG_ESE_E("%s: Invalid FCI TAG = 0x%x", fn, Recv_data[i]);
     return LSCSTATUS_FAILED;
   }
   i++;
   int len = Recv_data[i++];
   if (Recv_len < len + 2) {
-    ALOGE("%s: Invalid response length %d", fn, Recv_len);
+    NXP_LOG_ESE_E("%s: Invalid response length %d", fn, Recv_len);
     return LSCSTATUS_FAILED;
   }
   if (Recv_data[i] != TAG_LSC_ID) {
-    ALOGE("%s: Invalid Loader Service AID TAG ID = 0x%x", fn, Recv_data[i]);
+    NXP_LOG_ESE_E("%s: Invalid Loader Service AID TAG ID = 0x%x", fn,
+                  Recv_data[i]);
     return LSCSTATUS_FAILED;
   }
   i++;
@@ -1109,8 +1102,8 @@ LSCSTATUS Process_SelectRsp(uint8_t* Recv_data, int32_t Recv_len) {
   i = i + 1 + len;  // points to next tag name A5
   // points to TAG 9F08 for LS application version
   if ((Recv_data[i] != TAG_LS_VER1) || (Recv_data[i + 1] != TAG_LS_VER2)) {
-    ALOGE("%s: Invalid LS Version = 0x%2X%2X", fn, Recv_data[i],
-          Recv_data[i + 1]);
+    NXP_LOG_ESE_E("%s: Invalid LS Version = 0x%2X%2X", fn, Recv_data[i],
+                  Recv_data[i + 1]);
     return LSCSTATUS_FAILED;
   }
   uint8_t lsaVersionLen = 0;
@@ -1122,13 +1115,15 @@ LSCSTATUS Process_SelectRsp(uint8_t* Recv_data, int32_t Recv_len) {
   i = i + lsaVersionLen;
 
   if (Recv_data[i] != TAG_RE_KEYID) {
-    ALOGE("%s: Invalid Root entity key set TAG ID = 0x%x", fn, Recv_data[i]);
+    NXP_LOG_ESE_E("%s: Invalid Root entity key set TAG ID = 0x%x", fn,
+                  Recv_data[i]);
     return LSCSTATUS_FAILED;
   }
 
   i = i + 2;
   if (Recv_data[i] != TAG_LSRE_ID) {
-    ALOGE("%s: Invalid Root entity for TAG 42 = 0x%x", fn, Recv_data[i]);
+    NXP_LOG_ESE_E("%s: Invalid Root entity for TAG 42 = 0x%x", fn,
+                  Recv_data[i]);
     return LSCSTATUS_FAILED;
   }
   i++;
@@ -1136,14 +1131,15 @@ LSCSTATUS Process_SelectRsp(uint8_t* Recv_data, int32_t Recv_len) {
   // copy the data including length
   memcpy(gsTag42Arr, &Recv_data[i], tag42Len + 1);
   i = i + tag42Len + 1;
-  ALOGD_IF(ese_debug_enabled, "%s: gsTag42Arr %s", fn, gsTag42Arr);
+  NXP_LOG_ESE_D("%s: gsTag42Arr %s", fn, gsTag42Arr);
   if (Recv_data[i] != TAG_LSRE_SIGNID) {
-    ALOGE("%s: Invalid Root entity for TAG 45 = 0x%x", fn, Recv_data[i]);
+    NXP_LOG_ESE_E("%s: Invalid Root entity for TAG 45 = 0x%x", fn,
+                  Recv_data[i]);
     return LSCSTATUS_FAILED;
   }
   uint8_t tag45Len = Recv_data[i + 1];
   memcpy(gsTag45Arr, &Recv_data[i + 1], tag45Len + 1);
-  ALOGD_IF(ese_debug_enabled, "%s: Exiting", fn);
+  NXP_LOG_ESE_D("%s: Exiting", fn);
   return LSCSTATUS_SUCCESS;
 }
 
@@ -1156,7 +1152,7 @@ LSCSTATUS Bufferize_load_cmds(__attribute__((unused)) Lsc_ImageInfo_t* Os_info,
     if ((pTranscv_Info->sSendData[1] == INSTAL_LOAD_ID) &&
         (pTranscv_Info->sSendData[2] == PARAM_P1_OFFSET) &&
         (pTranscv_Info->sSendData[3] == 0x00)) {
-      ALOGD_IF(ese_debug_enabled, "%s: BUffer: install for load", fn);
+      NXP_LOG_ESE_D("%s: BUffer: install for load", fn);
       gspBuffer[0] = pTranscv_Info->sSendlength;
       memcpy(&gspBuffer[1], &(pTranscv_Info->sSendData[0]),
              pTranscv_Info->sSendlength);
@@ -1171,7 +1167,7 @@ LSCSTATUS Bufferize_load_cmds(__attribute__((unused)) Lsc_ImageInfo_t* Os_info,
     if ((pTranscv_Info->sSendData[1] == LOAD_CMD_ID) &&
         (pTranscv_Info->sSendData[2] == LOAD_MORE_BLOCKS) &&
         (pTranscv_Info->sSendData[3] == Param_P2)) {
-      ALOGD_IF(ese_debug_enabled, "%s: BUffer: load", fn);
+      NXP_LOG_ESE_D("%s: BUffer: load", fn);
       gspBuffer[0] = pTranscv_Info->sSendlength;
       memcpy(&gspBuffer[1], &(pTranscv_Info->sSendData[0]),
              pTranscv_Info->sSendlength);
@@ -1180,7 +1176,7 @@ LSCSTATUS Bufferize_load_cmds(__attribute__((unused)) Lsc_ImageInfo_t* Os_info,
     } else if ((pTranscv_Info->sSendData[1] == LOAD_CMD_ID) &&
                (pTranscv_Info->sSendData[2] == LOAD_LAST_BLOCK) &&
                (pTranscv_Info->sSendData[3] == Param_P2)) {
-      ALOGD_IF(ese_debug_enabled, "%s: BUffer: last load", fn);
+      NXP_LOG_ESE_D("%s: BUffer: last load", fn);
       gsSendBack_cmds = true;
       gspBuffer[0] = pTranscv_Info->sSendlength;
       memcpy(&gspBuffer[1], &(pTranscv_Info->sSendData[0]),
@@ -1189,7 +1185,7 @@ LSCSTATUS Bufferize_load_cmds(__attribute__((unused)) Lsc_ImageInfo_t* Os_info,
       gsCmd_count++;
       gsIslastcmdLoad = true;
     } else {
-      ALOGD_IF(ese_debug_enabled, "%s: BUffer: Not a load cmd", fn);
+      NXP_LOG_ESE_D("%s: BUffer: Not a load cmd", fn);
       gsSendBack_cmds = true;
       gspBuffer[0] = pTranscv_Info->sSendlength;
       memcpy(&gspBuffer[1], &(pTranscv_Info->sSendData[0]),
@@ -1199,7 +1195,7 @@ LSCSTATUS Bufferize_load_cmds(__attribute__((unused)) Lsc_ImageInfo_t* Os_info,
       gsCmd_count++;
     }
   }
-  ALOGD_IF(ese_debug_enabled, "%s: exit", fn);
+  NXP_LOG_ESE_D("%s: exit", fn);
   return LSCSTATUS_FAILED;
 }
 
@@ -1208,10 +1204,10 @@ LSCSTATUS Send_Backall_Loadcmds(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
   static const char fn[] = "Send_Backall_Loadcmds";
   status = LSCSTATUS_FAILED;
 
-  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  NXP_LOG_ESE_D("%s: enter", fn);
   gspBuffer = gsCmd_Buffer;  // Points to start of first cmd to send
   if (gsCmd_count == 0x00) {
-    ALOGD_IF(ese_debug_enabled, "%s: No cmds stored to send to eSE", fn);
+    NXP_LOG_ESE_D("%s: No cmds stored to send to eSE", fn);
   } else {
     while (gsCmd_count-- > 0) {
       phNxpEse_data cmdApdu;
@@ -1233,7 +1229,7 @@ LSCSTATUS Send_Backall_Loadcmds(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
       phNxpEse_free(rspApdu.p_data);
 
       if (eseStat != ESESTATUS_SUCCESS || (recvBufferActualSize < 2)) {
-        ALOGE("%s: Transceive failed; status=0x%X", fn, eseStat);
+        NXP_LOG_ESE_E("%s: Transceive failed; status=0x%X", fn, eseStat);
       } else if (gsCmd_count == 0x00) {
         // Last command in the buffer
         if (gsIslastcmdLoad == false) {
@@ -1277,7 +1273,7 @@ LSCSTATUS Send_Backall_Loadcmds(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
   memset(gsCmd_Buffer, 0, sizeof(gsCmd_Buffer));
   gspBuffer = gsCmd_Buffer;  // point back to start of line
   gsCmd_count = 0x00;
-  ALOGD_IF(ese_debug_enabled, "%s: exit: status=0x%x", fn, status);
+  NXP_LOG_ESE_D("%s: exit: status=0x%x", fn, status);
   return status;
 }
 /*******************************************************************************
@@ -1293,10 +1289,10 @@ LSCSTATUS Send_Backall_Loadcmds(Lsc_ImageInfo_t* Os_info, LSCSTATUS status,
 uint8_t Numof_lengthbytes(uint8_t* read_buf, int32_t* pLen) {
   static const char fn[] = "Numof_lengthbytes";
   uint8_t len_byte = 0;
-  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  NXP_LOG_ESE_D("%s: enter", fn);
 
   if (read_buf[0] == 0x00) {
-    ALOGE("%s: Invalid length zero", fn);
+    NXP_LOG_ESE_E("%s: Invalid length zero", fn);
     len_byte = 0x00;
   } else if ((read_buf[0] & 0x80) == 0x80) {
     len_byte = read_buf[0] & 0x0F;
@@ -1331,13 +1327,12 @@ uint8_t Numof_lengthbytes(uint8_t* read_buf, int32_t* pLen) {
       wLen = (wLen | (read_buf[3]));
       break;
     default:
-      ALOGE("%s: Invalid length %d.", fn, len_byte);
+      NXP_LOG_ESE_E("%s: Invalid length %d.", fn, len_byte);
       break;
   }
 
   *pLen = wLen;
-  ALOGD_IF(ese_debug_enabled, "%s: exit; len_bytes=0x0%x, Length=%d", fn,
-           len_byte, *pLen);
+  NXP_LOG_ESE_D("%s: exit; len_bytes=0x0%x, Length=%d", fn, len_byte, *pLen);
   return len_byte;
 }
 
@@ -1356,7 +1351,7 @@ LSCSTATUS Write_Response_To_OutFile(Lsc_ImageInfo_t* image_info,
                                     Ls_TagType tType) {
   static const char fn[] = "Write_Response_to_OutFile";
 
-  ALOGD_IF(ese_debug_enabled, "%s: Enter", fn);
+  NXP_LOG_ESE_D("%s: Enter", fn);
   /*If the Response out file is NULL or Other than LS commands*/
   if ((image_info->bytes_wrote == 0x55) || (tType == LS_Default)) {
     return LSCSTATUS_SUCCESS;
@@ -1455,7 +1450,8 @@ LSCSTATUS Write_Response_To_OutFile(Lsc_ImageInfo_t* image_info,
   while (tempLen < tagLen) {
     status = fprintf(image_info->fResp, "%02X", tagBuffer[tempLen++]);
     if (status != 2) {
-      ALOGE("%s: Invalid Response during fprintf; status=0x%x", fn, (status));
+      NXP_LOG_ESE_E("%s: Invalid Response during fprintf; status=0x%x", fn,
+                    (status));
       wStatus = LSCSTATUS_FAILED;
       break;
     }
@@ -1465,15 +1461,15 @@ LSCSTATUS Write_Response_To_OutFile(Lsc_ImageInfo_t* image_info,
   while (respLen < recvlen) {
     status = fprintf(image_info->fResp, "%02X", RecvData[respLen++]);
     if (status != 2) {
-      ALOGE("%s: Invalid Response during fprintf; status=0x%x", fn, (status));
+      NXP_LOG_ESE_E("%s: Invalid Response during fprintf; status=0x%x", fn,
+                    (status));
       wStatus = LSCSTATUS_FAILED;
       break;
     }
   }
   if (status == 2) {
     fprintf(image_info->fResp, "%s\n", "");
-    ALOGD_IF(ese_debug_enabled,
-             "%s: SUCCESS Response written to script out file", fn);
+    NXP_LOG_ESE_D("%s: SUCCESS Response written to script out file", fn);
     wStatus = LSCSTATUS_SUCCESS;
   }
   fflush(image_info->fResp);
@@ -1495,7 +1491,7 @@ LSCSTATUS Check_Certificate_Tag(uint8_t* read_buf, uint16_t* offset1) {
   uint16_t offset = *offset1;
 
   if (((read_buf[offset] << 8 | read_buf[offset + 1]) == TAG_CERTIFICATE)) {
-    ALOGD_IF(ese_debug_enabled, "%s: TAGID: TAG_CERTIFICATE", fn);
+    NXP_LOG_ESE_D("%s: TAGID: TAG_CERTIFICATE", fn);
     int32_t wLen;
     offset = offset + 2;
     uint16_t len_byte = Numof_lengthbytes(&read_buf[offset], &wLen);
@@ -1521,12 +1517,11 @@ LSCSTATUS Check_SerialNo_Tag(uint8_t* read_buf, uint16_t* offset1) {
   uint16_t offset = *offset1;
 
   if (read_buf[offset] == TAG_SERIAL_NO) {
-    ALOGD_IF(ese_debug_enabled, "%s: TAGID: TAG_SERIAL_NO", fn);
+    NXP_LOG_ESE_D("%s: TAGID: TAG_SERIAL_NO", fn);
     uint8_t serNoLen = read_buf[offset + 1];
     offset = offset + serNoLen + 2;
     *offset1 = offset;
-    ALOGD_IF(ese_debug_enabled, "%s: TAG_LSROOT_ENTITY is %x", fn,
-             read_buf[offset]);
+    NXP_LOG_ESE_D("%s: TAG_LSROOT_ENTITY is %x", fn, read_buf[offset]);
     return LSCSTATUS_SUCCESS;
   }
   return LSCSTATUS_FAILED;
@@ -1547,12 +1542,12 @@ LSCSTATUS Check_LSRootID_Tag(uint8_t* read_buf, uint16_t* offset1) {
   uint16_t offset = *offset1;
 
   if (read_buf[offset] == TAG_LSRE_ID) {
-    ALOGD_IF(ese_debug_enabled, "%s: TAGID: TAG_LSROOT_ENTITY", fn);
+    NXP_LOG_ESE_D("%s: TAGID: TAG_LSROOT_ENTITY", fn);
     if (gsTag42Arr[0] == read_buf[offset + 1]) {
       uint8_t tag42Len = read_buf[offset + 1];
       offset = offset + 2;
       if (!memcmp(&read_buf[offset], &gsTag42Arr[1], gsTag42Arr[0])) {
-        ALOGD_IF(ese_debug_enabled, "%s : TAG 42 verified", fn);
+        NXP_LOG_ESE_D("%s : TAG 42 verified", fn);
         offset = offset + tag42Len;
         *offset1 = offset;
         return LSCSTATUS_SUCCESS;
@@ -1577,11 +1572,11 @@ LSCSTATUS Check_CertHoldID_Tag(uint8_t* read_buf, uint16_t* offset1) {
 
   if ((read_buf[offset] << 8 | read_buf[offset + 1]) == TAG_CERTFHOLD_ID) {
     uint8_t certfHoldIDLen = 0;
-    ALOGD_IF(ese_debug_enabled, "%s: TAGID: TAG_CERTFHOLD_ID", fn);
+    NXP_LOG_ESE_D("%s: TAGID: TAG_CERTFHOLD_ID", fn);
     certfHoldIDLen = read_buf[offset + 2];
     offset = offset + certfHoldIDLen + 3;
     if (read_buf[offset] == TAG_KEY_USAGE) {
-      ALOGD_IF(ese_debug_enabled, "%s: TAGID: TAG_KEY_USAGE", fn);
+      NXP_LOG_ESE_D("%s: TAGID: TAG_KEY_USAGE", fn);
       uint8_t keyusgLen = read_buf[offset + 1];
       offset = offset + keyusgLen + 2;
       *offset1 = offset;
@@ -1608,11 +1603,11 @@ LSCSTATUS Check_Date_Tag(uint8_t* read_buf, uint16_t* offset1) {
   if ((read_buf[offset] << 8 | read_buf[offset + 1]) == TAG_EFF_DATE) {
     uint8_t effDateLen = read_buf[offset + 2];
     offset = offset + 3 + effDateLen;
-    ALOGD_IF(ese_debug_enabled, "%s: TAGID: TAG_EFF_DATE", fn);
+    NXP_LOG_ESE_D("%s: TAGID: TAG_EFF_DATE", fn);
     if ((read_buf[offset] << 8 | read_buf[offset + 1]) == TAG_EXP_DATE) {
       uint8_t effExpLen = read_buf[offset + 2];
       offset = offset + 3 + effExpLen;
-      ALOGD_IF(ese_debug_enabled, "%s: TAGID: TAG_EXP_DATE", fn);
+      NXP_LOG_ESE_D("%s: TAGID: TAG_EXP_DATE", fn);
       status = LSCSTATUS_SUCCESS;
     } else if (read_buf[offset] == TAG_LSRE_SIGNID) {
       status = LSCSTATUS_SUCCESS;
@@ -1620,7 +1615,7 @@ LSCSTATUS Check_Date_Tag(uint8_t* read_buf, uint16_t* offset1) {
   } else if ((read_buf[offset] << 8 | read_buf[offset + 1]) == TAG_EXP_DATE) {
     uint8_t effExpLen = read_buf[offset + 2];
     offset = offset + 3 + effExpLen;
-    ALOGD_IF(ese_debug_enabled, "%s: TAGID: TAG_EXP_DATE", fn);
+    NXP_LOG_ESE_D("%s: TAGID: TAG_EXP_DATE", fn);
     status = LSCSTATUS_SUCCESS;
   } else if (read_buf[offset] == TAG_LSRE_SIGNID) {
     status = LSCSTATUS_SUCCESS;
@@ -1651,8 +1646,7 @@ LSCSTATUS Check_45_Tag(uint8_t* read_buf, uint16_t* offset1,
     if (gsTag45Arr[0] == *tag45Len) {
       if (!memcmp(&read_buf[offset], &gsTag45Arr[1], gsTag45Arr[0])) {
         *offset1 = offset;
-        ALOGD_IF(ese_debug_enabled,
-                 "%s: LSC_Check_KeyIdentifier : TAG 45 verified", fn);
+        NXP_LOG_ESE_D("%s: LSC_Check_KeyIdentifier : TAG 45 verified", fn);
         return LSCSTATUS_SUCCESS;
       }
     }
@@ -1688,10 +1682,9 @@ LSCSTATUS Certificate_Verification(Lsc_ImageInfo_t* Os_info,
     uint8_t tag7f49Off = 0;
     uint8_t u7f49Len = 0;
     uint8_t tag5f37Len = 0;
-    ALOGD_IF(ese_debug_enabled, "%s: Certificate is less than 255", fn);
+    NXP_LOG_ESE_D("%s: Certificate is less than 255", fn);
     offset = offset + *tag45Len;
-    ALOGD_IF(ese_debug_enabled, "%s: Before TAG_CCM_PERMISSION = %x", fn,
-             read_buf[offset]);
+    NXP_LOG_ESE_D("%s: Before TAG_CCM_PERMISSION = %x", fn, read_buf[offset]);
     if (read_buf[offset] != TAG_CCM_PERMISSION) {
       return LSCSTATUS_FAILED;
     }
@@ -1700,8 +1693,7 @@ LSCSTATUS Certificate_Verification(Lsc_ImageInfo_t* Os_info,
     offset = offset + 1;
     len_byte = Numof_lengthbytes(&read_buf[offset], &tag53Len);
     offset = offset + tag53Len + len_byte;
-    ALOGD_IF(ese_debug_enabled, "%s: Verified TAG TAG_CCM_PERMISSION = 0x53",
-             fn);
+    NXP_LOG_ESE_D("%s: Verified TAG TAG_CCM_PERMISSION = 0x53", fn);
     if ((uint16_t)(read_buf[offset] << 8 | read_buf[offset + 1]) !=
         TAG_SIG_RNS_COMP) {
       return LSCSTATUS_FAILED;
@@ -1725,12 +1717,12 @@ LSCSTATUS Certificate_Verification(Lsc_ImageInfo_t* Os_info,
     memcpy(&(pTranscv_Info->sSendData[5]), &read_buf[0],
            wCertfLen + 2 + tag_len_byte);
 
-    ALOGD_IF(ese_debug_enabled, "%s: start transceive for length %d", fn,
-             pTranscv_Info->sSendlength);
+    NXP_LOG_ESE_D("%s: start transceive for length %d", fn,
+                  pTranscv_Info->sSendlength);
     LSCSTATUS status = LSCSTATUS_FAILED;
     status = LSC_SendtoLsc(Os_info, status, pTranscv_Info, LS_Cert);
     if (status == LSCSTATUS_SUCCESS) {
-      ALOGD_IF(ese_debug_enabled, "%s: Certificate is verified", fn);
+      NXP_LOG_ESE_D("%s: Certificate is verified", fn);
     }
     return status;
   } else {
@@ -1738,10 +1730,9 @@ LSCSTATUS Certificate_Verification(Lsc_ImageInfo_t* Os_info,
     uint8_t tag7f49Off = 0;
     uint8_t u7f49Len = 0;
     uint8_t tag5f37Len = 0;
-    ALOGD_IF(ese_debug_enabled, "%s: Certificate is greater than 255", fn);
+    NXP_LOG_ESE_D("%s: Certificate is greater than 255", fn);
     offset = offset + *tag45Len;
-    ALOGD_IF(ese_debug_enabled, "%s: Before TAG_CCM_PERMISSION = %x", fn,
-             read_buf[offset]);
+    NXP_LOG_ESE_D("%s: Before TAG_CCM_PERMISSION = %x", fn, read_buf[offset]);
     if (read_buf[offset] != TAG_CCM_PERMISSION) {
       return LSCSTATUS_FAILED;
     }
@@ -1750,8 +1741,7 @@ LSCSTATUS Certificate_Verification(Lsc_ImageInfo_t* Os_info,
     offset = offset + 1;
     len_byte = Numof_lengthbytes(&read_buf[offset], &tag53Len);
     offset = offset + tag53Len + len_byte;
-    ALOGD_IF(ese_debug_enabled, "%s: Verified TAG TAG_CCM_PERMISSION = 0x53",
-             fn);
+    NXP_LOG_ESE_D("%s: Verified TAG TAG_CCM_PERMISSION = 0x53", fn);
     if ((uint16_t)(read_buf[offset] << 8 | read_buf[offset + 1]) !=
         TAG_SIG_RNS_COMP) {
       return LSCSTATUS_FAILED;
@@ -1772,8 +1762,8 @@ LSCSTATUS Certificate_Verification(Lsc_ImageInfo_t* Os_info,
     pTranscv_Info->sSendData[4] = tag7f49Off;
     memcpy(&(pTranscv_Info->sSendData[5]), &read_buf[0], tag7f49Off);
     pTranscv_Info->sSendlength = tag7f49Off + 5;
-    ALOGD_IF(ese_debug_enabled, "%s: start transceive for length %d", fn,
-             pTranscv_Info->sSendlength);
+    NXP_LOG_ESE_D("%s: start transceive for length %d", fn,
+                  pTranscv_Info->sSendlength);
 
     LSCSTATUS status = LSCSTATUS_FAILED;
     status = LSC_SendtoLsc(Os_info, status, pTranscv_Info, LS_Default);
@@ -1788,12 +1778,12 @@ LSCSTATUS Certificate_Verification(Lsc_ImageInfo_t* Os_info,
     memcpy(&(pTranscv_Info->sSendData[5]), &read_buf[tag7f49Off],
            u7f49Len + tag5f37Len + 6);
     pTranscv_Info->sSendlength = u7f49Len + tag5f37Len + 11;
-    ALOGD_IF(ese_debug_enabled, "%s: start transceive for length %d", fn,
-             pTranscv_Info->sSendlength);
+    NXP_LOG_ESE_D("%s: start transceive for length %d", fn,
+                  pTranscv_Info->sSendlength);
 
     status = LSC_SendtoLsc(Os_info, status, pTranscv_Info, LS_Cert);
     if (status == LSCSTATUS_SUCCESS) {
-      ALOGD_IF(ese_debug_enabled, "Certificate is verified");
+      NXP_LOG_ESE_D("Certificate is verified");
     }
     return status;
   }
@@ -1816,34 +1806,34 @@ LSCSTATUS Check_Complete_7F21_Tag(Lsc_ImageInfo_t* Os_info,
   static const char fn[] = "Check_Complete_7F21_Tag";
 
   if (LSCSTATUS_SUCCESS != Check_Certificate_Tag(read_buf, offset)) {
-    ALOGE("%s: FAILED in Check_Certificate_Tag", fn);
+    NXP_LOG_ESE_E("%s: FAILED in Check_Certificate_Tag", fn);
     return LSCSTATUS_FAILED;
   }
   if (LSCSTATUS_SUCCESS != Check_SerialNo_Tag(read_buf, offset)) {
-    ALOGE("%s: FAILED in Check_SerialNo_Tag", fn);
+    NXP_LOG_ESE_E("%s: FAILED in Check_SerialNo_Tag", fn);
     return LSCSTATUS_FAILED;
   }
   if (LSCSTATUS_SUCCESS != Check_LSRootID_Tag(read_buf, offset)) {
-    ALOGE("%s: FAILED in Check_LSRootID_Tag", fn);
+    NXP_LOG_ESE_E("%s: FAILED in Check_LSRootID_Tag", fn);
     return LSCSTATUS_FAILED;
   }
   if (LSCSTATUS_SUCCESS != Check_CertHoldID_Tag(read_buf, offset)) {
-    ALOGE("%s: FAILED in Check_CertHoldID_Tag", fn);
+    NXP_LOG_ESE_E("%s: FAILED in Check_CertHoldID_Tag", fn);
     return LSCSTATUS_FAILED;
   }
   if (LSCSTATUS_SUCCESS != Check_Date_Tag(read_buf, offset)) {
-    ALOGE("%s: FAILED in Check_CertHoldID_Tag", fn);
+    NXP_LOG_ESE_E("%s: FAILED in Check_CertHoldID_Tag", fn);
     return LSCSTATUS_FAILED;
   }
   uint8_t tag45Len = 0;
   if (LSCSTATUS_SUCCESS != Check_45_Tag(read_buf, offset, &tag45Len)) {
-    ALOGE("%s: FAILED in Check_CertHoldID_Tag", fn);
+    NXP_LOG_ESE_E("%s: FAILED in Check_CertHoldID_Tag", fn);
     return LSCSTATUS_FAILED;
   }
   if (LSCSTATUS_SUCCESS != Certificate_Verification(Os_info, pTranscv_Info,
                                                     read_buf, offset,
                                                     &tag45Len)) {
-    ALOGE("%s: FAILED in Certificate_Verification", fn);
+    NXP_LOG_ESE_E("%s: FAILED in Certificate_Verification", fn);
     return LSCSTATUS_FAILED;
   }
   return LSCSTATUS_SUCCESS;
@@ -1861,21 +1851,22 @@ LSCSTATUS Check_Complete_7F21_Tag(Lsc_ImageInfo_t* Os_info,
 bool LSC_UpdateExeStatus(uint16_t status) {
   static const char fn[] = "LSC_UpdateExeStatus";
 
-  ALOGD_IF(ese_debug_enabled, "%s: enter", fn);
+  NXP_LOG_ESE_D("%s: enter", fn);
 
   FILE* fLsStatus = fopen(LS_STATUS_PATH, "w+");
   if (fLsStatus == NULL) {
-    ALOGE("%s: Error opening LS Status file for backup: %s", fn,
-          strerror(errno));
+    NXP_LOG_ESE_E("%s: Error opening LS Status file for backup: %s", fn,
+                  strerror(errno));
     return false;
   }
   if ((fprintf(fLsStatus, "%04x", status)) != 4) {
-    ALOGE("%s: Error updating LS Status backup: %s", fn, strerror(errno));
+    NXP_LOG_ESE_E("%s: Error updating LS Status backup: %s", fn,
+                  strerror(errno));
     fclose(fLsStatus);
     return false;
   }
   fclose(fLsStatus);
-  ALOGD_IF(ese_debug_enabled, "%s: exit", fn);
+  NXP_LOG_ESE_D("%s: exit", fn);
   return true;
 }
 
@@ -1894,21 +1885,21 @@ LSCSTATUS Get_LsStatus(uint8_t* pStatus) {
 
   FILE* fLsStatus = fopen(LS_STATUS_PATH, "r");
   if (fLsStatus == NULL) {
-    ALOGE("%s: Error opening LS Status file for backup: %s", fn,
-          strerror(errno));
+    NXP_LOG_ESE_E("%s: Error opening LS Status file for backup: %s", fn,
+                  strerror(errno));
     return LSCSTATUS_FAILED;
   }
 
   uint8_t lsStatus[2] = {0x63, 0x40};
   for (uint8_t loopcnt = 0; loopcnt < 2; loopcnt++) {
     if ((FSCANF_BYTE(fLsStatus, "%2x", &lsStatus[loopcnt])) == 0) {
-      ALOGE("%s: Error updating LS Status backup: %s", fn, strerror(errno));
+      NXP_LOG_ESE_E("%s: Error updating LS Status backup: %s", fn,
+                    strerror(errno));
       fclose(fLsStatus);
       return LSCSTATUS_FAILED;
     }
   }
-  ALOGD_IF(ese_debug_enabled, "%s: LS Status 0x%X 0x%X", fn, lsStatus[0],
-           lsStatus[1]);
+  NXP_LOG_ESE_D("%s: LS Status 0x%X 0x%X", fn, lsStatus[0], lsStatus[1]);
   memcpy(pStatus, lsStatus, 2);
   fclose(fLsStatus);
   return LSCSTATUS_SUCCESS;
@@ -1929,7 +1920,7 @@ LSCSTATUS LSC_CloseAllLogicalChannels(Lsc_ImageInfo_t* Os_info) {
   phNxpEse_data cmdApdu;
   phNxpEse_data rspApdu;
 
-  ALOGD_IF(ese_debug_enabled, "%s: Enter", __func__);
+  NXP_LOG_ESE_D("%s: Enter", __func__);
   for (uint8_t channelNumber = 0x01; channelNumber < 0x04; channelNumber++) {
     if (channelNumber == Os_info->initChannelNum) continue;
     phNxpEse_memset(&cmdApdu, 0x00, sizeof(phNxpEse_data));
@@ -1975,7 +1966,7 @@ LSCSTATUS LSC_SelectLsHash() {
   phNxpEse_data cmdApdu;
   phNxpEse_data rspApdu;
   LSCSTATUS lsStatus = LSCSTATUS_FAILED;
-  ALOGD_IF(ese_debug_enabled, "%s: Enter ", __func__);
+  NXP_LOG_ESE_D("%s: Enter ", __func__);
   phNxpEse_memset(&cmdApdu, 0x00, sizeof(phNxpEse_data));
   phNxpEse_memset(&rspApdu, 0x00, sizeof(phNxpEse_data));
 
@@ -2033,24 +2024,23 @@ LSCSTATUS LSC_ReadLsHash(uint8_t* hash, uint16_t* readHashLen, uint8_t slotId) {
     if ((eseStat == ESESTATUS_SUCCESS) &&
         ((rspApdu.p_data[rspApdu.len - 2] == 0x90) &&
          (rspApdu.p_data[rspApdu.len - 1] == 0x00))) {
-      ALOGD_IF(ese_debug_enabled, "%s: rspApdu.len : %u", __func__,
-               rspApdu.len);
+      NXP_LOG_ESE_D("%s: rspApdu.len : %u", __func__, rspApdu.len);
       *readHashLen = rspApdu.len - 2;
       if (*readHashLen <= HASH_DATA_LENGTH) {
         memcpy(hash, rspApdu.p_data, *readHashLen);
         lsStatus = LSCSTATUS_SUCCESS;
       } else {
-        ALOGE("%s:Invalid LS HASH data received", __func__);
+        NXP_LOG_ESE_E("%s:Invalid LS HASH data received", __func__);
         lsStatus = LSCSTATUS_FAILED;
       }
     } else {
       if ((rspApdu.p_data[rspApdu.len - 2] == 0x6A) &&
           (rspApdu.p_data[rspApdu.len - 1] == 0x86)) {
-        ALOGD_IF(ese_debug_enabled, "%s: slot id is invalid", __func__);
+        NXP_LOG_ESE_D("%s: slot id is invalid", __func__);
         lsStatus = LSCSTATUS_HASH_SLOT_INVALID;
       } else if ((rspApdu.p_data[rspApdu.len - 2] == 0x6A) &&
                  (rspApdu.p_data[rspApdu.len - 1] == 0x83)) {
-        ALOGD_IF(ese_debug_enabled, "%s: slot is empty", __func__);
+        NXP_LOG_ESE_D("%s: slot is empty", __func__);
         lsStatus = LSCSTATUS_HASH_SLOT_EMPTY;
       } else {
         lsStatus = LSCSTATUS_FAILED;
@@ -2075,7 +2065,7 @@ LSCSTATUS LSC_UpdateLsHash(uint8_t* hash, long hashLen, uint8_t slotId) {
   phNxpEse_data cmdApdu;
   phNxpEse_data rspApdu;
   LSCSTATUS lsStatus = LSCSTATUS_FAILED;
-  ALOGD_IF(ese_debug_enabled, "%s: Enter ", __func__);
+  NXP_LOG_ESE_D("%s: Enter ", __func__);
 
   lsStatus = LSC_SelectLsHash();
   if (lsStatus != LSCSTATUS_SUCCESS) {
@@ -2106,13 +2096,13 @@ LSCSTATUS LSC_UpdateLsHash(uint8_t* hash, long hashLen, uint8_t slotId) {
     } else {
       if ((rspApdu.p_data[rspApdu.len - 2] == 0x6A) &&
           (rspApdu.p_data[rspApdu.len - 1] == 0x86)) {
-        ALOGD_IF(ese_debug_enabled, "%s: if slot id is invalid", __func__);
+        NXP_LOG_ESE_D("%s: if slot id is invalid", __func__);
       }
       lsStatus = LSCSTATUS_FAILED;
     }
   }
 
-  ALOGD_IF(ese_debug_enabled, "%s: Exit ", __func__);
+  NXP_LOG_ESE_D("%s: Exit ", __func__);
   phNxpEse_free(cmdApdu.p_data);
   phNxpEse_free(rspApdu.p_data);
   return lsStatus;

@@ -17,19 +17,19 @@
  ******************************************************************************/
 #define LOG_TAG "LSClient"
 #include "LsClient.h"
+#include "LsLib.h"
 #include <cutils/properties.h>
 #include <dirent.h>
 #include <errno.h>
+#include <ese_logs.h>
 #include <log/log.h>
 #include <openssl/evp.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <string>
-#include "LsLib.h"
 
 uint8_t datahex(char c);
 unsigned char* getHASH(uint8_t* buffer, size_t buffSize);
-extern bool ese_debug_enabled;
 
 #define ls_script_source_prefix "/vendor/etc/loaderservice_updater_"
 #define ls_script_source_suffix ".lss"
@@ -88,7 +88,7 @@ LSCSTATUS LSC_Start(const char* name, const char* dest, uint8_t* pdata,
   } else {
     ALOGE("%s: LS script file is missing", fn);
   }
-  ALOGD_IF(ese_debug_enabled, "%s: Exit; status=0x0%X", fn, status);
+  NXP_LOG_ESE_D("%s: Exit; status=0x0%X", fn, status);
   return status;
 }
 
@@ -132,7 +132,7 @@ LSCSTATUS LSC_doDownload(LSC_onCompletedCallback callback, void* args) {
 **
 *******************************************************************************/
 void* performLSDownload_thread(__attribute__((unused)) void* data) {
-  ALOGD_IF(ese_debug_enabled, "%s enter  ", __func__);
+  NXP_LOG_ESE_D("%s enter  ", __func__);
   /*generated SHA-1 string for secureElementLS
   This will remain constant as handled in secureElement HAL*/
   char sha1[] = "6d583e84f2710e6b0f06beebc1a12a1083591373";
@@ -164,8 +164,7 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
       ALOGE("%s Error : %s", __func__, strerror(errno));
       break;
     }
-    ALOGD_IF(ese_debug_enabled, "%s File opened %s\n", __func__,
-             sourcePath.c_str());
+    NXP_LOG_ESE_D("%s File opened %s\n", __func__, sourcePath.c_str());
 
     outPath.assign(ls_script_output_prefix);
     outPath += ('0' + index);
@@ -194,7 +193,7 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
     }
     memset(lsHashInfo.lsRawScriptBuf, 0x00, (lsBufSize + 1));
     if (fread(lsHashInfo.lsRawScriptBuf, (size_t)lsBufSize, 1, fIn) != 1)
-      ALOGD_IF(ese_debug_enabled, "%s Failed to read file", __func__);
+      NXP_LOG_ESE_D("%s Failed to read file", __func__);
     fclose(fIn);
     LSCSTATUS lsHashStatus = LSCSTATUS_FAILED;
 
@@ -221,16 +220,15 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
         (0 == memcmp(lsHashInfo.lsScriptHash, lsHashInfo.readBuffHash,
                      HASH_DATA_LENGTH - 1)) &&
         (lsHashInfo.readBuffHash[HASH_STATUS_INDEX] == LS_DOWNLOAD_SUCCESS)) {
-      ALOGD_IF(ese_debug_enabled, "%s LS Loader sript is already installed \n",
-               __func__);
+      NXP_LOG_ESE_D("%s LS Loader sript is already installed \n", __func__);
       continue;
     }
 
     /*Uptdates current script*/
     status = LSC_Start(sourcePath.c_str(), outPath.c_str(), (uint8_t*)hash,
                        (uint16_t)sizeof(hash), resSW);
-    ALOGD_IF(ese_debug_enabled, "%s script %s perform done, result = %d\n",
-             __func__, sourcePath.c_str(), status);
+    NXP_LOG_ESE_D("%s script %s perform done, result = %d\n", __func__,
+                  sourcePath.c_str(), status);
     if (status != LSCSTATUS_SUCCESS) {
       lsHashInfo.lsScriptHash[HASH_STATUS_INDEX] = LS_DOWNLOAD_FAILED;
       /*If current script updation fails, update the status with hash to the
@@ -238,7 +236,7 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
       lsHashStatus =
           LSC_UpdateLsHash(lsHashInfo.lsScriptHash, HASH_DATA_LENGTH, index);
       if (lsHashStatus != LSCSTATUS_SUCCESS) {
-        ALOGD_IF(ese_debug_enabled, "%s LSC_UpdateLsHash Failed\n", __func__);
+        NXP_LOG_ESE_D("%s LSC_UpdateLsHash Failed\n", __func__);
       }
       deInitAndCloseEseHal();
 	  if (mCallback != nullptr) {
@@ -252,7 +250,7 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
       lsHashStatus =
           LSC_UpdateLsHash(lsHashInfo.lsScriptHash, HASH_DATA_LENGTH, index);
       if (lsHashStatus != LSCSTATUS_SUCCESS) {
-        ALOGD_IF(ese_debug_enabled, "%s LSC_UpdateLsHash Failed\n", __func__);
+        NXP_LOG_ESE_D("%s LSC_UpdateLsHash Failed\n", __func__);
       }
     }
   } while (++index <= LS_MAX_COUNT);
@@ -266,7 +264,7 @@ void* performLSDownload_thread(__attribute__((unused)) void* data) {
     }
   }
   pthread_exit(NULL);
-  ALOGD_IF(ese_debug_enabled, "%s pthread_exit\n", __func__);
+  NXP_LOG_ESE_D("%s pthread_exit\n", __func__);
   return NULL;
 }
 
@@ -275,7 +273,7 @@ void deInitAndCloseEseHal() {
   if (estatus == ESESTATUS_SUCCESS) {
     estatus = phNxpEse_close();
     if (estatus == ESESTATUS_SUCCESS) {
-      ALOGD_IF(ese_debug_enabled, "%s: Ese_close success\n", __func__);
+      NXP_LOG_ESE_D("%s: Ese_close success\n", __func__);
     }
   } else {
     ALOGE("%s: Ese_deInit failed", __func__);
@@ -299,10 +297,10 @@ unsigned char* getHASH(uint8_t* buffer, size_t buffSize) {
     EVP_MD_CTX mdctx;
     EVP_MD_CTX_init(&mdctx);
     if (EVP_DigestInit_ex(&mdctx, md, NULL) != 1)
-      ALOGD_IF(ese_debug_enabled, "EVP_DigestInit_ex Returns fail\n");
+      NXP_LOG_ESE_D("EVP_DigestInit_ex Returns fail\n");
     EVP_DigestUpdate(&mdctx, buffer, buffSize);
     if (EVP_DigestFinal_ex(&mdctx, outHash, &md_len) != 1)
-      ALOGD_IF(ese_debug_enabled, "EVP_DigestFinal_ex Returns fail\n");
+      NXP_LOG_ESE_D("EVP_DigestFinal_ex Returns fail\n");
     EVP_MD_CTX_cleanup(&mdctx);
   }
   return outHash;

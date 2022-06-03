@@ -22,6 +22,7 @@
 #define INVALID_LEN_SW2 0xFF
 
 #define SW1_BYTES_REMAINING 0x61
+#include <ese_logs.h>
 #include <log/log.h>
 
 #include "LsClient.h"
@@ -31,7 +32,6 @@
 #include "SpiEseUpdater.h"
 #include "phNxpEse_Apdu_Api.h"
 
-extern bool ese_debug_enabled;
 extern uint8_t gMfcAppSessionCount;
 
 namespace android {
@@ -293,7 +293,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
     return Void();
   }
 
-  ALOGD_IF(ese_debug_enabled, "%s: Sending selectApdu", __func__);
+  NXP_LOG_ESE_D("%s: Sending selectApdu", __func__);
   /*Reset variables if manageChannel is success*/
   sestatus = SecureElementStatus::IOERROR;
   status = ESESTATUS_FAILED;

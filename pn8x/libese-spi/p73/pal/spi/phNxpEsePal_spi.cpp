@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020 NXP
+ *  Copyright 2018-2020,2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -32,17 +32,18 @@
 #include <unistd.h>
 
 #include "NfcAdaptation.h"
+#include "SpiEseUpdater.h"
 #include "StateMachine.h"
 #include "StateMachineInfo.h"
 #include "hal_nxpese.h"
 #include "phNxpEse_Api.h"
 #include <ese_config.h>
+#include <ese_logs.h>
 #include <hardware/nfc.h>
 #include <phEseStatus.h>
 #include <phNxpEsePal.h>
 #include <phNxpEsePal_spi.h>
 #include <string.h>
-#include "SpiEseUpdater.h"
 
 #define MAX_RETRY_CNT 10
 #define HAL_NFC_SPI_DWP_SYNC 21
@@ -52,7 +53,6 @@
 #define LAST_MFC_APP_CLOSE_NUM 0
 
 extern int omapi_status;
-extern bool ese_debug_enabled;
 extern SyncEvent gSpiTxLock;
 extern SyncEvent gSpiOpenLock;
 
@@ -85,7 +85,7 @@ void phPalEse_spi_close(void* pDevHandle) {
   if (NULL != pDevHandle) {
     close((intptr_t)pDevHandle);
   }
-  ALOGD_IF(ese_debug_enabled, "halimpl close exit.");
+  NXP_LOG_ESE_D("halimpl close exit.");
   return;
 }
 
@@ -93,13 +93,12 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
   ESESTATUS status = ESESTATUS_SUCCESS;
   ese_nxp_IoctlInOutData_t *inpOutData = NULL;
   if (!p_data) {
-    ALOGD_IF(ese_debug_enabled, "%s:p_data is null ioctltyp: %ld", __FUNCTION__,
-             (long)ioctlType);
+    NXP_LOG_ESE_D("%s:p_data is null ioctltyp: %ld", __FUNCTION__,
+                  (long)ioctlType);
     return ESESTATUS_FAILED;
   }
   inpOutData = (ese_nxp_IoctlInOutData_t *)p_data;
-  ALOGD_IF(ese_debug_enabled, "phNxpEse_spiIoctl(): ioctlType: %ld",
-           (long)ioctlType);
+  NXP_LOG_ESE_D("phNxpEse_spiIoctl(): ioctlType: %ld", (long)ioctlType);
   switch (ioctlType) {
   case HAL_ESE_IOCTL_HCI_INIT_STATUS_UPDATE: {
     int hciInitReq = inpOutData->inp.data.nxpCmd.p_cmd[0];
@@ -112,8 +111,7 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
   case HAL_ESE_IOCTL_RF_STATUS_UPDATE: {
     int isRfNtfForOn = inpOutData->inp.data.nxpCmd.p_cmd[0];
     if (isRfNtfForOn == 1) {
-      ALOGD_IF(
-          ese_debug_enabled,
+      NXP_LOG_ESE_D(
           "*******************RF IS ON*************************************");
       phPalEse_spi_stop_debounce_timer();
       gIsRfStateOn = true;
@@ -123,15 +121,13 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
         StateMachine::GetInstance().ProcessExtEvent(EVT_RF_ON);
       }
     } else {
-      ALOGD_IF(
-          ese_debug_enabled,
+      NXP_LOG_ESE_D(
           "*******************RF IS OFF************************************");
       phPalEse_spi_start_debounce_timer(gRfOffDebounceTimeout);
     }
   } break;
   case HAL_ESE_IOCTL_RF_ACTION_NTF: {
-    ALOGD_IF(
-        ese_debug_enabled,
+    NXP_LOG_ESE_D(
         "*******************RF ACT NTF*************************************");
     /* Parsing NFCEE Action Notification to detect type of routing either SCBR
      * or Technology F for ESE to resume SPI session for ESE-UICC concurrency */
@@ -139,8 +135,7 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
       StateMachine::GetInstance().ProcessExtEvent(EVT_RF_ACT_NTF_ESE);
       {
         SyncEventGuard guard(gSpiTxLock);
-        ALOGD_IF(ese_debug_enabled, "%s: Notifying SPI_TX Wait if waiting...",
-                 __FUNCTION__);
+        NXP_LOG_ESE_D("%s: Notifying SPI_TX Wait if waiting...", __FUNCTION__);
         gSpiTxLock.notifyOne();
       }
     }
@@ -150,14 +145,14 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
                                    inpOutData->inp.data.nxpCmd.p_cmd +
                                        inpOutData->inp.data.nxpCmd.cmd_len);
     if (!phPalEse_spi_match_app_signatures(signature)) {
-      ALOGD_IF(ese_debug_enabled, "****RELEASE SESSION:SIGNATURE MATCHED****");
+      NXP_LOG_ESE_D("****RELEASE SESSION:SIGNATURE MATCHED****");
       if (gMfcAppSessionCount) {
         gMfcAppSessionCount--;
         if (gMfcAppSessionCount == LAST_MFC_APP_CLOSE_NUM)
           StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_SESSION_CLOSE);
       }
     } else {
-      ALOGD_IF(ese_debug_enabled, "**RELEASE SESSION:SIGNATURE NOT MATCHED**");
+      NXP_LOG_ESE_D("**RELEASE SESSION:SIGNATURE NOT MATCHED**");
     }
   } break;
   case HAL_ESE_IOCTL_OMAPI_TRY_GET_ESE_SESSION: {
@@ -165,9 +160,9 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
                                    inpOutData->inp.data.nxpCmd.p_cmd +
                                        inpOutData->inp.data.nxpCmd.cmd_len);
     if (!phPalEse_spi_match_app_signatures(signature)) {
-      ALOGD_IF(ese_debug_enabled, "******GET SESSION:SIGNATURE MATCHED******");
+      NXP_LOG_ESE_D("******GET SESSION:SIGNATURE MATCHED******");
       if (gIsRfStateOn) {
-        ALOGD_IF(ese_debug_enabled, "**GET SESSION:SIGNATURE MATCHED RF ON**");
+        NXP_LOG_ESE_D("**GET SESSION:SIGNATURE MATCHED RF ON**");
         status = ESESTATUS_NOT_ALLOWED;
       } else {
         gMfcAppSessionCount++;
@@ -175,16 +170,19 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
           StateMachine::GetInstance().ProcessExtEvent(EVT_SPI_SESSION_OPEN);
       }
     } else {
-      ALOGD_IF(ese_debug_enabled, "****GET SESSION:SIGNATURE NOT MATCHED****");
+      NXP_LOG_ESE_D("****GET SESSION:SIGNATURE NOT MATCHED****");
     }
   } break;
     case HAL_ESE_IOCTL_NFC_JCOP_DWNLD:
     {
       int update_state = inpOutData->inp.data.nxpCmd.p_cmd[0];
-      if (update_state == 1)
-        ALOGD_IF(ese_debug_enabled, "******************JCOP Download started*************************************");
-      else
-        ALOGD_IF(ese_debug_enabled, "******************JCOP Download stopped*************************************");
+      if (update_state == 1) {
+        NXP_LOG_ESE_D("******************JCOP Download "
+                      "started*************************************");
+      } else {
+        NXP_LOG_ESE_D("******************JCOP Download "
+                      "stopped*************************************");
+      }
     }
     break;
   default:
@@ -218,20 +216,18 @@ ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig) {
 
   if (EseConfig::hasKey(NAME_NXP_SOF_WRITE)) {
     configNum1 = EseConfig::getUnsigned(NAME_NXP_SOF_WRITE);
-    ALOGD_IF(ese_debug_enabled, "NXP_SOF_WRITE value from config file = %ld",
-             configNum1);
+    NXP_LOG_ESE_D("NXP_SOF_WRITE value from config file = %ld", configNum1);
   }
 
   if (EseConfig::hasKey(NAME_NXP_SPI_WRITE_TIMEOUT)) {
     configNum2 = EseConfig::getUnsigned(NAME_NXP_SPI_WRITE_TIMEOUT);
-    ALOGD_IF(ese_debug_enabled,
-             "NXP_SPI_WRITE_TIMEOUT value from config file = %ld", configNum2);
+    NXP_LOG_ESE_D("NXP_SPI_WRITE_TIMEOUT value from config file = %ld",
+                  configNum2);
   }
   if (EseConfig::hasKey(NAME_NXP_OMAPI_APP_TIMEOUT)) {
     gFelicaAppTimeout = EseConfig::getUnsigned(NAME_NXP_OMAPI_APP_TIMEOUT);
-    ALOGD_IF(ese_debug_enabled,
-             "NXP_OMAPI_APP_TIMEOUT value from config file = %ld",
-             gFelicaAppTimeout);
+    NXP_LOG_ESE_D("NXP_OMAPI_APP_TIMEOUT value from config file = %ld",
+                  gFelicaAppTimeout);
   }
   if (EseConfig::hasKey(NAME_NXP_RF_OFF_DEBOUNCE_TIMEOUT)) {
     gRfOffDebounceTimeout =
@@ -239,9 +235,9 @@ ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig) {
     if (gRfOffDebounceTimeout == 0) {
       gRfOffDebounceTimeout = 1;
     }
-    ALOGD_IF(ese_debug_enabled,
-             "NAME_NXP_RF_OFF_DEBOUNCE_TIMEOUT value from config file = %ld",
-             gRfOffDebounceTimeout);
+    NXP_LOG_ESE_D(
+        "NAME_NXP_RF_OFF_DEBOUNCE_TIMEOUT value from config file = %ld",
+        gRfOffDebounceTimeout);
   }
   if (EseConfig::hasKey(NAME_NXP_OMAPI_APP_SIGNATURE_1)) {
     gOmapiAppSignature1 = EseConfig::getBytes(NAME_NXP_OMAPI_APP_SIGNATURE_1);
@@ -259,7 +255,7 @@ ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig) {
     gOmapiAppSignature5 = EseConfig::getBytes(NAME_NXP_OMAPI_APP_SIGNATURE_5);
   }
 
-  ALOGD_IF(ese_debug_enabled, "halimpl open enter.");
+  NXP_LOG_ESE_D("halimpl open enter.");
   memset(&inpOutData, 0x00, sizeof(ese_nxp_IoctlInOutData_t));
   inpOutData.inp.data.nxpCmd.cmd_len = sizeof(cmd_omapi_concurrent);
   inpOutData.inp.data_source = 1;
@@ -267,26 +263,26 @@ ESESTATUS phPalEse_spi_open_and_configure(pphPalEse_Config_t pConfig) {
          sizeof(cmd_omapi_concurrent));
 
   /* open port */
-  ALOGD_IF(ese_debug_enabled, "Opening port=%s\n", pConfig->pDevName);
+  NXP_LOG_ESE_D("Opening port=%s\n", pConfig->pDevName);
 retry:
   nHandle = open((char const*)pConfig->pDevName, O_RDWR);
   if (nHandle < 0) {
-    ALOGE("%s : failed errno = 0x%x", __FUNCTION__, errno);
+    NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
     if (errno == -EBUSY || errno == EBUSY) {
       retryCnt++;
-      ALOGE("Retry open eSE driver, retry cnt : %d", retryCnt);
+      NXP_LOG_ESE_E("Retry open eSE driver, retry cnt : %d", retryCnt);
       if (retryCnt < MAX_RETRY_CNT) {
         phPalEse_sleep(1000000);
         goto retry;
       }
     }
-    ALOGE("_spi_open() Failed: retval %x", nHandle);
+    NXP_LOG_ESE_E("_spi_open() Failed: retval %x", nHandle);
     pConfig->pDevHandle = NULL;
     return ESESTATUS_INVALID_DEVICE;
   }
-  ALOGD_IF(ese_debug_enabled, "eSE driver opened :: fd = [%d]", nHandle);
+  NXP_LOG_ESE_D("eSE driver opened :: fd = [%d]", nHandle);
   pConfig->pDevHandle = (void*)((intptr_t)nHandle);
-  ALOGD_IF(ese_debug_enabled, "halimpl open exit");
+  NXP_LOG_ESE_D("halimpl open exit");
   return ESESTATUS_SUCCESS;
 }
 
@@ -307,10 +303,9 @@ retry:
 *******************************************************************************/
 int phPalEse_spi_read(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToRead) {
   int ret = -1;
-  ALOGD_IF(ese_debug_enabled, "%s Read Requested %d bytes", __FUNCTION__,
-           nNbBytesToRead);
+  NXP_LOG_ESE_D("%s Read Requested %d bytes", __FUNCTION__, nNbBytesToRead);
   ret = read((intptr_t)pDevHandle, (void*)pBuffer, (nNbBytesToRead));
-  ALOGD_IF(ese_debug_enabled, "Read Returned = %d", ret);
+  NXP_LOG_ESE_D("Read Returned = %d", ret);
   return ret;
 }
 
@@ -353,15 +348,16 @@ int phPalEse_spi_write(void* pDevHandle, uint8_t* pBuffer,
     if (ret > 0) {
       numWrote += ret;
     } else if (ret == 0) {
-      ALOGE("_spi_write() EOF");
+      NXP_LOG_ESE_E("_spi_write() EOF");
       return -1;
     } else {
-      ALOGE("_spi_write() failed errno : %x", errno);
+      NXP_LOG_ESE_E("_spi_write() failed errno : %x", errno);
       if (retryCount < MAX_SPI_WRITE_RETRY_COUNT_HW_ERR) {
         retryCount++;
         /*wait for eSE wake up*/
         phPalEse_sleep(WRITE_WAKE_UP_DELAY);
-        ALOGE("_spi_write() failed. Going to retry, counter:%ld !", retryCount);
+        NXP_LOG_ESE_E("_spi_write() failed. Going to retry, counter:%ld !",
+                      retryCount);
         continue;
       }
       return -1;
@@ -386,8 +382,8 @@ int phPalEse_spi_write(void* pDevHandle, uint8_t* pBuffer,
 ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
                              void* pDevHandle, long level) {
   ESESTATUS ret = ESESTATUS_IOCTL_FAILED;
-  ALOGD_IF(ese_debug_enabled, "phPalEse_spi_ioctl(), ioctl %x , level %lx",
-           eControlCode, level);
+  NXP_LOG_ESE_D("phPalEse_spi_ioctl(), ioctl %x , level %lx", eControlCode,
+                level);
   ese_nxp_IoctlInOutData_t inpOutData;
   inpOutData.inp.level = level;
   NfcAdaptation& pNfcAdapt = NfcAdaptation::GetInstance();
@@ -419,7 +415,7 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
 #ifdef NXP_ESE_JCOP_DWNLD_PROTECTION
     case phPalEse_e_SetEseUpdateStatus:
     {
-      ALOGD_IF(ese_debug_enabled, "phPalEse_spi_ioctl state = phPalEse_e_SetEseUpdateStatus");
+      NXP_LOG_ESE_D("phPalEse_spi_ioctl state = phPalEse_e_SetEseUpdateStatus");
       ese_nxp_IoctlInOutData_t inpOutData;
       memset(&inpOutData, 0x00, sizeof(ese_nxp_IoctlInOutData_t));
       inpOutData.inp.data.nxpCmd.cmd_len = 1;
@@ -427,9 +423,9 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
       uint8_t data = (uint8_t)level;
       memcpy(inpOutData.inp.data.nxpCmd.p_cmd, &data,
              sizeof(data));
-      ALOGD_IF(ese_debug_enabled, "Before phPalEse_e_SetEseUpdateStatus");
+      NXP_LOG_ESE_D("Before phPalEse_e_SetEseUpdateStatus");
       ret = pNfcAdapt.setEseUpdateState(&inpOutData);
-      ALOGD_IF(ese_debug_enabled, "After phPalEse_e_SetEseUpdateStatus");
+      NXP_LOG_ESE_D("After phPalEse_e_SetEseUpdateStatus");
     }
       break;
 #endif
@@ -452,7 +448,7 @@ ESESTATUS phPalEse_spi_ioctl(phPalEse_ControlCode_t eControlCode,
 **
 *******************************************************************************/
 void phPalEse_spi_rf_off_timer_expired_cb(union sigval) {
-  ALOGD_IF(true, "RF debounce timer expired...");
+  NXP_LOG_ESE_D("RF debounce timer expired...");
   gIsRfStateOn = false;
   StateMachine::GetInstance().ProcessExtEvent(EVT_RF_OFF);
   // just to be sure that we acquired dwp channel before allowing any activity
@@ -460,14 +456,12 @@ void phPalEse_spi_rf_off_timer_expired_cb(union sigval) {
   usleep(100);
   {
     SyncEventGuard guard(gSpiTxLock);
-    ALOGD_IF(ese_debug_enabled, "%s: Notifying SPI_TX Wait if waiting...",
-             __FUNCTION__);
+    NXP_LOG_ESE_D("%s: Notifying SPI_TX Wait if waiting...", __FUNCTION__);
     gSpiTxLock.notifyOne();
   }
   {
     SyncEventGuard guard(gSpiOpenLock);
-    ALOGD_IF(ese_debug_enabled, "%s: Notifying SPI_OPEN Wait if waiting...",
-             __FUNCTION__);
+    NXP_LOG_ESE_D("%s: Notifying SPI_OPEN Wait if waiting...", __FUNCTION__);
     gSpiOpenLock.notifyOne();
   }
 }
@@ -486,9 +480,9 @@ void phPalEse_spi_rf_off_timer_expired_cb(union sigval) {
 void phPalEse_spi_start_debounce_timer(unsigned long millisecs) {
   if (sTimerInstance.set(millisecs, phPalEse_spi_rf_off_timer_expired_cb) ==
       true) {
-    ALOGD_IF(true, "Starting RF debounce timer...");
+    NXP_LOG_ESE_D("Starting RF debounce timer...");
   } else {
-    ALOGE_IF(true, "Error, Starting RF debounce timer...");
+    NXP_LOG_ESE_D("Error, Starting RF debounce timer...");
   }
 }
 
@@ -504,7 +498,7 @@ void phPalEse_spi_start_debounce_timer(unsigned long millisecs) {
 **
 *******************************************************************************/
 void phPalEse_spi_stop_debounce_timer() {
-  ALOGD_IF(true, "Stopping RF debounce timer...");
+  NXP_LOG_ESE_D("Stopping RF debounce timer...");
   sTimerInstance.kill();
 }
 

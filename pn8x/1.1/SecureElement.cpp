@@ -17,6 +17,7 @@
  ******************************************************************************/
 #define LOG_TAG "NxpEseHal"
 #define MAX_INIT_RETRY_CNT 2
+#include <ese_logs.h>
 #include <log/log.h>
 
 #include "LsClient.h"
@@ -25,7 +26,6 @@
 #include "NxpEse.h"
 #include "SpiEseUpdater.h"
 
-extern bool ese_debug_enabled;
 extern uint8_t gMfcAppSessionCount;
 
 namespace android {
@@ -283,7 +283,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
     return Void();
   }
 
-  ALOGD_IF(ese_debug_enabled, "%s: Sending selectApdu", __func__);
+  NXP_LOG_ESE_D("%s: Sending selectApdu", __func__);
   /*Reset variables if manageChannel is success*/
   sestatus = SecureElementStatus::IOERROR;
   status = ESESTATUS_FAILED;

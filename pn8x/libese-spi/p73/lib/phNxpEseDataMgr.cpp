@@ -16,6 +16,7 @@
  *
  ******************************************************************************/
 #define LOG_TAG "NxpEseHal"
+#include <ese_logs.h>
 #include <log/log.h>
 #include <phNxpEseDataMgr.h>
 #include <phNxpEsePal.h>
@@ -40,23 +41,23 @@ ESESTATUS phNxpEse_GetData(uint32_t* data_len, uint8_t** pbuffer) {
   uint8_t* pbuff = NULL;
 
   if (total_len == 0) {
-    ALOGE("%s total_len = %d", __FUNCTION__, total_len);
+    NXP_LOG_ESE_D("%s total_len = %d", __FUNCTION__, total_len);
     return ESESTATUS_FAILED;
   }
   pbuff = (uint8_t*)phNxpEse_memalloc(total_len);
   if (NULL == pbuff) {
-    ALOGE("%s Error in malloc ", __FUNCTION__);
+    NXP_LOG_ESE_E("%s Error in malloc ", __FUNCTION__);
     return ESESTATUS_NOT_ENOUGH_MEMORY;
   }
 
   if (ESESTATUS_SUCCESS != phNxpEse_GetDataFromList(&total_data_len, pbuff)) {
-    ALOGE("%s phNxpEse_GetDataFromList", __FUNCTION__);
+    NXP_LOG_ESE_E("%s phNxpEse_GetDataFromList", __FUNCTION__);
     phNxpEse_free(pbuff);
     return ESESTATUS_FAILED;
   }
   if (total_data_len != total_len) {
-    ALOGE("%s Mismatch of len total_data_len %d total_len %d", __FUNCTION__,
-          total_data_len, total_len);
+    NXP_LOG_ESE_E("%s Mismatch of len total_data_len %d total_len %d",
+                  __FUNCTION__, total_data_len, total_len);
     phNxpEse_free(pbuff);
     return ESESTATUS_FAILED;
   }
@@ -111,7 +112,7 @@ ESESTATUS phNxpEse_StoreDatainList(uint32_t data_len, uint8_t* pbuff) {
 static ESESTATUS phNxpEse_GetDataFromList(uint32_t* data_len, uint8_t* pbuff) {
   phNxpEse_sCoreRecvBuff_List_t* new_node;
   uint32_t offset = 0;
-  ALOGD_IF(ese_debug_enabled, "%s Enter ", __FUNCTION__);
+  NXP_LOG_ESE_D("%s Enter ", __FUNCTION__);
   if (head == NULL || pbuff == NULL) {
     return ESESTATUS_FAILED;
   }
@@ -124,7 +125,7 @@ static ESESTATUS phNxpEse_GetDataFromList(uint32_t* data_len, uint8_t* pbuff) {
     new_node = new_node->pNext;
   }
   *data_len = offset;
-  ALOGD_IF(ese_debug_enabled, "%s Exit ", __FUNCTION__);
+  NXP_LOG_ESE_D("%s Exit ", __FUNCTION__);
   return ESESTATUS_SUCCESS;
 }
 
@@ -170,10 +171,7 @@ void phNxpEse_FlushData() {
   /* read if any residual data is there */
   if ((total_len > 0) &&
       (ESESTATUS_SUCCESS == phNxpEse_GetData(&pRes.len, &pRes.p_data))) {
-    ALOGD_IF(ese_debug_enabled,
-             "%s Flushed data"
-             " DataLen = %d",
-             __FUNCTION__, pRes.len);
+    NXP_LOG_ESE_D("%s Flushed data DataLen = %d", __FUNCTION__, pRes.len);
   }
   if (pRes.p_data != NULL) {
     phNxpEse_free(pRes.p_data);
