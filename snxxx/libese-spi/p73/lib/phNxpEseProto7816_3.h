@@ -118,6 +118,14 @@ typedef enum phNxpEseProto7816_TransceiveStates {
 } phNxpEseProto7816_TransceiveStates_t;
 
 /*!
+ * \brief reset type used in 7816-3 stack
+ */
+typedef enum phNxpEseProto7816_ResetType {
+  RESET_TYPE_NONE,
+  RESET_TYPE_RECOVERY
+} phNxpEseProto7816_ResetType_t;
+
+/*!
  * \brief I-frame information structure for ISO 7816-3
  *
  * This structure holds the  information of I-frame used for sending
@@ -462,10 +470,6 @@ typedef struct phNxpEseProto7816_PCB_bits {
  * \brief 7816-3 for max retry for CRC error
  */
 #define MAX_RNACK_RETRY_LIMIT 0x02
-/*!
- * \brief APIs exposed from the 7816-3 protocol layer
- */
-#define RESET_TYPE_NONE 0x00
 /*!
  * \brief APIs exposed from the 7816-3 protocol layer
  */

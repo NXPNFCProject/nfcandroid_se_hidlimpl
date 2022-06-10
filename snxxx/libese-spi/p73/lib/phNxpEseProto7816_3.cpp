@@ -199,13 +199,6 @@ static ESESTATUS phNxpEseProto7816_RSync(void);
 
 /**
  * \ingroup ISO7816-3_protocol_lib
- * \brief       This function is used to reset the 7816 protocol stack
- *
- */
-static ESESTATUS phNxpEseProto7816_ResetProtoParams(void);
-
-/**
- * \ingroup ISO7816-3_protocol_lib
  * \brief       This function is used to send the spi hard reset command
  *
  */
@@ -784,6 +777,7 @@ static ESESTATUS phNxpEseProto7816_RecoverySteps(void) {
         INTF_RESET_REQ;
     phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
         SEND_S_INTF_RST;
+    phNxpEseProto7816_3_Var.reset_type = RESET_TYPE_RECOVERY;
   } else { /* If recovery fails */
     phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState = IDLE_STATE;
     NXP_LOG_ESE_E("%s Recovery failed", __FUNCTION__);
@@ -1370,17 +1364,30 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
             INTF_RESET_REQ;
         break;
       case INTF_RESET_RSP:
-        phNxpEseProto7816_ResetProtoParams();
-        phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
-            INTF_RESET_RSP;
+        if (phNxpEseProto7816_3_Var.reset_type == RESET_TYPE_RECOVERY) {
+          uint32_t tmpcurrentIFSDSize = phNxpEseProto7816_3_Var.currentIFSDSize;
+          phNxpEseProto7816_ResetProtoParams();
+          phNxpEseProto7816_3_Var.currentIFSDSize = tmpcurrentIFSDSize;
+          phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
+              PH_NXP_ESE_PROTO_7816_TRANSCEIVE;
+          phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
+          phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.sFrameType =
+              IFS_REQ;
+          phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+              SEND_S_IFS_ADJ;
+        } else {
+          phNxpEseProto7816_ResetProtoParams();
+          phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo
+              .sFrameType = INTF_RESET_RSP;
+          phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = UNKNOWN;
+          phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+              IDLE_STATE;
+        }
         if (p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] > 0) {
           phNxpEseProto7816_DecodeSFrameATRData(p_data);
         } else {
           phNxpEse_setOsVersion(OS_VERSION_4_0);
         }
-        phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = UNKNOWN;
-        phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
-            IDLE_STATE;
         break;
       case PROP_END_APDU_REQ:
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
