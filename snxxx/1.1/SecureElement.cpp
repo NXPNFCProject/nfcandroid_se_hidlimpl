@@ -21,7 +21,9 @@
 #include <android-base/stringprintf.h>
 
 #include "NxpEse.h"
+#ifdef NXP_BOOTTIME_UPDATE
 #include "eSEClient.h"
+#endif
 #include "hal_nxpese.h"
 #include "phNxpEse_Apdu_Api.h"
 #include "phNxpEse_Api.h"
@@ -80,6 +82,7 @@ Return<void> SecureElement::init(
     clientCallback->linkToDeath(this, 0 /*cookie*/);
   }
   LOG(INFO) << "SecureElement::init called here";
+#ifdef NXP_BOOTTIME_UPDATE
   if (ese_update != ESE_UPDATE_COMPLETED) {
     mCallbackV1_0 = clientCallback;
     clientCallback->onStateChange(false);
@@ -88,6 +91,7 @@ Return<void> SecureElement::init(
     return Void();
     // Register
   }
+#endif
   if (mIsEseInitialized) {
     clientCallback->onStateChange(true);
     return Void();
@@ -146,6 +150,7 @@ Return<void> SecureElement::init_1_1(
     clientCallback->linkToDeath(this, 0 /*cookie*/);
   }
   LOG(INFO) << "SecureElement::init called here";
+#ifdef NXP_BOOTTIME_UPDATE
   if (ese_update != ESE_UPDATE_COMPLETED) {
     mCallbackV1_1 = clientCallback;
     clientCallback->onStateChange_1_1(false, "NXP SE update going on");
@@ -154,6 +159,7 @@ Return<void> SecureElement::init_1_1(
     return Void();
     // Register
   }
+#endif
   if (mIsEseInitialized) {
     clientCallback->onStateChange_1_1(true, "NXP SE HAL init ok");
     return Void();
