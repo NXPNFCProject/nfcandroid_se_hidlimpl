@@ -656,6 +656,9 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
   if (phNxpEse_getAtr(&atrData) != ESESTATUS_SUCCESS) {
     LOG(ERROR) << "phNxpEse_getAtr failed";
   }
+  if (atrData.p_data != NULL) {
+    phNxpEse_free(atrData.p_data);
+  }
 
   if (phNxpEse_GetOsMode() == OSU_MODE) {
     if (mOpenedchannelCount == 0) {
