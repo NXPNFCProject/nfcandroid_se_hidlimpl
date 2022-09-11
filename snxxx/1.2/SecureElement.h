@@ -82,6 +82,10 @@ using ::android::hidl::base::V1_0::IBase;
 struct SecureElement : public V1_2::ISecureElement,
                        public hidl_death_recipient {
   SecureElement();
+  // Methods from ::android::hidl::base::V1_0::IBase follow.
+  Return<void> debug(const hidl_handle& handle,
+                     const hidl_vec<hidl_string>& options) override;
+
   Return<void> init(
       const sp<
           ::android::hardware::secure_element::V1_0::ISecureElementHalCallback>&
