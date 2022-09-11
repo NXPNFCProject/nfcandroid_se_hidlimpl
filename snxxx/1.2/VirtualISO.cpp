@@ -24,6 +24,7 @@
 #endif
 #include <android-base/logging.h>
 
+#include <memunreachable/memunreachable.h>
 #include "hal_nxpese.h"
 #include "phNxpEse_Apdu_Api.h"
 #include "phNxpEse_Api.h"
@@ -713,6 +714,13 @@ VirtualISO::reset() {
   }
   LOG(ERROR) << "%s: Exit" << __func__;
   return sestatus;
+}
+
+Return<void> VirtualISO::debug(const hidl_handle& /* fd */,
+                               const hidl_vec<hidl_string>& /* options */) {
+  LOG(INFO) << "\n SecureElement-VirtualISO HAL MemoryLeak Info = \n"
+            << ::android::GetUnreachableMemoryString(true, 10000).c_str();
+  return Void();
 }
 
 }  // namespace implementation

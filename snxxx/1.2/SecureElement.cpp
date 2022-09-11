@@ -29,7 +29,7 @@
 #include "phNxpEse_Apdu_Api.h"
 #include "phNxpEse_Api.h"
 /* Mutex to synchronize multiple transceive */
-
+#include <memunreachable/memunreachable.h>
 namespace android {
 namespace hardware {
 namespace secure_element {
@@ -1050,6 +1050,14 @@ uint8_t SecureElement::getMaxChannelCnt() {
 
   return cnt;
 }
+
+Return<void> SecureElement::debug(const hidl_handle& /* fd */,
+                                  const hidl_vec<hidl_string>& /* options */) {
+  LOG(INFO) << "\n SecureElement-SecureElement HAL MemoryLeak Info = \n"
+            << ::android::GetUnreachableMemoryString(true, 10000).c_str();
+  return Void();
+}
+
 }  // namespace implementation
 }  // namespace V1_2
 }  // namespace secure_element

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright (C) 2018-2019 NXP Semiconductors
+ *  Copyright (C) 2018-2019,2022 NXP Semiconductors
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ namespace implementation {
 
 using ::android::sp;
 using ::android::hardware::hidl_array;
+using android::hardware::hidl_handle;
 using ::android::hardware::hidl_memory;
 using ::android::hardware::hidl_string;
 using ::android::hardware::hidl_vec;
@@ -44,6 +45,10 @@ using ::android::hidl::base::V1_0::DebugInfo;
 using ::android::hidl::base::V1_0::IBase;
 using ::vendor::nxp::nxpese::V1_0::INxpEse;
 struct NxpEse : public INxpEse {
+  // Methods from ::android::hidl::base::V1_0::IBase follow.
+  Return<void> debug(const hidl_handle& handle,
+                     const hidl_vec<hidl_string>& options) override;
+
   Return<void> ioctl(uint64_t ioctlType, const hidl_vec<uint8_t>& inOutData,
                      ioctl_cb _hidl_cb) override;
   static Return<void> setSeCallBack(
