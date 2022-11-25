@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <vendor/nxp/nxpnfc/2.0/INxpNfc.h>
+#include <aidl/vendor/nxp/nxpnfc_aidl/INxpNfc.h>
 
 #include "NfcAdaptation.h"
 #include "NxpEse.h"
@@ -41,11 +42,17 @@ using android::sp;
 using android::hardware::hidl_vec;
 using android::hardware::Void;
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
-using vendor::nxp::nxpnfc::V2_0::INxpNfc;
+using INxpNfc = vendor::nxp::nxpnfc::V2_0::INxpNfc;
+using INxpNfcAidl = ::aidl::vendor::nxp::nxpnfc_aidl::INxpNfc;
+
+std::string NXPNFC_AIDL_HAL_SERVICE_NAME = "vendor.nxp.nxpnfc_aidl.INxpNfc/default";
+
 sp<INxpNfc> mHalNxpNfc = nullptr;
+std::shared_ptr<INxpNfcAidl> mAidlHalNxpNfc = nullptr;
 
 void seteSEClientState(uint8_t state);
 
+bool use_nxp_aidl = false;
 IChannel_t Ch;
 se_extns_entry se_intf;
 void* eSEClientUpdate_ThreadHandler(void* data);
@@ -219,25 +226,52 @@ void* eSEClientUpdate_ThreadHandler(void* data) {
   int cnt = 0;
 
   ALOGD("%s Enter\n", __func__);
-  while (((mHalNxpNfc == nullptr) && (cnt < 3))) {
+  if (mHalNxpNfc == nullptr) {
+    while (((mAidlHalNxpNfc == nullptr) && (cnt < 3))) {
+      ::ndk::SpAIBinder binder(
+          AServiceManager_getService(NXPNFC_AIDL_HAL_SERVICE_NAME.c_str()));
+      mAidlHalNxpNfc = INxpNfcAidl::fromBinder(binder);
+      usleep(100 * 1000);
+      cnt++;
+    }
+    if (mAidlHalNxpNfc != nullptr) {
+      use_nxp_aidl = true;
+      mHalNxpNfc = nullptr;
+      ALOGI("%s: INxpNfcAidl::fromBinder returned", __func__);
+    }
+    LOG_FATAL_IF(mAidlHalNxpNfc == nullptr, "Failed to retrieve the NFC AIDL!");
+    if (mAidlHalNxpNfc != nullptr) {
+      bool ret = false;
+      mAidlHalNxpNfc->isJcopUpdateRequired(&ret);
+      if (!se_intf.isJcopUpdateRequired && ret) {
+        se_intf.isJcopUpdateRequired = true;
+        ALOGD(" se_intf.isJcopUpdateRequired = %d",
+              se_intf.isJcopUpdateRequired);
+      }
+      mAidlHalNxpNfc->isLsUpdateRequired(&ret);
+      if (!se_intf.isLSUpdateRequired && ret) {
+        se_intf.isLSUpdateRequired = true;
+        ALOGD("se_intf.isLSUpdateRequired = %d", se_intf.isLSUpdateRequired);
+      }
+    }
+  } else {
     mHalNxpNfc = INxpNfc::tryGetService();
     if (mHalNxpNfc == nullptr) ALOGD(": Failed to retrieve the NXP NFC HAL!");
     if (mHalNxpNfc != nullptr) {
       ALOGD("INxpNfc::getService() returned %p (%s)", mHalNxpNfc.get(),
             (mHalNxpNfc->isRemote() ? "remote" : "local"));
     }
-    usleep(100 * 1000);
-    cnt++;
-  }
 
-  if (mHalNxpNfc != nullptr) {
-    if (!se_intf.isJcopUpdateRequired && mHalNxpNfc->isJcopUpdateRequired()) {
-      se_intf.isJcopUpdateRequired = true;
-      ALOGD(" se_intf.isJcopUpdateRequired = %d", se_intf.isJcopUpdateRequired);
-    }
-    if (!se_intf.isLSUpdateRequired && mHalNxpNfc->isLsUpdateRequired()) {
-      se_intf.isLSUpdateRequired = true;
-      ALOGD("se_intf.isLSUpdateRequired = %d", se_intf.isLSUpdateRequired);
+    if (mHalNxpNfc != nullptr) {
+      if (!se_intf.isJcopUpdateRequired && mHalNxpNfc->isJcopUpdateRequired()) {
+        se_intf.isJcopUpdateRequired = true;
+        ALOGD(" se_intf.isJcopUpdateRequired = %d",
+              se_intf.isJcopUpdateRequired);
+      }
+      if (!se_intf.isLSUpdateRequired && mHalNxpNfc->isLsUpdateRequired()) {
+        se_intf.isLSUpdateRequired = true;
+        ALOGD("se_intf.isLSUpdateRequired = %d", se_intf.isLSUpdateRequired);
+      }
     }
   }
 

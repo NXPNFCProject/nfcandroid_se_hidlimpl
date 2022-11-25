@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2020 NXP
+ *  Copyright 2020,2022 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -22,9 +22,11 @@
 #include <pthread.h>
 #include <utils/RefBase.h>
 #include <vendor/nxp/nxpnfc/2.0/INxpNfc.h>
+#include <aidl/vendor/nxp/nxpnfc_aidl/INxpNfc.h>
 
 #include "hal_nxpese.h"
-using vendor::nxp::nxpnfc::V2_0::INxpNfc;
+using INxpNfc = vendor::nxp::nxpnfc::V2_0::INxpNfc;
+using INxpNfcAidl = ::aidl::vendor::nxp::nxpnfc_aidl::INxpNfc;
 
 class ThreadMutex {
  public:
@@ -81,4 +83,5 @@ class NfcAdaptation {
   ThreadCondVar mCondVar;
   static ThreadCondVar mHalIoctlEvent;
   static android::sp<INxpNfc> mHalNxpNfc;
+  static std::shared_ptr<INxpNfcAidl> mAidlHalNxpNfc;
 };

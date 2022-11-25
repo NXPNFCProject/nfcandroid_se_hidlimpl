@@ -18,10 +18,18 @@
 #define LOG_TAG "NxpEseHal-NfcAdaptation"
 #include "NfcAdaptation.h"
 #include <android/hardware/nfc/1.0/types.h>
+#include <aidl/vendor/nxp/nxpnfc_aidl/INxpNfc.h>
 #include <ese_logs.h>
 #include <hwbinder/ProcessState.h>
 #include <log/log.h>
 #include <pthread.h>
+#include <android/binder_ibinder.h>
+#include <android/binder_manager.h>
+#include <android/binder_process.h>
+#include <android/binder_auto_utils.h>
+#include <android/binder_enums.h>
+#include <android/binder_interface_utils.h>
+#include <binder/IServiceManager.h>
 
 #undef LOG_TAG
 #define LOG_TAG "SpiAdaptation"
@@ -34,9 +42,13 @@ using android::hardware::hidl_vec;
 using android::hardware::ProcessState;
 using android::hardware::Return;
 using android::hardware::Void;
-using vendor::nxp::nxpnfc::V2_0::INxpNfc;
+using INxpNfc = vendor::nxp::nxpnfc::V2_0::INxpNfc;
+using INxpNfcAidl = ::aidl::vendor::nxp::nxpnfc_aidl::INxpNfc;
+
+std::string NXPNFC_AIDL_HAL_SERVICE_NAME = "vendor.nxp.nxpnfc_aidl.INxpNfc/default";
 
 sp<INxpNfc> NfcAdaptation::mHalNxpNfc = nullptr;
+std::shared_ptr<INxpNfcAidl> NfcAdaptation::mAidlHalNxpNfc = nullptr;
 ThreadMutex NfcAdaptation::sIoctlLock;
 NfcAdaptation* NfcAdaptation::mpInstance = NULL;
 ThreadMutex NfcAdaptation::sLock;
@@ -46,12 +58,22 @@ int omapi_status;
 void NfcAdaptation::Initialize() {
   const char* func = "NfcAdaptation::Initialize";
   NXP_LOG_ESE_D("%s", func);
-  if (mHalNxpNfc != nullptr) return;
-  mHalNxpNfc = INxpNfc::tryGetService();
-  if (mHalNxpNfc != nullptr) {
-    NXP_LOG_ESE_E("%s: INxpNfc::getService() returned %p (%s)", func,
-                  mHalNxpNfc.get(),
-                  (mHalNxpNfc->isRemote() ? "remote" : "local"));
+  // Try get AIDL
+  ::ndk::SpAIBinder binder(
+      AServiceManager_waitForService(NXPNFC_AIDL_HAL_SERVICE_NAME.c_str()));
+  mAidlHalNxpNfc = INxpNfcAidl::fromBinder(binder);
+  if (mAidlHalNxpNfc != nullptr) {
+    mHalNxpNfc = nullptr;
+    NXP_LOG_ESE_E("%s: INfcAidl::fromBinder returned", func);
+  } else {
+    NXP_LOG_ESE_E("Failed to retrieve the NFC AIDL!");
+    if (mHalNxpNfc != nullptr) return;
+    mHalNxpNfc = INxpNfc::tryGetService();
+    if (mHalNxpNfc == nullptr) {
+      NXP_LOG_ESE_E("%s: INfc::getService() returned %p (%s)", func,
+                    mHalNxpNfc.get(),
+                    (mHalNxpNfc->isRemote() ? "remote" : "local"));
+    }
   }
   NXP_LOG_ESE_D("%s: exit", func);
 }
@@ -181,7 +203,15 @@ ESESTATUS NfcAdaptation::resetEse(uint64_t level) {
 
   NXP_LOG_ESE_D("%s : Enter", func);
 
-  if (mHalNxpNfc != nullptr) {
+  if (mAidlHalNxpNfc != nullptr) {
+    mAidlHalNxpNfc->resetEse(level, &ret);
+    if (ret) {
+      NXP_LOG_ESE_E("NfcAdaptation::resetEse mAidlHalNxpNfc completed");
+      result = ESESTATUS_SUCCESS;
+    } else {
+      NXP_LOG_ESE_E("NfcAdaptation::resetEse mAidlHalNxpNfc failed");
+    }
+  } else if (mHalNxpNfc != nullptr) {
     ret = mHalNxpNfc->resetEse(level);
     if (ret) {
       NXP_LOG_ESE_E("NfcAdaptation::resetEse mHalNxpNfc completed");
@@ -215,20 +245,32 @@ ESESTATUS NfcAdaptation::setEseUpdateState(void* p_data) {
   ese_nxp_IoctlInOutData_t* pInpOutData = (ese_nxp_IoctlInOutData_t*)p_data;
   data.setToExternal((uint8_t*)pInpOutData, sizeof(ese_nxp_IoctlInOutData_t));
 
-  if (mHalNxpNfc != nullptr) {
+  if (mAidlHalNxpNfc != nullptr) {
+    mAidlHalNxpNfc->setEseUpdateState(
+        (::aidl::vendor::nxp::nxpnfc_aidl::NxpNfcHalEseState)
+            pInpOutData->inp.data.nxpCmd.p_cmd[0],
+        &ret);
+    if (ret) {
+      NXP_LOG_ESE_E(
+          "NfcAdaptation::setEseUpdateState mAidlHalNxpNfc completed");
+      result = ESESTATUS_SUCCESS;
+    } else {
+      NXP_LOG_ESE_E("NfcAdaptation::setEseUpdateState mAidlHalNxpNfc failed");
+    }
+  } else if (mHalNxpNfc != nullptr) {
     ret = mHalNxpNfc->setEseUpdateState(
         (::vendor::nxp::nxpnfc::V2_0::NxpNfcHalEseState)
             pInpOutData->inp.data.nxpCmd.p_cmd[0]);
     if (ret) {
-      NXP_LOG_ESE_E("NfcAdaptation::setEseUpdateState completed");
+      NXP_LOG_ESE_E("NfcAdaptation::setEseUpdateState mHalNxpNfc completed");
       result = ESESTATUS_SUCCESS;
     } else {
-      NXP_LOG_ESE_E("NfcAdaptation::setEseUpdateState failed");
+      NXP_LOG_ESE_E("NfcAdaptation::setEseUpdateState mHalNxpNfc failed");
     }
   }
 
-  return result;
-}
+    return result;
+  }
 
 /*******************************************************************************
 **

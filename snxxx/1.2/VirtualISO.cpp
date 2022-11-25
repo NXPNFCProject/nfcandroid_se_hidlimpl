@@ -23,7 +23,8 @@
 #include "eSEClient.h"
 #endif
 #include <android-base/logging.h>
-
+// Undefined LOG_TAG as it is also defined in log.h
+#undef LOG_TAG
 #include <memunreachable/memunreachable.h>
 #include "hal_nxpese.h"
 #include "phNxpEse_Apdu_Api.h"
