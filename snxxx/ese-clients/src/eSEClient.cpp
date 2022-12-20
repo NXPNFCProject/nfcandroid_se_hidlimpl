@@ -52,7 +52,6 @@ std::shared_ptr<INxpNfcAidl> mAidlHalNxpNfc = nullptr;
 
 void seteSEClientState(uint8_t state);
 
-bool use_nxp_aidl = false;
 IChannel_t Ch;
 se_extns_entry se_intf;
 void* eSEClientUpdate_ThreadHandler(void* data);
@@ -226,34 +225,23 @@ void* eSEClientUpdate_ThreadHandler(void* data) {
   int cnt = 0;
 
   ALOGD("%s Enter\n", __func__);
-  if (mHalNxpNfc == nullptr) {
-    while (((mAidlHalNxpNfc == nullptr) && (cnt < 3))) {
+  if (mAidlHalNxpNfc == nullptr) {
+    do {
       ::ndk::SpAIBinder binder(
           AServiceManager_getService(NXPNFC_AIDL_HAL_SERVICE_NAME.c_str()));
       mAidlHalNxpNfc = INxpNfcAidl::fromBinder(binder);
-      usleep(100 * 1000);
-      cnt++;
-    }
-    if (mAidlHalNxpNfc != nullptr) {
-      use_nxp_aidl = true;
-      mHalNxpNfc = nullptr;
-      ALOGI("%s: INxpNfcAidl::fromBinder returned", __func__);
-    }
-    LOG_FATAL_IF(mAidlHalNxpNfc == nullptr, "Failed to retrieve the NFC AIDL!");
-    if (mAidlHalNxpNfc != nullptr) {
-      bool ret = false;
-      mAidlHalNxpNfc->isJcopUpdateRequired(&ret);
-      if (!se_intf.isJcopUpdateRequired && ret) {
-        se_intf.isJcopUpdateRequired = true;
-        ALOGD(" se_intf.isJcopUpdateRequired = %d",
-              se_intf.isJcopUpdateRequired);
+      if (!mAidlHalNxpNfc) {
+        usleep(100 * 1000);
+        cnt++;
       }
-      mAidlHalNxpNfc->isLsUpdateRequired(&ret);
-      if (!se_intf.isLSUpdateRequired && ret) {
-        se_intf.isLSUpdateRequired = true;
-        ALOGD("se_intf.isLSUpdateRequired = %d", se_intf.isLSUpdateRequired);
-      }
-    }
+    } while (((mAidlHalNxpNfc == nullptr) && (cnt < 3)));
+  }
+
+  if (mAidlHalNxpNfc) {
+    ALOGD("Boot Time Update not supported for mAidlHalNxpNfc.");
+    ALOGD("%s Exit\n", __func__);
+    pthread_exit(NULL);
+    return NULL;
   } else {
     mHalNxpNfc = INxpNfc::tryGetService();
     if (mHalNxpNfc == nullptr) ALOGD(": Failed to retrieve the NXP NFC HAL!");

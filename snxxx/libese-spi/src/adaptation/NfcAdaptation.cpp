@@ -246,17 +246,7 @@ ESESTATUS NfcAdaptation::setEseUpdateState(void* p_data) {
   data.setToExternal((uint8_t*)pInpOutData, sizeof(ese_nxp_IoctlInOutData_t));
 
   if (mAidlHalNxpNfc != nullptr) {
-    mAidlHalNxpNfc->setEseUpdateState(
-        (::aidl::vendor::nxp::nxpnfc_aidl::NxpNfcHalEseState)
-            pInpOutData->inp.data.nxpCmd.p_cmd[0],
-        &ret);
-    if (ret) {
-      NXP_LOG_ESE_E(
-          "NfcAdaptation::setEseUpdateState mAidlHalNxpNfc completed");
-      result = ESESTATUS_SUCCESS;
-    } else {
-      NXP_LOG_ESE_E("NfcAdaptation::setEseUpdateState mAidlHalNxpNfc failed");
-    }
+    NXP_LOG_ESE_D("NfcAdaptation::setEseUpdateState not supported for mAidlHalNxpNfc");
   } else if (mHalNxpNfc != nullptr) {
     ret = mHalNxpNfc->setEseUpdateState(
         (::vendor::nxp::nxpnfc::V2_0::NxpNfcHalEseState)
