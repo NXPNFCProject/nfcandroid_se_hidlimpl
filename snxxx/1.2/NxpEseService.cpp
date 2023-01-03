@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2022 NXP
+ *  Copyright 2018-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ static inline void waitForNFCHAL() {
   ALOGI("Waiting for NFC HAL .. ");
   do {
     ::ndk::SpAIBinder binder(
-        AServiceManager_getService(NFC_AIDL_HAL_SERVICE_NAME.c_str()));
+        AServiceManager_checkService(NFC_AIDL_HAL_SERVICE_NAME.c_str()));
     nfc_aidl_service = INfcAidl::fromBinder(binder);
     if (nfc_aidl_service != nullptr) {
       ALOGI("NFC HAL service is registered");

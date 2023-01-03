@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2020-2021 NXP
+ *  Copyright 2020-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -19,13 +19,9 @@
 #pragma once
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
-#include <hardware/hardware.h>
-#include <hidl/MQDescriptor.h>
-#include <hidl/Status.h>
 #include <string.h>
 #include "phNxpEse_Api.h"
 
-using ::android::hardware::hidl_vec;
 #define OSU_PROP_CLA 0x80
 #define OSU_PROP_INS 0xDF
 #define OSU_PROP_RST_P1 0xEF
@@ -63,7 +59,7 @@ class OsuHalExtn {
 
   static OsuHalExtn& getInstance();
 
-  OsuApduMode isOsuMode(const hidl_vec<uint8_t>& evt, uint8_t type,
+  OsuApduMode isOsuMode(const std::vector<uint8_t>& evt, uint8_t type,
                         phNxpEse_data* pCmdData = nullptr);
   bool isOsuMode(uint8_t type, uint8_t channel = 0xFF);
   virtual ~OsuHalExtn();
@@ -74,8 +70,8 @@ class OsuHalExtn {
  private:
   bool isAppOSUMode;
   bool isJcopOSUMode;
-  static const hidl_vec<uint8_t> osu_aid[10];
+  static const std::vector<uint8_t> osu_aid[10];
   OsuApduMode checkTransmit(uint8_t* input, uint32_t* outLength,
-                            const hidl_vec<uint8_t>& data);
+                            const std::vector<uint8_t>& data);
   bool isOsuMode();
 };

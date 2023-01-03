@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020, 2022 NXP
+ *  Copyright 2018-2020, 2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -228,7 +228,7 @@ void* eSEClientUpdate_ThreadHandler(void* data) {
   if (mAidlHalNxpNfc == nullptr) {
     do {
       ::ndk::SpAIBinder binder(
-          AServiceManager_getService(NXPNFC_AIDL_HAL_SERVICE_NAME.c_str()));
+          AServiceManager_checkService(NXPNFC_AIDL_HAL_SERVICE_NAME.c_str()));
       mAidlHalNxpNfc = INxpNfcAidl::fromBinder(binder);
       if (!mAidlHalNxpNfc) {
         usleep(100 * 1000);

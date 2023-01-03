@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020,2022 NXP
+ *  Copyright 2018-2020, 2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -106,20 +106,6 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
       } else {
         NXP_LOG_ESE_D(
             "******************RF IS OFF*************************************");
-      }
-      break;
-    case HAL_ESE_IOCTL_NFC_JCOP_DWNLD:
-
-      eseioctldata.nfc_jcop_download_state =
-          inpOutData->inp.data.nxpCmd.p_cmd[0];
-      if (eseioctldata.nfc_jcop_download_state == 1) {
-        NXP_LOG_ESE_D(
-            "******************JCOP Download "
-            "started*************************************");
-      } else {
-        NXP_LOG_ESE_D(
-            "******************JCOP Download "
-            "stopped*************************************");
       }
       break;
     default:
@@ -470,22 +456,6 @@ ESESTATUS EseSpiTransport::Ioctl(phPalEse_ControlCode_t eControlCode,
             (ESESTATUS)ioctl((intptr_t)pDevHandle, P61_SET_DWNLD_STATUS, level);
       }
       break;
-#if (NFC_NXP_ESE_VER == JCOP_VER_5_x)
-    case phPalEse_e_SetClientUpdateState: {
-      pNfcAdapt.Initialize();
-      NXP_LOG_ESE_D("phPalEse_spi_ioctl state = phPalEse_e_SetJcopDwnldState");
-      ese_nxp_IoctlInOutData_t inpOutData;
-      memset(&inpOutData, 0x00, sizeof(ese_nxp_IoctlInOutData_t));
-      inpOutData.inp.data.nxpCmd.cmd_len = 1;
-      inpOutData.inp.data_source = 1;
-      uint8_t data = (uint8_t)level;
-      memcpy(inpOutData.inp.data.nxpCmd.p_cmd, &data, sizeof(data));
-      NXP_LOG_ESE_D("Before phPalEse_e_SetClientUpdateState");
-
-      ret = pNfcAdapt.setEseUpdateState(&inpOutData);
-      NXP_LOG_ESE_D("After phPalEse_e_SetClientUpdateState");
-    } break;
-#endif
     case phPalEse_e_DisablePwrCntrl:
       ret = ESESTATUS_SUCCESS;
       break;
