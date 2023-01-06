@@ -49,7 +49,7 @@ OsuHalExtn::OsuApduMode OsuHalExtn::isOsuMode(const std::vector<uint8_t>& evt,
        * update & return OSU_PROP_MODE if OpenBasicChannel AID request matches
        * OSU_AID
        */
-      if (!memcmp(&evt[0], &OSU_AID[0], OSU_AID.size())) {
+      if (evt.size() && !memcmp(&evt[0], &OSU_AID[0], OSU_AID.size())) {
         isAppOSUMode = true;
         osuSubState = OSU_PROP_MODE;
         ALOGD("Dedicated mode is set !!!!!!!!!!!!!!!!!");
