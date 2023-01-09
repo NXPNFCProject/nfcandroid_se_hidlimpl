@@ -1,5 +1,5 @@
 //
-// Copyright 2021-2022 NXP
+// Copyright 2023 NXP
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,152 +22,17 @@ package {
     default_applicable_licenses: ["hardware_nxp_secure_element_license"],
 }
 
-cc_binary {
-    relative_install_path: "hw",
-    name: "android.hardware.secure_element_snxxx@1.2-service",
-    init_rc: ["1.2/android.hardware.secure_element_snxxx@1.2-service.rc"],
-    proprietary: true,
-    defaults: ["hidl_defaults"],
-    srcs: [
-        "1.2/NxpEseService.cpp",
-        "1.2/SecureElement.cpp",
-        "1.2/VirtualISO.cpp",
-        "extns/impl/NxpEse.cpp",
-        "ese-clients/src/eSEClient.cpp",
-        "OsuHal/src/OsuHalExtn.cpp",
-    ],
-
-    shared_libs: [
-        "android.hardware.secure_element@1.0",
-        "android.hardware.secure_element@1.1",
-        "android.hardware.secure_element@1.2",
-        "ese_spi_nxp_snxxx",
-        "libbase",
-        "libbinder",
-        "libbinder_ndk",
-        "libcutils",
-        "libdl",
-        "libhardware",
-        "libhidlbase",
-        "liblog",
-        "libutils",
-        "libchrome",
-        "vendor.nxp.nxpese@1.0",
-        "vendor.nxp.nxpnfc@2.0",
-        "vendor.nxp.nxpnfc_aidl-V1-ndk",
-        "se_extn_client",
-        "ls_client",
-        "jcos_client",
-        "android.hardware.nfc@1.0",
-        "android.hardware.nfc@1.1",
-        "android.hardware.nfc@1.2",
-        "android.hardware.nfc-V1-ndk",
-        "libmemunreachable",
-    ],
-
-    local_include_dirs: [
-        "libese-spi/common/include",
-        "libese-spi/p73/common",
-        "libese-spi/p73/inc",
-        "libese-spi/p73/lib",
-        "libese-spi/p73/pal",
-        "libese-spi/p73/pal/spi",
-        "libese-spi/p73/utils",
-        "libese-spi/p73/spm",
-        "libese-spi/src/include",
-        "ese-clients/inc",
-        "OsuHal/inc",
-    ],
-
-    include_dirs: [
-        "hardware/nxp/secure_element_extns/inc",
-        "hardware/nxp/secure_element/snxxx/extns/impl",
-        "hardware/nxp/secure_element_extns/jcos_client/inc",
-        "hardware/nxp/secure_element_extns/ls_client/inc",
-    ],
-    cflags: [
-        "-DANDROID",
-        "-DJCOP_VER_3_1=1",
-        "-DJCOP_VER_3_2=2",
-        "-DJCOP_VER_3_3=3",
-        "-DJCOP_VER_4_0=4",
-        "-DJCOP_VER_5_x=5",
-        "-DBUILDCFG=1",
-        "-DNXP_EXTNS=TRUE",
-        "-DNFC_NXP_ESE_VER=JCOP_VER_5_x",
-        "-DNXP_VISO_ENABLE",
-        "-DNXP_BOOTTIME_UPDATE",
-        "-Wall",
-        "-Werror",
-        "-fexceptions",
-    ],
-
+subdirs = [
+    "aidl",
+]
+filegroup {
+    name: "OsuHalCommonFile",
+    srcs: ["OsuHal/src/OsuHalExtn.cpp"],
 }
-
-cc_binary {
-    name: "android.hardware.secure_element-service.nxp",
-    relative_install_path: "hw",
-    vendor: true,
-    init_rc: ["aidl/secure_element-service-nxp.rc"],
-    vintf_fragments: ["aidl/secure_element-service-nxp.xml"],
-
-    srcs: [
-        "aidl/NxpEseService.cpp",
-        "aidl/SecureElement.cpp",
-        "aidl/VirtualISO.cpp",
-        "OsuHal/src/OsuHalExtn.cpp",
-    ],
-
-    shared_libs: [
-        "libbase",
-        "libbinder_ndk",
-        "android.hardware.secure_element-V1-ndk",
-        "libhardware",
-        "libhidlbase",
-        "liblog",
-        "libmemunreachable",
-        "libutils",
-        "ese_spi_nxp_snxxx",
-        "nfc_nci_nxp_snxxx",
-        "android.hardware.nfc@1.2",
-        "android.hardware.nfc-V1-ndk",
-        "vendor.nxp.nxpnfc_aidl-V1-ndk",
-    ],
-
-    local_include_dirs: [
-        "libese-spi/common/include",
-        "libese-spi/p73/common",
-        "libese-spi/p73/inc",
-        "libese-spi/p73/lib",
-        "libese-spi/p73/pal",
-        "libese-spi/p73/pal/spi",
-        "libese-spi/p73/utils",
-        "libese-spi/p73/spm",
-        "libese-spi/src/include",
-        "ese-clients/inc",
-        "OsuHal/inc",
-    ],
-
-    include_dirs: [
-        "hardware/nxp/nfc/snxxx/extns/impl/nxpnfc/aidl",
-        "hardware/nxp/nfc/snxxx/extns/impl/nxpnfc/2.0",
-        "hardware/nxp/nfc/snxxx/halimpl/common",
-        "hardware/nxp/nfc/snxxx/halimpl/utils",
-    ],
-
-    cflags: [
-        "-DANDROID",
-        "-DJCOP_VER_3_1=1",
-        "-DJCOP_VER_3_2=2",
-        "-DJCOP_VER_3_3=3",
-        "-DJCOP_VER_4_0=4",
-        "-DJCOP_VER_5_x=5",
-        "-DBUILDCFG=1",
-        "-DNXP_EXTNS=TRUE",
-        "-DNFC_NXP_ESE_VER=JCOP_VER_5_x",
-        "-DNXP_VISO_ENABLE",
-        "-Wall",
-        "-Werror",
-        "-fexceptions",
+filegroup {
+    name: "ExtnsFile",
+     srcs: [
+         "extns/impl/NxpEse.cpp",
+         "ese-clients/src/eSEClient.cpp",
     ],
 }
