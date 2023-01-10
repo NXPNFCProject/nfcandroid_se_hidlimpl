@@ -47,10 +47,24 @@ static int getResponseInternal(uint8_t cla, phNxpEse_7816_rpdu_t& rpdu,
 static sTransceiveBuffer_t gsTxRxBuffer;
 static std::vector<uint8_t> gsRspDataBuff(256);
 std::shared_ptr<ISecureElementCallback> SecureElement::mCb = nullptr;
+AIBinder_DeathRecipient* clientDeathRecipient = nullptr;
 std::vector<bool> SecureElement::mOpenedChannels;
 
 SecureElement::SecureElement()
     : mMaxChannelCount(0), mOpenedchannelCount(0), mIsEseInitialized(false) {}
+
+void SecureElement::updateSeHalInitState(bool mstate) {
+  mIsEseInitialized = mstate;
+}
+void OnDeath(void* cookie) {
+  (void)cookie;
+  LOG(ERROR) << " SecureElement serviceDied!!!";
+  SecureElement* se = static_cast<SecureElement*>(cookie);
+  se->updateSeHalInitState(false);
+  if (se->seHalDeInit() != SESTATUS_SUCCESS) {
+    LOG(ERROR) << "SE Deinit not successful";
+  }
+}
 
 void SecureElement::NotifySeWaitExtension(phNxpEse_wtxState state) {
   if (state == WTX_ONGOING) {
@@ -77,7 +91,17 @@ ScopedAStatus SecureElement::init(
   initParams.mediaType = ESE_PROTOCOL_MEDIA_SPI_APDU_GATE;
   initParams.fPtr_WtxNtf = SecureElement::NotifySeWaitExtension;
 
-  if (clientCallback == nullptr) return ScopedAStatus::ok();
+  if (clientCallback == nullptr) {
+    return ScopedAStatus::ok();
+  } else {
+    clientDeathRecipient = AIBinder_DeathRecipient_new(OnDeath);
+    auto linkRet = AIBinder_linkToDeath(clientCallback->asBinder().get(), clientDeathRecipient,
+                                        this /* cookie */);
+    if (linkRet != STATUS_OK) {
+        LOG(ERROR) << __func__ << ": linkToDeath failed: " << linkRet;
+        // Just ignore the error.
+    }
+  }
 
   LOG(INFO) << "SecureElement::init called here";
   if (mIsEseInitialized) {

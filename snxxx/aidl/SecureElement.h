@@ -87,6 +87,8 @@ struct SecureElement : public BnSecureElement {
                                 std::vector<uint8_t>* _aidl_return) override;
 
   static void NotifySeWaitExtension(phNxpEse_wtxState state);
+  void updateSeHalInitState(bool);
+  int seHalDeInit();
 
  private:
   uint8_t mMaxChannelCount;
@@ -98,7 +100,6 @@ struct SecureElement : public BnSecureElement {
   static std::shared_ptr<ISecureElementCallback> mCb;
   bool mHasPriorityAccess = false;
 
-  int seHalDeInit();
   ESESTATUS seHalInit();
   int internalCloseChannel(uint8_t channelNumber);
   uint8_t getReserveChannelCnt(const std::vector<uint8_t>& aid);

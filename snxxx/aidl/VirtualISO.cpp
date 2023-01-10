@@ -43,10 +43,18 @@ static sTransceiveBuffer_t gsTxRxBuffer;
 static std::vector<uint8_t> gsRspDataBuff(256);
 
 std::shared_ptr<ISecureElementCallback> VirtualISO::mCallback = nullptr;
+AIBinder_DeathRecipient* clientDeathRecipient = nullptr;
 std::vector<bool> VirtualISO::mOpenedChannels;
 
 VirtualISO::VirtualISO()
     : mMaxChannelCount(0), mOpenedchannelCount(0), mIsEseInitialized(false) {}
+
+void OnDeath(void* cookie) {
+  (void)cookie;
+  // TODO: Implement graceful closure, to close ongoing tx-rx and deinit
+  // T=1 stack
+  // close(0);
+}
 
 ScopedAStatus VirtualISO::init(
     const std::shared_ptr<ISecureElementCallback>& clientCallback) {
@@ -62,6 +70,15 @@ ScopedAStatus VirtualISO::init(
 
   if (clientCallback == nullptr) {
     return ScopedAStatus::ok();
+  } else {
+    clientDeathRecipient = AIBinder_DeathRecipient_new(OnDeath);
+    auto linkRet =
+        AIBinder_linkToDeath(clientCallback->asBinder().get(),
+                             clientDeathRecipient, this /* cookie */);
+    if (linkRet != STATUS_OK) {
+      LOG(ERROR) << __func__ << ": linkToDeath failed: " << linkRet;
+      // Just ignore the error.
+    }
   }
 
   if (mIsEseInitialized) {
