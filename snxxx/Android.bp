@@ -23,7 +23,7 @@ package {
 }
 
 subdirs = [
-    "aidl",
+    "aidl","1.2",
 ]
 filegroup {
     name: "OsuHalCommonFile",

@@ -28,6 +28,7 @@ cc_binary {
     init_rc: ["android.hardware.secure_element_snxxx@1.2-service.rc"],
     proprietary: true,
     defaults: ["hidl_defaults"],
+    enabled: false,
     srcs: [
         "NxpEseService.cpp",
         "SecureElement.cpp",

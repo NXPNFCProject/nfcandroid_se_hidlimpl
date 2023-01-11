@@ -28,6 +28,7 @@ cc_binary {
     vendor: true,
     init_rc: ["secure_element-service-nxp.rc"],
     vintf_fragments: ["secure_element-service-nxp.xml"],
+    enabled: true,
 
     srcs: [
         "NxpEseService.cpp",
