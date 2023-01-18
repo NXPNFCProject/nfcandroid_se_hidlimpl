@@ -270,6 +270,12 @@ ScopedAStatus SecureElement::transmit(const std::vector<uint8_t>& data,
     memcpy(&result[0], respBuf, sizeof(respBuf));
   } else {
     LOG(ERROR) << "transmit failed!!!";
+    if (!mOpenedchannelCount) {
+      // 0x69, 0x86 = COMMAND NOT ALLOWED
+      uint8_t sw[2] = {0x69, 0x86};
+      result.resize(sizeof(sw));
+      memcpy(&result[0], sw, sizeof(sw));
+    }
   }
   status = phNxpEse_ResetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
@@ -505,6 +511,12 @@ ScopedAStatus SecureElement::openBasicChannel(
   std::vector<uint8_t> result;
   std::vector<uint8_t> ls_aid = {0xA0, 0x00, 0x00, 0x03, 0x96, 0x41, 0x4C,
                                  0x41, 0x01, 0x43, 0x4F, 0x52, 0x01};
+
+  if (mOpenedChannels[0]) {
+    LOG(ERROR) << "openBasicChannel failed, channel already in use";
+    *_aidl_return = result;
+    return ScopedAStatus::fromServiceSpecificError(UNSUPPORTED_OPERATION);
+  }
 
   LOG(ERROR) << "Acquired the lock in SPI openBasicChannel";
   OsuHalExtn::OsuApduMode mode =
