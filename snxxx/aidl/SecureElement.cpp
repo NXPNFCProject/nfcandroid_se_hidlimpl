@@ -676,6 +676,13 @@ ScopedAStatus SecureElement::openBasicChannel(
 }
 
 int SecureElement::internalCloseChannel(uint8_t channelNumber) {
+  if ((channelNumber < mMaxChannelCount) && (!mOpenedChannels[channelNumber])) {
+    ALOGE(
+        "Error in internalCloseChannel!!!, "
+        "attempt to close channel %d which is not opened",
+        channelNumber);
+    return ISecureElement::FAILED;
+  }
   ESESTATUS status = ESESTATUS_SUCCESS;
   int sestatus = ISecureElement::FAILED;
   phNxpEse_7816_cpdu_t cpdu;
