@@ -393,6 +393,7 @@ ESESTATUS EseSpiTransport::Ioctl(phPalEse_ControlCode_t eControlCode,
           } else {
 #if (NFC_NXP_ESE_VER == JCOP_VER_5_x)
             // Nfc Driver communication part
+            pNfcAdapt.Initialize();
             ret = pNfcAdapt.resetEse(level);
 #else
             ret = ESESTATUS_SUCCESS;

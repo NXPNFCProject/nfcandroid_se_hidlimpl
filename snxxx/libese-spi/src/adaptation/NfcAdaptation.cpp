@@ -45,6 +45,8 @@ using android::hardware::Void;
 using INxpNfc = vendor::nxp::nxpnfc::V2_0::INxpNfc;
 using INxpNfcAidl = ::aidl::vendor::nxp::nxpnfc_aidl::INxpNfc;
 
+#define MAX_NFC_GET_RETRY 30
+#define NFC_GET_SERVICE_DELAY_MS 100
 std::string NXPNFC_AIDL_HAL_SERVICE_NAME = "vendor.nxp.nxpnfc_aidl.INxpNfc/default";
 
 sp<INxpNfc> NfcAdaptation::mHalNxpNfc = nullptr;
@@ -56,23 +58,27 @@ ThreadMutex NfcAdaptation::sLock;
 int omapi_status;
 
 void NfcAdaptation::Initialize() {
+  int retry = 0;
   const char* func = "NfcAdaptation::Initialize";
   NXP_LOG_ESE_D("%s", func);
   // Try get AIDL
-  ::ndk::SpAIBinder binder(
-      AServiceManager_waitForService(NXPNFC_AIDL_HAL_SERVICE_NAME.c_str()));
-  mAidlHalNxpNfc = INxpNfcAidl::fromBinder(binder);
-  if (mAidlHalNxpNfc != nullptr) {
-    mHalNxpNfc = nullptr;
-    NXP_LOG_ESE_E("%s: INfcAidl::fromBinder returned", func);
-  } else {
-    NXP_LOG_ESE_E("Failed to retrieve the NFC AIDL!");
-    if (mHalNxpNfc != nullptr) return;
+  do {
+    ::ndk::SpAIBinder binder(
+        AServiceManager_checkService(NXPNFC_AIDL_HAL_SERVICE_NAME.c_str()));
+    mAidlHalNxpNfc = INxpNfcAidl::fromBinder(binder);
+    if (mAidlHalNxpNfc != nullptr) {
+      NXP_LOG_ESE_E("%s: INxpNfcAidl::fromBinder returned", func);
+      break;
+    }
+    usleep(NFC_GET_SERVICE_DELAY_MS * 1000);
+  } while (retry++ < MAX_NFC_GET_RETRY);
+  if (mAidlHalNxpNfc == nullptr) {
+    ALOGE("Failed to get NXP NFC AIDLHAL .. Try for HIDL HAL");
     mHalNxpNfc = INxpNfc::tryGetService();
-    if (mHalNxpNfc == nullptr) {
-      NXP_LOG_ESE_E("%s: INfc::getService() returned %p (%s)", func,
-                    mHalNxpNfc.get(),
-                    (mHalNxpNfc->isRemote() ? "remote" : "local"));
+    if (mHalNxpNfc != nullptr) {
+      ALOGI("NXP NFC HAL service is available");
+    } else {
+      ALOGE("Failed to get INxpNfc::tryGetService");
     }
   }
   NXP_LOG_ESE_D("%s: exit", func);
