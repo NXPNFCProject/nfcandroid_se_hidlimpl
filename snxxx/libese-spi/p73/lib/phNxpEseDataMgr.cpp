@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019,2022 NXP
+ *  Copyright 2018-2019,2022-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -93,6 +93,7 @@ ESESTATUS phNxpEse_StoreDatainList(uint32_t data_len, uint8_t* pbuff) {
       sizeof(phNxpEse_sCoreRecvBuff_List_t));
   if (newNode == NULL) {
     NXP_LOG_ESE_E("%s Error in malloc ", __FUNCTION__);
+    phNxpEse_FlushData();
     return ESESTATUS_NOT_ENOUGH_MEMORY;
   }
   newNode->pNext = NULL;
