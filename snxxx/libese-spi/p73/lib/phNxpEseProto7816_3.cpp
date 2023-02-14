@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2022 NXP
+ *  Copyright 2018-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -1428,7 +1428,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
             ATR_RSP;
         if (p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] > 0) {
           phNxpEseProto7816_DecodeSFrameATRData(p_data);
-          phNxpEse_StoreDatainList(
+          status = phNxpEse_StoreDatainList(
               p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET],
               &p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET + 1]);
         } else {
@@ -1553,7 +1553,7 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
         }
         phNxpEseProto7816_3_Var.timeoutCounter = PH_PROTO_7816_VALUE_ZERO;
         NXP_LOG_ESE_D("%s calling phNxpEse_StoreDatainList", __FUNCTION__);
-        phNxpEse_StoreDatainList(data_len, p_data);
+        status = phNxpEse_StoreDatainList(data_len, p_data);
       }
     }
   }
@@ -1642,13 +1642,20 @@ static ESESTATUS TransceiveProcess(void) {
                       &phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx,
                       sizeof(phNxpEseProto7816_NextTx_Info_t));
       status = phNxpEseProto7816_ProcessResponse();
+      if (ESESTATUS_SUCCESS != status) {
+        NXP_LOG_ESE_E(
+            "%s Processing response failed, shall retry in new session",
+            __FUNCTION__);
+      }
     } else {
       NXP_LOG_ESE_E("%s Transceive send failed, going to recovery!",
                     __FUNCTION__);
+    }
+    if (ESESTATUS_SUCCESS != status) {
       phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
           IDLE_STATE;
     }
-  };
+  }
   /*Timeout condition when previously WTX_ONGOING is notified
    *WTX_END shall be notified from here */
   phNxpEseProto7816_CheckAndNotifyWtx(WTX_END);
