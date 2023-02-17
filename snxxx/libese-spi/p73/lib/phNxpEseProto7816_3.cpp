@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2022 NXP
+ *  Copyright 2018-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -916,7 +916,11 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
                                                              : "OSU Mode"));
   }
   if (phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN -
-                                               1] >= PH_SE_OS_VERSION_21) {
+                                               1] >= PH_SE_OS_VERSION_30) {
+    phNxpEse_setOsVersion(OS_VERSION_8_9);
+  } else if (phNxpEseProto7816_3_Var.atrInfo
+                 .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] >=
+             PH_SE_OS_VERSION_21) {
     phNxpEse_setOsVersion(OS_VERSION_6_3);
   } else if (phNxpEseProto7816_3_Var.atrInfo
                  .vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN - 1] >=

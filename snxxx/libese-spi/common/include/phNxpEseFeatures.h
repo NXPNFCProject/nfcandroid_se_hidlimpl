@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020, 2022 NXP
+ *  Copyright 2018-2020, 2022-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ typedef enum OS_VERSION {
   OS_VERSION_5_2_2 = 4,
   OS_VERSION_6_2 = 5,
   OS_VERSION_6_3 = 6,
+  OS_VERSION_8_9 = 8,
   INVALID_OS_VERSION = 0xFF,
 } phNxpEse_OsVersion_t;
 

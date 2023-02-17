@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2022 NXP
+ *  Copyright 2018-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -109,8 +109,10 @@ Return<void> SecureElement::init(
     if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0)) {
       initStatus = phNxpEse_init(initParams);
       if (ESESTATUS_SUCCESS == initStatus) {
-        /*update OS mode during first init*/
-        IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
+        if (GET_CHIP_OS_VERSION() < OS_VERSION_8_9) {
+          /*update OS mode during first init*/
+          IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
+        }
 
         if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)) {
           LOG(INFO) << "ESE SPI init complete!!!";
@@ -125,7 +127,8 @@ Return<void> SecureElement::init(
     if (status == ESESTATUS_SUCCESS &&
         (initStatus == ESESTATUS_TRANSCEIVE_FAILED ||
          initStatus == ESESTATUS_FAILED)) {
-      IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
+      if (GET_CHIP_OS_VERSION() < OS_VERSION_8_9)
+        IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
       mIsInitDone = true;
     }
   }
@@ -220,7 +223,8 @@ Return<void> SecureElement::init_1_1(
       initStatus = phNxpEse_init(initParams);
       if (initStatus == ESESTATUS_SUCCESS) {
         /*update OS mode during first init*/
-        IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
+        if (GET_CHIP_OS_VERSION() < OS_VERSION_8_9)
+          IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
 
         if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)) {
           LOG(INFO) << "ESE SPI init complete!!!";
@@ -235,7 +239,8 @@ Return<void> SecureElement::init_1_1(
     if (status == ESESTATUS_SUCCESS &&
         (initStatus == ESESTATUS_TRANSCEIVE_FAILED ||
          initStatus == ESESTATUS_FAILED)) {
-      IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
+      if (GET_CHIP_OS_VERSION() < OS_VERSION_8_9)
+        IS_OSU_MODE(OsuHalExtn::getInstance().INIT, 0);
       mIsInitDone = true;
     }
   }
@@ -264,7 +269,8 @@ Return<void> SecureElement::getAtr(getAtr_cb _hidl_cb) {
   bool mIsSeHalInitDone = false;
 
   // In dedicated mode getATR not allowed
-  if (IS_OSU_MODE(OsuHalExtn::getInstance().GETATR)) {
+  if ((GET_CHIP_OS_VERSION() < OS_VERSION_8_9) &&
+      (IS_OSU_MODE(OsuHalExtn::getInstance().GETATR))) {
     LOG(ERROR) << "%s: Not allowed in dedicated mode!!!" << __func__;
     _hidl_cb(response);
     return Void();
@@ -337,23 +343,24 @@ Return<void> SecureElement::transmit(const hidl_vec<uint8_t>& data,
     _hidl_cb(result);
     return Void();
   }
-  OsuHalExtn::OsuApduMode mode = IS_OSU_MODE(
-      data, OsuHalExtn::getInstance().TRANSMIT, &gsTxRxBuffer.cmdData);
-  if (mode == OsuHalExtn::getInstance().OSU_BLOCKED_MODE) {
-    LOG(ERROR) << "Not allowed in dedicated mode!!!";
-    /*Return empty hidl_vec*/
-    _hidl_cb(result);
-    return Void();
-  } else if (mode == OsuHalExtn::getInstance().OSU_RST_MODE) {
-    uint8_t sw[2] = {0x90, 0x00};
-    result.resize(sizeof(sw));
-    memcpy(&result[0], sw, sizeof(sw));
-    _hidl_cb(result);
-    return Void();
+  if (GET_CHIP_OS_VERSION() < OS_VERSION_8_9) {
+    OsuHalExtn::OsuApduMode mode = IS_OSU_MODE(
+        data, OsuHalExtn::getInstance().TRANSMIT, &gsTxRxBuffer.cmdData);
+    if (mode == OsuHalExtn::getInstance().OSU_BLOCKED_MODE) {
+      LOG(ERROR) << "Not allowed in dedicated mode!!!";
+      /*Return empty hidl_vec*/
+      _hidl_cb(result);
+      return Void();
+    } else if (mode == OsuHalExtn::getInstance().OSU_RST_MODE) {
+      uint8_t sw[2] = {0x90, 0x00};
+      result.resize(sizeof(sw));
+      memcpy(&result[0], sw, sizeof(sw));
+      _hidl_cb(result);
+      return Void();
+    }
   } else {
-    // continue with normal processing
+    memcpy(gsTxRxBuffer.cmdData.p_data, data.data(), gsTxRxBuffer.cmdData.len);
   }
-  // memcpy(gsTxRxBuffer.cmdData.p_data, data.data(), gsTxRxBuffer.cmdData.len);
   LOG(INFO) << "Acquired lock for SPI";
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
@@ -419,7 +426,8 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   LOG(INFO) << "Acquired the lock from SPI openLogicalChannel";
 
   // In dedicated mode openLogical not allowed
-  if (IS_OSU_MODE(OsuHalExtn::getInstance().OPENLOGICAL)) {
+  if ((GET_CHIP_OS_VERSION() < OS_VERSION_8_9) &&
+      (IS_OSU_MODE(OsuHalExtn::getInstance().OPENLOGICAL))) {
     LOG(ERROR) << "%s: Not allowed in dedicated mode!!!" << __func__;
     _hidl_cb(resApduBuff, SecureElementStatus::IOERROR);
     return Void();
@@ -606,9 +614,9 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
                               0x41, 0x01, 0x43, 0x4F, 0x52, 0x01};
 
   LOG(ERROR) << "Acquired the lock in SPI openBasicChannel";
-  OsuHalExtn::OsuApduMode mode =
-      IS_OSU_MODE(aid, OsuHalExtn::getInstance().OPENBASIC);
-  if (mode == OsuHalExtn::OSU_PROP_MODE) {
+  if ((GET_CHIP_OS_VERSION() < OS_VERSION_8_9) &&
+      IS_OSU_MODE(aid, OsuHalExtn::getInstance().OPENBASIC) ==
+          OsuHalExtn::OSU_PROP_MODE) {
     uint8_t sw[2] = {0x90, 0x00};
     result.resize(sizeof(sw));
     memcpy(&result[0], sw, 2);
@@ -652,22 +660,24 @@ Return<void> SecureElement::openBasicChannel(const hidl_vec<uint8_t>& aid,
     }
   }
 
-  phNxpEse_data atrData;
-  if (phNxpEse_getAtr(&atrData) != ESESTATUS_SUCCESS) {
-    LOG(ERROR) << "phNxpEse_getAtr failed";
-  }
-  if (atrData.p_data != NULL) {
-    phNxpEse_free(atrData.p_data);
-  }
-
-  if (phNxpEse_GetOsMode() == OSU_MODE) {
-    if (mOpenedchannelCount == 0) {
-      if (seHalDeInit() != SecureElementStatus::SUCCESS) {
-        LOG(INFO) << "seDeInit Failed";
-      }
+  if (GET_CHIP_OS_VERSION() < OS_VERSION_8_9) {
+    phNxpEse_data atrData;
+    if (phNxpEse_getAtr(&atrData) != ESESTATUS_SUCCESS) {
+      LOG(ERROR) << "phNxpEse_getAtr failed";
     }
-    _hidl_cb(result, SecureElementStatus::IOERROR);
-    return Void();
+    if (atrData.p_data != NULL) {
+      phNxpEse_free(atrData.p_data);
+    }
+
+    if (phNxpEse_GetOsMode() == OSU_MODE) {
+      if (mOpenedchannelCount == 0) {
+        if (seHalDeInit() != SecureElementStatus::SUCCESS) {
+          LOG(INFO) << "seDeInit Failed";
+        }
+      }
+      _hidl_cb(result, SecureElementStatus::IOERROR);
+      return Void();
+    }
   }
 
   if (mOpenedChannels.size() == 0x00) {
@@ -819,7 +829,8 @@ Return<SecureElementStatus> SecureElement::internalCloseChannel(
 Return<SecureElementStatus> SecureElement::closeChannel(uint8_t channelNumber) {
   AutoMutex guard(seHalLock);
   // Close internal allowed when not in dedicated Mode
-  if (!IS_OSU_MODE(OsuHalExtn::getInstance().CLOSE, channelNumber)) {
+  if ((GET_CHIP_OS_VERSION() >= OS_VERSION_8_9) ||
+      (!IS_OSU_MODE(OsuHalExtn::getInstance().CLOSE, channelNumber))) {
     return internalCloseChannel(channelNumber);
   } else {
     /*Decrement channel count opened to
