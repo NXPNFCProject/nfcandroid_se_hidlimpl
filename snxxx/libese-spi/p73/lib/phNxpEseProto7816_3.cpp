@@ -730,14 +730,13 @@ static ESESTATUS phNxpEseProto7816_SetNextIframeContxt(void) {
  ******************************************************************************/
 static ESESTATUS phNxpEseProto7816_SaveIframeData(uint8_t* p_data,
                                                   uint32_t data_len) {
-  ESESTATUS status = ESESTATUS_FAILED;
   NXP_LOG_ESE_D("Enter %s ", __FUNCTION__);
   NXP_LOG_ESE_D("Data[0]=0x%x len=%d Data[%d]=0x%x", p_data[0], data_len,
                 data_len - 1, p_data[data_len - 1]);
-  if (ESESTATUS_SUCCESS != phNxpEse_StoreDatainList(data_len, p_data)) {
-    NXP_LOG_ESE_E("%s - Error storing chained data in list", __FUNCTION__);
-  } else {
-    status = ESESTATUS_SUCCESS;
+  ESESTATUS status = phNxpEse_StoreDatainList(data_len, p_data);
+  if (ESESTATUS_SUCCESS != status) {
+    NXP_LOG_ESE_E("%s - Error storing chained data in list, status %d",
+                  __FUNCTION__, status);
   }
   NXP_LOG_ESE_D("Exit %s ", __FUNCTION__);
   return status;
@@ -1642,16 +1641,16 @@ static ESESTATUS TransceiveProcess(void) {
                       &phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx,
                       sizeof(phNxpEseProto7816_NextTx_Info_t));
       status = phNxpEseProto7816_ProcessResponse();
-      if (ESESTATUS_SUCCESS != status) {
+      if (ESESTATUS_NOT_ENOUGH_MEMORY == status) {
         NXP_LOG_ESE_E(
             "%s Processing response failed, shall retry in new session",
             __FUNCTION__);
+        phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+            IDLE_STATE;
       }
     } else {
       NXP_LOG_ESE_E("%s Transceive send failed, going to recovery!",
                     __FUNCTION__);
-    }
-    if (ESESTATUS_SUCCESS != status) {
       phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
           IDLE_STATE;
     }
