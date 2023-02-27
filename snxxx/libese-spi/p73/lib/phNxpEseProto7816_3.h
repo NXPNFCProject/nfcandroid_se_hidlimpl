@@ -122,7 +122,8 @@ typedef enum phNxpEseProto7816_TransceiveStates {
  */
 typedef enum phNxpEseProto7816_ResetType {
   RESET_TYPE_NONE,
-  RESET_TYPE_RECOVERY
+  RESET_TYPE_RECOVERY,
+  RESET_TYPE_OS_RESET
 } phNxpEseProto7816_ResetType_t;
 
 /*!
