@@ -683,13 +683,6 @@ ScopedAStatus SecureElement::openBasicChannel(
 }
 
 int SecureElement::internalCloseChannel(uint8_t channelNumber) {
-  if ((channelNumber < mMaxChannelCount) && (!mOpenedChannels[channelNumber])) {
-    ALOGE(
-        "Error in internalCloseChannel!!!, "
-        "attempt to close channel %d which is not opened",
-        channelNumber);
-    return ISecureElement::FAILED;
-  }
   ESESTATUS status = ESESTATUS_SUCCESS;
   int sestatus = ISecureElement::FAILED;
   phNxpEse_7816_cpdu_t cpdu;
@@ -700,7 +693,8 @@ int SecureElement::internalCloseChannel(uint8_t channelNumber) {
         channelNumber);
   if (channelNumber >= mMaxChannelCount) {
     ALOGE("invalid channel!!! %d", channelNumber);
-  } else if (channelNumber > DEFAULT_BASIC_CHANNEL) {
+  } else if (channelNumber > DEFAULT_BASIC_CHANNEL &&
+             mOpenedChannels[channelNumber]) {
     phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
     phNxpEse_memset(&rpdu, 0x00, sizeof(phNxpEse_7816_rpdu_t));
     cpdu.cla = channelNumber; /* Class of instruction */
@@ -728,6 +722,9 @@ int SecureElement::internalCloseChannel(uint8_t channelNumber) {
     if (status != ESESTATUS_SUCCESS) {
       LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
     }
+  } else if (channelNumber == DEFAULT_BASIC_CHANNEL &&
+             mOpenedChannels[channelNumber]) {
+    sestatus = SESTATUS_SUCCESS;
   }
   if (channelNumber < mMaxChannelCount) {
     if (mOpenedChannels[channelNumber]) {
@@ -737,7 +734,9 @@ int SecureElement::internalCloseChannel(uint8_t channelNumber) {
   }
   /*If there are no channels remaining close secureElement*/
   if (mOpenedchannelCount == 0) {
-    sestatus = seHalDeInit();
+    if (SESTATUS_SUCCESS != seHalDeInit()) {
+      LOG(ERROR) << "internalCloseChannel seHalDeInit failed";
+    }
   } else {
     sestatus = SESTATUS_SUCCESS;
   }
