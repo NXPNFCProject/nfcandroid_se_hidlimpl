@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2022 NXP
+ *  Copyright 2018-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -1233,7 +1233,13 @@ ESESTATUS phNxpEse_read(uint32_t* data_len, uint8_t** pp_data) {
     *pp_data = nxpese_ctxt.p_read_buff;
     status = ESESTATUS_FAILED;
   } else {
-    PH_PAL_ESE_PRINT_PACKET_RX(nxpese_ctxt.p_read_buff, (uint16_t)ret);
+    if (ret > MAX_DATA_LEN) {
+      NXP_LOG_ESE_E("%s PAL Read buffer length(%x) is greater than MAX_DATA_LEN(%x) "
+            , __FUNCTION__, ret, MAX_DATA_LEN);
+      PH_PAL_ESE_PRINT_PACKET_RX(nxpese_ctxt.p_read_buff, (uint16_t)MAX_DATA_LEN);
+    } else {
+      PH_PAL_ESE_PRINT_PACKET_RX(nxpese_ctxt.p_read_buff, (uint16_t)ret);
+    }
     *data_len = ret;
     *pp_data = nxpese_ctxt.p_read_buff;
     status = ESESTATUS_SUCCESS;
