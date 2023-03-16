@@ -589,7 +589,9 @@ ESESTATUS VirtualISO::seHalInit() {
       }
       deInitStatus = phNxpEse_deInit();
     }
-    phNxpEse_close(deInitStatus);
+    if (phNxpEse_close(deInitStatus) != ESESTATUS_SUCCESS) {
+      LOG(INFO) << "VISO close is not successful";
+    }
     mIsEseInitialized = false;
   }
   return status;

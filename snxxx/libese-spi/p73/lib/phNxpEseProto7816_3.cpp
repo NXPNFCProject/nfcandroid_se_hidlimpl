@@ -1617,7 +1617,12 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
         }
         phNxpEseProto7816_3_Var.timeoutCounter = PH_PROTO_7816_VALUE_ZERO;
         NXP_LOG_ESE_D("%s calling phNxpEse_StoreDatainList", __FUNCTION__);
-        status = phNxpEse_StoreDatainList(data_len, p_data);
+        ESESTATUS storeDataStatus = phNxpEse_StoreDatainList(data_len, p_data);
+        if (storeDataStatus != ESESTATUS_SUCCESS) {
+          NXP_LOG_ESE_D("%s :phNxpEse_StoreDatainList failed. status = %x",
+                __FUNCTION__, storeDataStatus);
+          status = storeDataStatus;
+        }
       }
     }
   }
