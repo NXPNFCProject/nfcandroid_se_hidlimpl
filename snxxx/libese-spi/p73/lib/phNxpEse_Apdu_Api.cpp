@@ -51,7 +51,7 @@ ESESTATUS phNxpEse_7816_Transceive(pphNxpEse_7816_cpdu_t pCmd,
   phNxpEse_memset(&pRspTrans, 0x00, sizeof(phNxpEse_data));
 
   if (NULL == pCmd || NULL == pRsp) {
-    NXP_LOG_ESE_E(" %s Invalid prameter \n", __FUNCTION__);
+    NXP_LOG_ESE_E(" %s Invalid parameter \n", __FUNCTION__);
     status = ESESTATUS_INVALID_PARAMETER;
   } else if (pCmd->cpdu_type > 1) {
     NXP_LOG_ESE_E(" %s Invalid cpdu type \n", __FUNCTION__);
@@ -94,7 +94,7 @@ ESESTATUS phNxpEse_7816_Transceive(pphNxpEse_7816_cpdu_t pCmd,
             NXP_LOG_ESE_E("Invalid Res buffer");
             status = ESESTATUS_FAILED;
           }
-          NXP_LOG_ESE_D("Freeing memroy pRspTrans.p_data ");
+          NXP_LOG_ESE_D("Freeing memory pRspTrans.p_data ");
           phNxpEse_free(pRspTrans.p_data);
           pRspTrans.p_data = NULL;
           pRspTrans.len = 0;
@@ -153,7 +153,7 @@ static ESESTATUS phNxpEse_7816_FrameCmd(pphNxpEse_7816_cpdu_t pCmd,
 
     cmd_total_len += pCmd->lc; /* add data length */
     if (pCmd->pdata == NULL) {
-      NXP_LOG_ESE_E("%s Invalide data buffer from application ", __FUNCTION__);
+      NXP_LOG_ESE_E("%s Invalid data buffer from application ", __FUNCTION__);
       return ESESTATUS_INVALID_BUFFER;
     }
   } else {

@@ -17,19 +17,20 @@
  ******************************************************************************/
 #define LOG_TAG "NxpEseHal-NfcAdaptation"
 #include "NfcAdaptation.h"
-#include <android/hardware/nfc/1.0/types.h>
+
 #include <aidl/vendor/nxp/nxpnfc_aidl/INxpNfc.h>
+#include <android/binder_auto_utils.h>
+#include <android/binder_enums.h>
+#include <android/binder_ibinder.h>
+#include <android/binder_interface_utils.h>
+#include <android/binder_manager.h>
+#include <android/binder_process.h>
+#include <android/hardware/nfc/1.0/types.h>
+#include <binder/IServiceManager.h>
 #include <ese_logs.h>
 #include <hwbinder/ProcessState.h>
 #include <log/log.h>
 #include <pthread.h>
-#include <android/binder_ibinder.h>
-#include <android/binder_manager.h>
-#include <android/binder_process.h>
-#include <android/binder_auto_utils.h>
-#include <android/binder_enums.h>
-#include <android/binder_interface_utils.h>
-#include <binder/IServiceManager.h>
 
 #undef LOG_TAG
 #define LOG_TAG "SpiAdaptation"
@@ -47,7 +48,8 @@ using INxpNfcAidl = ::aidl::vendor::nxp::nxpnfc_aidl::INxpNfc;
 
 #define MAX_NFC_GET_RETRY 30
 #define NFC_GET_SERVICE_DELAY_MS 100
-std::string NXPNFC_AIDL_HAL_SERVICE_NAME = "vendor.nxp.nxpnfc_aidl.INxpNfc/default";
+std::string NXPNFC_AIDL_HAL_SERVICE_NAME =
+    "vendor.nxp.nxpnfc_aidl.INxpNfc/default";
 
 sp<INxpNfc> NfcAdaptation::mHalNxpNfc = nullptr;
 std::shared_ptr<INxpNfcAidl> NfcAdaptation::mAidlHalNxpNfc = nullptr;
@@ -151,7 +153,7 @@ AutoThreadMutex::~AutoThreadMutex() { mm.unlock(); }
 **
 ** Function:    ThreadMutex::lock()
 **
-** Description: lock kthe mutex
+** Description: lock the mutex
 **
 ** Returns:     none
 **
@@ -235,8 +237,8 @@ ESESTATUS NfcAdaptation::resetEse(uint64_t level) {
 ** Function:    NfcAdaptation::setEseUpdateState
 **
 ** Description:  This is a wrapper functions notifies upper layer about
-** the jcob download comple
-** tion.
+** the jcob download completion.
+**
 ** Returns:     -1 or 0.
 **
 *******************************************************************************/
@@ -252,7 +254,8 @@ ESESTATUS NfcAdaptation::setEseUpdateState(void* p_data) {
   data.setToExternal((uint8_t*)pInpOutData, sizeof(ese_nxp_IoctlInOutData_t));
 
   if (mAidlHalNxpNfc != nullptr) {
-    NXP_LOG_ESE_D("NfcAdaptation::setEseUpdateState not supported for mAidlHalNxpNfc");
+    NXP_LOG_ESE_D(
+        "NfcAdaptation::setEseUpdateState not supported for mAidlHalNxpNfc");
   } else if (mHalNxpNfc != nullptr) {
     ret = mHalNxpNfc->setEseUpdateState(
         (::vendor::nxp::nxpnfc::V2_0::NxpNfcHalEseState)
@@ -265,8 +268,8 @@ ESESTATUS NfcAdaptation::setEseUpdateState(void* p_data) {
     }
   }
 
-    return result;
-  }
+  return result;
+}
 
 /*******************************************************************************
 **

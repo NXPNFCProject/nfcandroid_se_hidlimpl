@@ -26,20 +26,19 @@
 #include "EseSpiTransport.h"
 
 #define LOG_TAG "NxpEseHal"
-#include <log/log.h>
-
 #include <errno.h>
+#include <ese_config.h>
+#include <ese_logs.h>
 #include <fcntl.h>
+#include <hardware/nfc.h>
+#include <log/log.h>
+#include <phEseStatus.h>
+#include <phNxpEsePal.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-#include <ese_config.h>
-#include <ese_logs.h>
-#include <hardware/nfc.h>
-#include <phEseStatus.h>
-#include <phNxpEsePal.h>
-#include <string.h>
 #include "NfcAdaptation.h"
 #include "hal_nxpese.h"
 #include "phNxpEse_Api.h"

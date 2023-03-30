@@ -18,20 +18,21 @@
 #ifndef VENDOR_NXP_NXPNFC_V1_0_NXPNFC_H
 #define VENDOR_NXP_NXPNFC_V1_0_NXPNFC_H
 
-#include <android/binder_ibinder.h>
-#include <android/binder_manager.h>
-#include <android/binder_process.h>
 #include <android/binder_auto_utils.h>
 #include <android/binder_enums.h>
+#include <android/binder_ibinder.h>
 #include <android/binder_interface_utils.h>
-#include <binder/IServiceManager.h>
+#include <android/binder_manager.h>
+#include <android/binder_process.h>
 #include <android/hardware/secure_element/1.0/ISecureElementHalCallback.h>
 #include <android/hardware/secure_element/1.1/ISecureElement.h>
 #include <android/hardware/secure_element/1.1/ISecureElementHalCallback.h>
+#include <binder/IServiceManager.h>
 #include <hardware/hardware.h>
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>
 #include <vendor/nxp/nxpese/1.0/INxpEse.h>
+
 #include "hal_nxpese.h"
 namespace vendor {
 namespace nxp {

@@ -19,6 +19,7 @@
 #include <ese_logs.h>
 #include <log/log.h>
 #include <phNxpEseProto7816_3.h>
+
 #include "phNxpEsePal.h"
 
 /**
@@ -133,7 +134,7 @@ static ESESTATUS phNxpEseProto7816_SaveIframeData(uint8_t* p_data,
 /**
  * \ingroup ISO7816-3_protocol_lib
  * \brief      This internal function is called to do reset the recovery
- *pareameters
+ *parameters
  *
  */
 static ESESTATUS phNxpEseProto7816_ResetRecovery(void);
@@ -191,7 +192,7 @@ static ESESTATUS TransceiveProcess(void);
 /**
  * \ingroup ISO7816-3_protocol_lib
  * \brief      This internal function is used to
- *                  1. Send propreitary S-Frame command for resynch
+ *                  1. Send proprietary S-Frame command for re-sync
  *T=1 sequence at worker
  *
  */
@@ -268,8 +269,8 @@ static phNxpEseProto7816_t phNxpEseProto7816_3_Var;
 static phNxpEseProto7816_t phNxpEseProto7816_ptr[MAX_END_POINTS];
 
 /*!
- * \brief  Prints  time taken(in microsecs) in cmd transfer and response
- *         receival
+ * \brief  Prints  time taken(in microseconds) in cmd transfer and response
+ *         receive
  */
 static void printCmdRspTimeDuration(ESESTATUS status, uint32_t cmdLen,
                                     uint32_t respLen);
@@ -723,7 +724,7 @@ static ESESTATUS phNxpEseProto7816_SetNextIframeContxt(void) {
  * Function         phNxpEseProto7816_ResetRecovery
  *
  * Description      This internal function is called to do reset the recovery
- *pareameters
+ *                  parameters
  *
  * Returns          On success return true or else false.
  *
@@ -746,7 +747,7 @@ static ESESTATUS phNxpEseProto7816_SaveIframeData(uint8_t* p_data,
  * Function         phNxpEseProto7816_ResetRecovery
  *
  * Description      This internal function is called to do reset the recovery
- *pareameters
+ *                  parameters
  *
  * Returns          On success return true or else false.
  *
@@ -1065,7 +1066,7 @@ static ESESTATUS phNxpEseProto7816_DecodeAtrRsp(uint8_t* p_data) {
  *                  3. If the received frame is R-frame,
  *                     3.1 R-ACK with expected seq. number: Send the next
  *                     chained I-frame
- *                     3.2 R-ACK with different sequence number: Sebd the R-Nack
+ *                     3.2 R-ACK with different sequence number: Send the R-Nack
  *                     3.3 R-NACK: Re-send the last frame
  *                   4. If the received frame is S-frame,
  *                     4.1 Last sent frame is S-Frame then send back the
@@ -1506,7 +1507,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         NXP_LOG_ESE_E("%s Wrong S-Frame Received", __FUNCTION__);
         break;
     }
-    /*After S-Frame Rx 1 msec delay before next Tx*/
+    /*After S-Frame Rx 1 microsecond delay before next Tx*/
     if ((GET_CHIP_OS_VERSION() != OS_VERSION_4_0) &&
         (frameType != PROP_END_APDU_RSP)) {
       phNxpEse_Sleep(1000);
@@ -1620,7 +1621,7 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
         ESESTATUS storeDataStatus = phNxpEse_StoreDatainList(data_len, p_data);
         if (storeDataStatus != ESESTATUS_SUCCESS) {
           NXP_LOG_ESE_D("%s :phNxpEse_StoreDatainList failed. status = %x",
-                __FUNCTION__, storeDataStatus);
+                        __FUNCTION__, storeDataStatus);
           status = storeDataStatus;
         }
       }
@@ -1841,7 +1842,7 @@ ESESTATUS phNxpEseProto7816_Transceive(phNxpEse_data* pCmd,
  *
  * Description      Prints time taken(usecs) in sending C-Apdu and receiving
  *                  R-Apdu
- *                  Appliacble only when KPI measurement config is enabled
+ *                  Applicable only when KPI measurement config is enabled
  *
  * Returns          void
  *

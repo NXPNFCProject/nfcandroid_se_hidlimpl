@@ -20,6 +20,7 @@
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
 #include <string.h>
+
 #include "phNxpEse_Api.h"
 
 #define OSU_PROP_CLA 0x80

@@ -16,12 +16,11 @@
  *
  ******************************************************************************/
 #define LOG_TAG "NxpEseHal"
-#include <log/log.h>
-
 #include <EseTransport.h>
 #include <cutils/properties.h>
 #include <ese_config.h>
 #include <ese_logs.h>
+#include <log/log.h>
 #include <phNxpEseFeatures.h>
 #include <phNxpEsePal.h>
 #include <phNxpEseProto7816_3.h>
@@ -79,7 +78,7 @@ ESESTATUS phNxpEse_SetEndPoint_Cntxt(uint8_t uEndPoint) {
       nxpese_ctxt.nadInfo.nadTx = nadInfoTx_ptr[uEndPoint];
       nxpese_ctxt.endPointInfo = uEndPoint;
     }
-    NXP_LOG_ESE_D("%s: Enpoint=%d", __FUNCTION__, uEndPoint);
+    NXP_LOG_ESE_D("%s: Endpoint=%d", __FUNCTION__, uEndPoint);
   } else {
     NXP_LOG_ESE_E("%s- Function not supported", __FUNCTION__);
   }
@@ -186,7 +185,7 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
   } else /* OSU mode, no interface reset is required */
   {
     if (phNxpEse_doResetProtection(true)) {
-      NXP_LOG_ESE_E("%s Reset Potection failed. returning...", __FUNCTION__);
+      NXP_LOG_ESE_E("%s Reset Protection failed. returning...", __FUNCTION__);
       return ESESTATUS_FAILED;
     }
     protoInitParam.interfaceReset = false;
@@ -274,8 +273,8 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
  *
  * Description      This function is called by Jni during the
  *                  initialization of the ESE. It opens the physical connection
- *                  with ESE and creates required NAME_NXP_MAX_RNACK_RETRYclient
- *                  thread for operation.
+ *                  with ESE and creates required NAME_NXP_MAX_RNACK_RETRY
+ *                  client thread for operation.
  * Returns          This function return ESESTATUS_SUCCESS (0) in case of
  *                  success. In case of failure returns other failure values.
  *
@@ -1234,9 +1233,11 @@ ESESTATUS phNxpEse_read(uint32_t* data_len, uint8_t** pp_data) {
     status = ESESTATUS_FAILED;
   } else {
     if (ret > MAX_DATA_LEN) {
-      NXP_LOG_ESE_E("%s PAL Read buffer length(%x) is greater than MAX_DATA_LEN(%x) "
-            , __FUNCTION__, ret, MAX_DATA_LEN);
-      PH_PAL_ESE_PRINT_PACKET_RX(nxpese_ctxt.p_read_buff, (uint16_t)MAX_DATA_LEN);
+      NXP_LOG_ESE_E(
+          "%s PAL Read buffer length(%x) is greater than MAX_DATA_LEN(%x) ",
+          __FUNCTION__, ret, MAX_DATA_LEN);
+      PH_PAL_ESE_PRINT_PACKET_RX(nxpese_ctxt.p_read_buff,
+                                 (uint16_t)MAX_DATA_LEN);
     } else {
       PH_PAL_ESE_PRINT_PACKET_RX(nxpese_ctxt.p_read_buff, (uint16_t)ret);
     }
@@ -1271,7 +1272,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
     int max_sof_counter = 0;
     /*Max retry to get SOF in case of chaining*/
     if (poll_sof_chained_delay == 1) {
-      /*Wait Max for 1.3 sec before retry/recvoery*/
+      /*Wait Max for 1.3 sec before retry/recovery*/
       /*(max_sof_counter(1300) * 10 us) = 1.3 sec */
       max_sof_counter = ESE_POLL_TIMEOUT * 10;
     }
@@ -1299,7 +1300,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       } else {
         if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) ||
             (pBuffer[0] == RECEIVE_PACKET_SOF)) {
-          /* Read the HEADR of one byte*/
+          /* Read the HEADER of one byte*/
           NXP_LOG_ESE_D("%s Read HDR SOF + PCB", __FUNCTION__);
           numBytesToRead = 1; /*Read only INF LEN*/
           headerIndex = 1;
@@ -1307,7 +1308,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
         } else if (((pBuffer[0] == 0x00) || (pBuffer[0] == 0xFF)) &&
                    ((pBuffer[1] == nxpese_ctxt.nadInfo.nadRx) ||
                     (pBuffer[1] == RECEIVE_PACKET_SOF))) {
-          /* Read the HEADR of Two bytes*/
+          /* Read the HEADER of Two bytes*/
           NXP_LOG_ESE_D("%s Read HDR only SOF", __FUNCTION__);
           pBuffer[0] = pBuffer[1];
           numBytesToRead = 2; /*Read PCB + INF LEN*/
@@ -1351,7 +1352,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
     } else if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) ||
                (pBuffer[0] == RECEIVE_PACKET_SOF)) {
       NXP_LOG_ESE_D("%s SOF FOUND", __FUNCTION__);
-      /* Read the HEADR of one/Two bytes based on how two bytes read A5 PCB or
+      /* Read the HEADER of one/Two bytes based on how two bytes read A5 PCB or
        * 00 A5*/
       ret =
           phPalEse_read(pDevHandle, &pBuffer[1 + headerIndex], numBytesToRead);
@@ -1450,7 +1451,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
         NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
       } else { /* LRC fail expected for this frame to send R-NACK*/
         NXP_LOG_ESE_D(
-            "_spi_read() SUCCESS  ret : %X LRC fail excpected for this frame",
+            "_spi_read() SUCCESS  ret : %X LRC fail expected for this frame",
             ret);
         PH_PAL_ESE_PRINT_PACKET_RX(pBuffer, ret);
       }
@@ -1490,13 +1491,13 @@ static int phNxpEse_readPacket_legacy(void* pDevHandle, uint8_t* pBuffer,
       NXP_LOG_ESE_D("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
     }
     if (pBuffer[0] == RECEIVE_PACKET_SOF) {
-      /* Read the HEADR of one byte*/
+      /* Read the HEADER of one byte*/
       NXP_LOG_ESE_D("%s Read HDR", __FUNCTION__);
       numBytesToRead = 1;
       headerIndex = 1;
       break;
     } else if (pBuffer[1] == RECEIVE_PACKET_SOF) {
-      /* Read the HEADR of Two bytes*/
+      /* Read the HEADER of Two bytes*/
       NXP_LOG_ESE_D("%s Read HDR", __FUNCTION__);
       pBuffer[0] = RECEIVE_PACKET_SOF;
       numBytesToRead = 2;
@@ -1516,7 +1517,7 @@ static int phNxpEse_readPacket_legacy(void* pDevHandle, uint8_t* pBuffer,
   } while (sof_counter < ESE_NAD_POLLING_MAX);
   if (pBuffer[0] == RECEIVE_PACKET_SOF) {
     NXP_LOG_ESE_D("%s SOF FOUND", __FUNCTION__);
-    /* Read the HEADR of one/Two bytes based on how two bytes read A5 PCB or
+    /* Read the HEADER of one/Two bytes based on how two bytes read A5 PCB or
      * 00 A5*/
     ret = phPalEse_read(pDevHandle, &pBuffer[1 + headerIndex], numBytesToRead);
     if (ret < 0) {

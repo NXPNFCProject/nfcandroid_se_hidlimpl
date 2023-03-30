@@ -102,7 +102,7 @@ Return<void> SecureElement::init(
     ESESTATUS initStatus = ESESTATUS_SUCCESS;
     ESESTATUS deInitStatus = ESESTATUS_SUCCESS;
     if (ESESTATUS_SUCCESS == phNxpEse_SetEndPoint_Cntxt(0)) {
-      initStatus = phNxpEse_init(initParams)
+      initStatus = phNxpEse_init(initParams);
       if (initStatus == ESESTATUS_SUCCESS) {
         if (ESESTATUS_SUCCESS == phNxpEse_ResetEndPoint_Cntxt(0)) {
           LOG(INFO) << "ESE SPI init complete!!!";
@@ -379,7 +379,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
         LOG(INFO) << "seDeInit Failed";
       }
     }
-    /*If manageChanle is failed in any of above cases
+    /*If manageChannel is failed in any of above cases
     send the callback and return*/
     status = phNxpEse_ResetEndPoint_Cntxt(0);
     if (status != ESESTATUS_SUCCESS) {
@@ -399,12 +399,12 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
 
   if ((resApduBuff.channelNumber > 0x03) &&
       (resApduBuff.channelNumber < 0x14)) {
-    /* update CLA byte accoridng to GP spec Table 11-12*/
+    /* update CLA byte according to GP spec Table 11-12*/
     cpdu.cla =
         0x40 + (resApduBuff.channelNumber - 4); /* Class of instruction */
   } else if ((resApduBuff.channelNumber > 0x00) &&
              (resApduBuff.channelNumber < 0x04)) {
-    /* update CLA byte accoridng to GP spec Table 11-11*/
+    /* update CLA byte according to GP spec Table 11-11*/
     cpdu.cla = resApduBuff.channelNumber; /* Class of instruction */
   } else {
     LOG(ERROR) << StringPrintf("%s: Invalid Channel no: %02x", __func__,
@@ -597,9 +597,9 @@ Return<SecureElementStatus> SecureElement::internalCloseChannel(
     phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
     phNxpEse_memset(&rpdu, 0x00, sizeof(phNxpEse_7816_rpdu_t));
     cpdu.cla = channelNumber; /* Class of instruction */
-    // For Suplementary Channel update CLA byte according to GP
+    // For Supplementary Channel update CLA byte according to GP
     if ((channelNumber > 0x03) && (channelNumber < 0x14)) {
-      /* update CLA byte accoridng to GP spec Table 11-12*/
+      /* update CLA byte according to GP spec Table 11-12*/
       cpdu.cla = 0x40 + (channelNumber - 4); /* Class of instruction */
     }
     cpdu.ins = 0x70;          /* Instruction code */

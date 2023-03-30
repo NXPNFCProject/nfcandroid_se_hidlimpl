@@ -16,6 +16,7 @@
  *
  ******************************************************************************/
 #include "OsuHalExtn.h"
+
 #include <ese_config.h>
 
 #define LOG_TAG "OsuHalExtn"

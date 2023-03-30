@@ -16,8 +16,8 @@
  *
  ******************************************************************************/
 #define LOG_TAG "nxpese@1.2-service"
-#include <android/hardware/nfc/1.2/INfc.h>
 #include <aidl/android/hardware/nfc/INfc.h>
+#include <android/hardware/nfc/1.2/INfc.h>
 #include <android/hardware/secure_element/1.2/ISecureElement.h>
 #include <hidl/LegacySupport.h>
 #include <log/log.h>

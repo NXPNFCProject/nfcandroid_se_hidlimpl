@@ -207,7 +207,7 @@ void phPalEse_sleep(long usec);
  * \ingroup eSe_PAL
  * \brief This function  suspends execution of the calling thread for
  *        total_time usecs(max extra delay 1 usecs) with busy loop wait.
- *        Use this only for short delays (less than 500 microsecs)
+ *        Use this only for short delays (less than 500 microseconds)
  *
  * \param[in]    usec                - number of micro seconds to sleep
  *
@@ -268,7 +268,7 @@ void* phPalEse_calloc(size_t dataType, size_t size);
 
 /**
  * \ingroup eSe_PAL
- * \brief This is utility function for freeeing heap memory allocated
+ * \brief This is utility function for freeing heap memory allocated
  *
  * \param[in]    ptr                 - Address pointer to previous allocation
  *

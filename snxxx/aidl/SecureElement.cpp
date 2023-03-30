@@ -16,6 +16,7 @@
  *
  ******************************************************************************/
 #include "SecureElement.h"
+
 #include <log/log.h>
 
 #include "phNfcStatus.h"
@@ -95,11 +96,12 @@ ScopedAStatus SecureElement::init(
     return ScopedAStatus::ok();
   } else {
     clientDeathRecipient = AIBinder_DeathRecipient_new(OnDeath);
-    auto linkRet = AIBinder_linkToDeath(clientCallback->asBinder().get(), clientDeathRecipient,
-                                        this /* cookie */);
+    auto linkRet =
+        AIBinder_linkToDeath(clientCallback->asBinder().get(),
+                             clientDeathRecipient, this /* cookie */);
     if (linkRet != STATUS_OK) {
-        LOG(ERROR) << __func__ << ": linkToDeath failed: " << linkRet;
-        // Just ignore the error.
+      LOG(ERROR) << __func__ << ": linkToDeath failed: " << linkRet;
+      // Just ignore the error.
     }
   }
 
@@ -313,7 +315,7 @@ ScopedAStatus SecureElement::openLogicalChannel(
   /*
    * Basic channel & reserved channel if any is removed
    * from count
-   * */
+   */
   uint8_t maxLogicalChannelSupported =
       mMaxChannelCount - getReserveChannelCnt(aid) - 1;
 
@@ -397,7 +399,7 @@ ScopedAStatus SecureElement::openLogicalChannel(
         LOG(INFO) << "seDeInit Failed";
       }
     }
-    /*If manageChanle is failed in any of above cases
+    /*If manageChannel is failed in any of above cases
     send the callback and return*/
     status = phNxpEse_ResetEndPoint_Cntxt(0);
     if (status != ESESTATUS_SUCCESS) {
@@ -417,12 +419,12 @@ ScopedAStatus SecureElement::openLogicalChannel(
 
   if ((resApduBuff.channelNumber > 0x03) &&
       (resApduBuff.channelNumber < 0x14)) {
-    /* update CLA byte accoridng to GP spec Table 11-12*/
+    /* update CLA byte according to GP spec Table 11-12*/
     cpdu.cla =
         0x40 + (resApduBuff.channelNumber - 4); /* Class of instruction */
   } else if ((resApduBuff.channelNumber > 0x00) &&
              (resApduBuff.channelNumber < 0x04)) {
-    /* update CLA byte accoridng to GP spec Table 11-11*/
+    /* update CLA byte according to GP spec Table 11-11*/
     cpdu.cla = resApduBuff.channelNumber; /* Class of instruction */
   } else {
     ALOGE("%s: Invalid Channel no: %02x", __func__, resApduBuff.channelNumber);
@@ -698,9 +700,9 @@ int SecureElement::internalCloseChannel(uint8_t channelNumber) {
     phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
     phNxpEse_memset(&rpdu, 0x00, sizeof(phNxpEse_7816_rpdu_t));
     cpdu.cla = channelNumber; /* Class of instruction */
-    // For Suplementary Channel update CLA byte according to GP
+    // For Supplementary Channel update CLA byte according to GP
     if ((channelNumber > 0x03) && (channelNumber < 0x14)) {
-      /* update CLA byte accoridng to GP spec Table 11-12*/
+      /* update CLA byte according to GP spec Table 11-12*/
       cpdu.cla = 0x40 + (channelNumber - 4); /* Class of instruction */
     }
     cpdu.ins = 0x70;         /* Instruction code */
@@ -945,7 +947,7 @@ uint8_t SecureElement::getMaxChannelCnt() {
    * 2) SN220 up to v2 max channel supported 5 (If priority access)
    *    otherwise 4 channel.
    * 3) SN220 v3 and higher shall be updated accordingly.
-   * */
+   */
   uint8_t cnt = 0;
   if (GET_CHIP_OS_VERSION() < OS_VERSION_6_2)
     cnt = NUM_OF_CH4;

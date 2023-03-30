@@ -16,19 +16,20 @@
  *
  ******************************************************************************/
 #define LOG_TAG "NxpEseHal"
-#include <log/log.h>
+#include "phNxpEse_Spm.h"
 
 #include <errno.h>
 #include <ese_logs.h>
 #include <fcntl.h>
+#include <log/log.h>
 #include <phNxpEsePal.h>
 #include <phNxpEse_Internal.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
 #include "phNxpEseFeatures.h"
-#include "phNxpEse_Spm.h"
 
 /*********************** Global Variables *************************************/
 
@@ -42,7 +43,7 @@ static void* pEseDeviceHandle = NULL;
 /******************************************************************************
 \section Introduction Introduction
 
- * This module provide power request to Pn54x nfc-i2c driver, it cheks if
+ * This module provide power request to Pn54x nfc-i2c driver, it checks if
  * wired access is already granted. It should have access to pn54x drive.
  * Below are the apis provided by the SPM module.
  ******************************************************************************/

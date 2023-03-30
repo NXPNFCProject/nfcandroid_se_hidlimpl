@@ -22,6 +22,7 @@
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
 #include <memunreachable/memunreachable.h>
+
 #include "phNxpEse_Api.h"
 
 namespace vendor {

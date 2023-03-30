@@ -21,7 +21,7 @@
 // Undefined LOG_TAG as it is also defined in log.h
 #undef LOG_TAG
 #include <memunreachable/memunreachable.h>
-//#include "hal_nxpese.h"
+// #include "hal_nxpese.h"
 #include "phNxpEse_Apdu_Api.h"
 #include "phNxpEse_Api.h"
 
@@ -221,7 +221,7 @@ ScopedAStatus VirtualISO::openLogicalChannel(
                                                sizeof(uint8_t));
   memcpy(cmdApdu.p_data, manageChannelCommand.data(), cmdApdu.len);
 
-  sestatus =SESTATUS_SUCCESS;
+  sestatus = SESTATUS_SUCCESS;
 
   status = phNxpEse_SetEndPoint_Cntxt(1);
   if (status != ESESTATUS_SUCCESS) {
@@ -265,7 +265,7 @@ ScopedAStatus VirtualISO::openLogicalChannel(
         LOG(INFO) << "seDeInit Failed";
       }
     }
-    /*If manageChanle is failed in any of above cases
+    /*If manageChannel is failed in any of above cases
     send the callback and return*/
     status = phNxpEse_ResetEndPoint_Cntxt(1);
     if (status != ESESTATUS_SUCCESS) {
@@ -285,12 +285,12 @@ ScopedAStatus VirtualISO::openLogicalChannel(
 
   if ((resApduBuff.channelNumber > 0x03) &&
       (resApduBuff.channelNumber < 0x14)) {
-    /* update CLA byte accoridng to GP spec Table 11-12*/
+    /* update CLA byte according to GP spec Table 11-12*/
     cpdu.cla =
         0x40 + (resApduBuff.channelNumber - 4); /* Class of instruction */
   } else if ((resApduBuff.channelNumber > 0x00) &&
              (resApduBuff.channelNumber < 0x04)) {
-    /* update CLA byte accoridng to GP spec Table 11-11*/
+    /* update CLA byte according to GP spec Table 11-11*/
     cpdu.cla = resApduBuff.channelNumber; /* Class of instruction */
   } else {
     ALOGE("%s: Invalid Channel no: %02x", __func__, resApduBuff.channelNumber);
@@ -480,9 +480,9 @@ int VirtualISO::internalCloseChannel(uint8_t channelNumber) {
     phNxpEse_memset(&cpdu, 0x00, sizeof(phNxpEse_7816_cpdu_t));
     phNxpEse_memset(&rpdu, 0x00, sizeof(phNxpEse_7816_rpdu_t));
     cpdu.cla = channelNumber; /* Class of instruction */
-    // For Suplementary Channel update CLA byte according to GP
+    // For Supplementary Channel update CLA byte according to GP
     if ((channelNumber > 0x03) && (channelNumber < 0x14)) {
-      /* update CLA byte accoridng to GP spec Table 11-12*/
+      /* update CLA byte according to GP spec Table 11-12*/
       cpdu.cla = 0x40 + (channelNumber - 4); /* Class of instruction */
     }
     cpdu.ins = 0x70;         /* Instruction code */

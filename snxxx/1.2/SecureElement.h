@@ -26,7 +26,9 @@
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>
 #include <pthread.h>
+
 #include <vector>
+
 #include "OsuHalExtn.h"
 #include "phNxpEse_Api.h"
 

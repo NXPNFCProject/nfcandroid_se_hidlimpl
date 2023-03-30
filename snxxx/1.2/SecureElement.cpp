@@ -409,7 +409,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   /*
    * Basic channel & reserved channel if any is removed
    * from count
-   * */
+   */
   uint8_t maxLogicalChannelSupported =
       mMaxChannelCount - getReserveChannelCnt(aid) - 1;
 
@@ -1050,7 +1050,7 @@ uint8_t SecureElement::getMaxChannelCnt() {
    * 2) SN220 up to v2 max channel supported 5 (If priority access)
    *    otherwise 4 channel.
    * 3) SN220 v3 and higher shall be updated accordingly.
-   * */
+   */
   uint8_t cnt = 0;
   if (GET_CHIP_OS_VERSION() < OS_VERSION_6_2)
     cnt = NUM_OF_CH4;

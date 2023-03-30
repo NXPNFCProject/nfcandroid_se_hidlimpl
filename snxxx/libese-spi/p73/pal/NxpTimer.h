@@ -35,7 +35,7 @@ class NxpTimer {
   /*
   ** Function         stopTimer
   **
-  ** Desription       Captures end timestamp
+  ** Description       Captures end timestamp
   **
   ** Return           void
   */
@@ -44,7 +44,7 @@ class NxpTimer {
   /*
   ** Function         resetTimer
   **
-  ** Desription       Invalidates the timer state
+  ** Description       Invalidates the timer state
   **
   ** Return           void
   */
@@ -53,7 +53,7 @@ class NxpTimer {
   /*
   ** Function         stopTimer
   **
-  ** Desription       Captures end timestamp
+  ** Description       Captures end timestamp
   **
   ** Return           void
   */
@@ -62,7 +62,7 @@ class NxpTimer {
   /*
   ** Function         isRunning
   **
-  ** Desription       Returns true if the timer is running else false
+  ** Description       Returns true if the timer is running else false
   **
   ** Return           bool
   */

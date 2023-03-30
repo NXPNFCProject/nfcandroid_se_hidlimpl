@@ -241,7 +241,7 @@ typedef struct phNxpEseProto7816_NextTx_Info {
 } phNxpEseProto7816_NextTx_Info_t;
 
 /*!
- * \brief Last sent Tx ransceive data
+ * \brief Last sent Tx transceive data
  *
  * This structure holds the information of the last sent
  * I-frame/R-frame/S-frame
@@ -265,7 +265,7 @@ typedef struct phNxpEseRx_Cntx {
 } phNxpEseRx_Cntx_t;
 
 /*!
- * \brief Proprietery: Secure timer value updates
+ * \brief Proprietary: Secure timer value updates
  *
  * This structure holds the secure timer value
  *
@@ -327,8 +327,8 @@ typedef struct phNxpEseProto7816 {
 /*!
  * \brief 7816-3 protocol stack init params
  *
- * This structure holds the parameters to be passed to open 7816-3 protocl stack
- *instance
+ * This structure holds the parameters to be passed to open 7816-3 protocol
+ *stack instance
  *
  */
 typedef struct phNxpEseProto7816InitParam {

@@ -25,6 +25,7 @@
 #include <android/binder_process.h>
 #include <hardware/hardware.h>
 #include <log/log.h>
+
 #include "phNxpEse_Api.h"
 
 #define SESTATUS_SUCCESS 0

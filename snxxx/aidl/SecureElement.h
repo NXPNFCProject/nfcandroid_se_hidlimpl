@@ -22,6 +22,7 @@
 #include <aidl/android/hardware/secure_element/ISecureElementCallback.h>
 #include <android-base/logging.h>
 #include <log/log.h>
+
 #include "OsuHalExtn.h"
 #include "phNxpEse_Api.h"
 

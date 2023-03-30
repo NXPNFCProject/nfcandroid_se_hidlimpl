@@ -21,6 +21,7 @@
 #include <IChannel.h>
 #include <JcDnld.h>
 #include <LsClient.h>
+#include <aidl/vendor/nxp/nxpnfc_aidl/INxpNfc.h>
 #include <dirent.h>
 #include <ese_config.h>
 #include <log/log.h>
@@ -30,7 +31,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <vendor/nxp/nxpnfc/2.0/INxpNfc.h>
-#include <aidl/vendor/nxp/nxpnfc_aidl/INxpNfc.h>
 
 #include "NfcAdaptation.h"
 #include "NxpEse.h"
@@ -45,7 +45,8 @@ using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
 using INxpNfc = vendor::nxp::nxpnfc::V2_0::INxpNfc;
 using INxpNfcAidl = ::aidl::vendor::nxp::nxpnfc_aidl::INxpNfc;
 
-std::string NXPNFC_AIDL_HAL_SERVICE_NAME = "vendor.nxp.nxpnfc_aidl.INxpNfc/default";
+std::string NXPNFC_AIDL_HAL_SERVICE_NAME =
+    "vendor.nxp.nxpnfc_aidl.INxpNfc/default";
 
 sp<INxpNfc> mHalNxpNfc = nullptr;
 std::shared_ptr<INxpNfcAidl> mAidlHalNxpNfc = nullptr;
@@ -108,7 +109,7 @@ uint8_t SE_getInterfaceInfo() { return INTF_SE; }
 ** Function:        checkEseClientUpdate
 **
 ** Description:     Check the initial condition
-                    and interafce for eSE Client update for LS and JCOP download
+                    and interface for eSE Client update for LS and JCOP download
 **
 ** Returns:         SUCCESS of ok
 **

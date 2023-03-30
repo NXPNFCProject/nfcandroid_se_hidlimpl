@@ -23,20 +23,18 @@
  *
  */
 #define LOG_TAG "NxpEseHal"
-#include <log/log.h>
-
-#include <errno.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-
 #include <EseTransportFactory.h>
 #include <NxpTimer.h>
+#include <errno.h>
 #include <ese_config.h>
 #include <ese_logs.h>
+#include <fcntl.h>
+#include <log/log.h>
 #include <phEseStatus.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 /*!
  * \brief Normal mode header length

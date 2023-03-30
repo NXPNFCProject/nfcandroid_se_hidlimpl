@@ -15,6 +15,7 @@
  */
 
 #include "NxpTimer.h"
+
 #include <android-base/logging.h>
 #include <stdlib.h>
 #include <time.h>
