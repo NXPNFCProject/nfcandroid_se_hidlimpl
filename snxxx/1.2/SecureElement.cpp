@@ -426,7 +426,7 @@ Return<void> SecureElement::openLogicalChannel(const hidl_vec<uint8_t>& aid,
   LOG(INFO) << "Acquired the lock from SPI openLogicalChannel";
 
   // In dedicated mode openLogical not allowed
-  if ((GET_CHIP_OS_VERSION() < OS_VERSION_8_9) &&
+  if ((GET_CHIP_OS_VERSION() < OS_VERSION_6_2) &&
       (IS_OSU_MODE(OsuHalExtn::getInstance().OPENLOGICAL))) {
     LOG(ERROR) << "%s: Not allowed in dedicated mode!!!" << __func__;
     _hidl_cb(resApduBuff, SecureElementStatus::IOERROR);

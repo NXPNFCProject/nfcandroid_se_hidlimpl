@@ -165,7 +165,7 @@ ScopedAStatus SecureElement::getAtr(std::vector<uint8_t>* _aidl_return) {
   bool mIsSeHalInitDone = false;
 
   // In dedicated mode getATR not allowed
-  if ((GET_CHIP_OS_VERSION() < OS_VERSION_8_9) &&
+  if ((GET_CHIP_OS_VERSION() < OS_VERSION_6_2) &&
       (IS_OSU_MODE(OsuHalExtn::getInstance().GETATR))) {
     LOG(ERROR) << "%s: Not allowed in dedicated mode!!!" << __func__;
     *_aidl_return = response;
