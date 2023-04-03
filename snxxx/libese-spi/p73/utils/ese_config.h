@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020,2022 NXP
+ *  Copyright 2018-2020,2022-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@
 #define NAME_NXP_ESE_IFSD_VALUE "NXP_ESE_IFSD_VALUE"
 #define NAME_NXP_EUICC_IFSD_VALUE "NXP_EUICC_IFSD_VALUE"
 #define NAME_NXP_P61_COLD_RESET_INTERFACE "NXP_P61_COLD_RESET_INTERFACE"
+#define NAME_NXP_ESE_GPIO_RESET "NXP_ESE_GPIO_RESET"
 #define NAME_NXP_OS_VERSION "NXP_OS_VERSION"
 #define NAME_NXP_WTX_NTF_COUNT "NXP_WTX_NTF_COUNT"
 #define NAME_NXP_OSU_MAX_WTX_COUNT "NXP_OSU_MAX_WTX_COUNT"

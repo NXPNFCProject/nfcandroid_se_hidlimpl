@@ -45,6 +45,7 @@
 
 #define MAX_RETRY_CNT 10
 #define HAL_NFC_SPI_DWP_SYNC 21
+#define USE_COLD_RESET 0x00
 
 extern int omapi_status;
 
@@ -189,6 +190,15 @@ ESESTATUS EseSpiTransport::OpenAndConfigure(pphPalEse_Config_t pConfig) {
   } else {
     mConfigColdResetIntf = 0x01; /* Default interface is NFC HAL */
     NXP_LOG_ESE_D("mConfigColdResetIntf: Default value ");
+  }
+  /* Read eSE GPIO reset config */
+  if (EseConfig::hasKey(NAME_NXP_ESE_GPIO_RESET)) {
+    mConfigGpioReset = EseConfig::getUnsigned(NAME_NXP_ESE_GPIO_RESET);
+    NXP_LOG_ESE_D("mConfigGpioReset value from config file = %ld",
+                  mConfigGpioReset);
+  } else {
+    mConfigGpioReset = USE_COLD_RESET;
+    NXP_LOG_ESE_D("mConfigGpioReset: Default value ");
   }
   NXP_LOG_ESE_D("Opening port=%s\n", pConfig->pDevName);
 /* open port */
@@ -383,20 +393,26 @@ ESESTATUS EseSpiTransport::Ioctl(phPalEse_ControlCode_t eControlCode,
     case phPalEse_e_ChipRst:
       if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
         if (level == 5) {              // SPI driver communication part
-          if (!mConfigColdResetIntf) { /* Call the driver IOCTL */
-            retioctl =
-                ioctl((intptr_t)pDevHandle, ESE_PERFORM_COLD_RESET, level);
+          if (!mConfigColdResetIntf) { // Call the driver IOCTL
+            unsigned int cmd = ESE_PERFORM_COLD_RESET;
+            if ((mConfigGpioReset == 0x01) &&
+                ((GET_CHIP_OS_VERSION() == OS_VERSION_8_9))) {
+              cmd = P61_SET_PWR;
+            }
+            retioctl = ioctl((intptr_t)pDevHandle, cmd, level);
             if (0x00 <= retioctl) {
               ret = ESESTATUS_SUCCESS;
             }
           } else {
-#if (NFC_NXP_ESE_VER == JCOP_VER_5_x)
-            // Nfc Driver communication part
-            pNfcAdapt.Initialize();
-            ret = pNfcAdapt.resetEse(level);
-#else
-            ret = ESESTATUS_SUCCESS;
-#endif
+            if ((NFC_NXP_ESE_VER == JCOP_VER_5_x) &&
+                (GET_CHIP_OS_VERSION() != OS_VERSION_8_9)) {
+              // Nfc Driver communication part
+              pNfcAdapt.Initialize();
+              ret = pNfcAdapt.resetEse(level);
+            } else {
+              NXP_LOG_ESE_E("%s: Not supported", __func__);
+              ret = ESESTATUS_SUCCESS;
+            }
           }
         } else {
           ret = ESESTATUS_SUCCESS;
