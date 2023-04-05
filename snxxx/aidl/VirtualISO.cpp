@@ -152,7 +152,7 @@ ScopedAStatus VirtualISO::transmit(const std::vector<uint8_t>& data,
   }
   status = phNxpEse_ResetEndPoint_Cntxt(1);
   if (status != ESESTATUS_SUCCESS) {
-    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+    LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed!!!";
   }
 
   *_aidl_return = result;
@@ -269,7 +269,7 @@ ScopedAStatus VirtualISO::openLogicalChannel(
     send the callback and return*/
     status = phNxpEse_ResetEndPoint_Cntxt(1);
     if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+      LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed!!!";
     }
     *_aidl_return = resApduBuff;
     return ScopedAStatus::fromServiceSpecificError(sestatus);
@@ -352,7 +352,7 @@ ScopedAStatus VirtualISO::openLogicalChannel(
   }
   status = phNxpEse_ResetEndPoint_Cntxt(1);
   if (status != ESESTATUS_SUCCESS) {
-    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+    LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed!!!";
   }
   *_aidl_return = resApduBuff;
   phNxpEse_free(cpdu.pdata);
@@ -448,7 +448,7 @@ ScopedAStatus VirtualISO::openBasicChannel(const std::vector<uint8_t>& aid,
   }
   status = phNxpEse_ResetEndPoint_Cntxt(1);
   if (status != ESESTATUS_SUCCESS) {
-    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+    LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed!!!";
   }
   if (sestatus != SESTATUS_SUCCESS) {
     int closeChannelStatus = internalCloseChannel(DEFAULT_BASIC_CHANNEL);
@@ -503,7 +503,7 @@ int VirtualISO::internalCloseChannel(uint8_t channelNumber) {
     }
     status = phNxpEse_ResetEndPoint_Cntxt(1);
     if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+      LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed!!!";
     }
     if (mOpenedChannels[channelNumber]) {
       mOpenedChannels[channelNumber] = false;
@@ -551,7 +551,7 @@ ScopedAStatus VirtualISO::closeChannel(int8_t channelNumber) {
     }
     status = phNxpEse_ResetEndPoint_Cntxt(1);
     if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+      LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed!!!";
     }
     if (mOpenedChannels[channelNumber]) {
       mOpenedChannels[channelNumber] = false;
@@ -610,7 +610,7 @@ int VirtualISO::seHalDeInit() {
   if (ESESTATUS_SUCCESS != deInitStatus) mIsDeInitDone = false;
   status = phNxpEse_ResetEndPoint_Cntxt(1);
   if (status != ESESTATUS_SUCCESS) {
-    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+    LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed!!!";
     mIsDeInitDone = false;
   }
   status = phNxpEse_close(deInitStatus);

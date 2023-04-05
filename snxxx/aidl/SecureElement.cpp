@@ -184,7 +184,7 @@ ScopedAStatus SecureElement::getAtr(std::vector<uint8_t>* _aidl_return) {
   }
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    LOG(ERROR) << "Endpoint set failed";
+    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed";
   }
   status = phNxpEse_getAtr(&atrData);
   if (status != ESESTATUS_SUCCESS) {
@@ -198,7 +198,7 @@ ScopedAStatus SecureElement::getAtr(std::vector<uint8_t>* _aidl_return) {
 
   status = phNxpEse_ResetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    LOG(ERROR) << "Endpoint set failed";
+    LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed";
   }
 
   if (status != ESESTATUS_SUCCESS) {
@@ -285,7 +285,7 @@ ScopedAStatus SecureElement::transmit(const std::vector<uint8_t>& data,
   }
   status = phNxpEse_ResetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+    LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed!!!";
   }
 
   *_aidl_return = result;
@@ -403,7 +403,7 @@ ScopedAStatus SecureElement::openLogicalChannel(
     send the callback and return*/
     status = phNxpEse_ResetEndPoint_Cntxt(0);
     if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+      LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed!!!";
     }
     *_aidl_return = resApduBuff;
     return ScopedAStatus::fromServiceSpecificError(sestatus);
@@ -497,7 +497,7 @@ ScopedAStatus SecureElement::openLogicalChannel(
   }
   status = phNxpEse_ResetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+    LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed!!!";
   }
   *_aidl_return = resApduBuff;
   phNxpEse_free(cpdu.pdata);
@@ -668,7 +668,7 @@ ScopedAStatus SecureElement::openBasicChannel(
   }
   status = phNxpEse_ResetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+    LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed!!!";
   }
   if (sestatus != SESTATUS_SUCCESS) {
     int closeChannelStatus = internalCloseChannel(DEFAULT_BASIC_CHANNEL);
@@ -722,7 +722,7 @@ int SecureElement::internalCloseChannel(uint8_t channelNumber) {
     }
     status = phNxpEse_ResetEndPoint_Cntxt(0);
     if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+      LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed!!!";
     }
   } else if (channelNumber == DEFAULT_BASIC_CHANNEL &&
              mOpenedChannels[channelNumber]) {
@@ -814,7 +814,7 @@ int SecureElement::seHalDeInit() {
   if (ESESTATUS_SUCCESS != deInitStatus) mIsDeInitDone = false;
   status = phNxpEse_ResetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
-    LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
+    LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed!!!";
     mIsDeInitDone = false;
   }
   status = phNxpEse_close(deInitStatus);
