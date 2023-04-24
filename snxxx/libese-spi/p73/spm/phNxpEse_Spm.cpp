@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019,2022 NXP
+ *  Copyright 2018-2019, 2022-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -201,69 +201,6 @@ ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg) {
 }
 
 /******************************************************************************
- * Function         phNxpEse_SPM_EnablePwr
- *
- * Description      This function request to the nfc i2c driver
- *                  to enable power to ese. This api should be called before
- *                  sending any apdu to ese.
- *
- * Returns          On Success ESESTATUS_SUCCESS else proper error code
- *
- ******************************************************************************/
-ESESTATUS phNxpEse_SPM_EnablePwr(void) {
-  int32_t ret = -1;
-  ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
-  spm_state_t current_spm_state = SPM_STATE_INVALID;
-  NXP_LOG_ESE_D("%s : phNxpEse_SPM_EnablePwr is set to  = 0x%d", __FUNCTION__,
-                0);
-  ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle, 0);
-  if (ret < 0) {
-    NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
-    if (errno == -EBUSY) {
-      wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
-      if (wSpmStatus != ESESTATUS_SUCCESS) {
-        NXP_LOG_ESE_E(" %s : phNxpEse_SPM_GetPwrState Failed", __FUNCTION__);
-        return wSpmStatus;
-      } else {
-        if (current_spm_state == SPM_STATE_DWNLD) {
-          wSpmStatus = ESESTATUS_DWNLD_BUSY;
-        } else {
-          wSpmStatus = ESESTATUS_BUSY;
-        }
-      }
-
-    } else {
-      wSpmStatus = ESESTATUS_FAILED;
-    }
-  }
-
-  return wSpmStatus;
-}
-
-/******************************************************************************
- * Function         phNxpEse_SPM_DisablePwr
- *
- * Description      This function request to the nfc i2c driver
- *                  to disable power to ese. This api should be called
- *                  once apdu exchange is done.
- *
- * Returns          On Success ESESTATUS_SUCCESS else proper error code
- *
- ******************************************************************************/
-ESESTATUS phNxpEse_SPM_DisablePwr(void) {
-  int32_t ret = -1;
-  ESESTATUS status = ESESTATUS_SUCCESS;
-  NXP_LOG_ESE_D("%s : phNxpEse_SPM_DisablePwr is set to  = 0x%d", __FUNCTION__,
-                1);
-  ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle, 1);
-  if (ret < 0) {
-    NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
-    status = ESESTATUS_FAILED;
-  }
-
-  return status;
-}
-/******************************************************************************
  * Function         phNxpEse_SPM_SetPwrScheme
  *
  * Description      This function request to the nfc i2c driver
@@ -385,73 +322,6 @@ ESESTATUS phNxpEse_SPM_SetEseClientUpdateState(long arg) {
   return status;
 }
 
-/******************************************************************************
- * Function         phNxpEse_SPM_ResetPwr
- *
- * Description      This function request to the nfc i2c driver
- *                  to reset ese.
- *
- * Returns          On Success ESESTATUS_SUCCESS else proper error code
- *
- ******************************************************************************/
-ESESTATUS phNxpEse_SPM_ResetPwr(void) {
-  int32_t ret = -1;
-  ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
-  spm_state_t current_spm_state = SPM_STATE_INVALID;
-
-  /* reset the ese */
-  ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle, 2);
-  if (ret < 0) {
-    NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
-    if (errno == -EBUSY || errno == EBUSY) {
-      wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
-      if (wSpmStatus != ESESTATUS_SUCCESS) {
-        NXP_LOG_ESE_E(" %s : phNxpEse_SPM_GetPwrState Failed", __FUNCTION__);
-        return wSpmStatus;
-      } else {
-        if (current_spm_state == SPM_STATE_DWNLD) {
-          wSpmStatus = ESESTATUS_DWNLD_BUSY;
-        } else {
-          wSpmStatus = ESESTATUS_BUSY;
-        }
-      }
-
-    } else {
-      wSpmStatus = ESESTATUS_FAILED;
-    }
-  }
-
-  return wSpmStatus;
-}
-
-/*******************************************************************************
-**
-** Function         phTmlEse_get_ese_access
-**
-** Description
-**
-** Parameters       timeout - timeout to wait for ese access
-**
-** Returns          success or failure
-**
-*******************************************************************************/
-ESESTATUS phNxpEse_SPM_GetAccess(long timeout) {
-  ESESTATUS status = ESESTATUS_SUCCESS;
-  NXP_LOG_ESE_D("phTmlEse_get_ese_access(), timeout  %ld", timeout);
-#if ((NFC_NXP_ESE_VER == JCOP_VER_3_1) || (NFC_NXP_ESE_VER == JCOP_VER_3_2))
-  int ret = -1;
-
-  ret = phPalEse_ioctl(phPalEse_e_GetEseAccess, pEseDeviceHandle, timeout);
-  if (ret < 0) {
-    if (ret == -EBUSY)
-      status = ESESTATUS_BUSY;
-    else
-      status = ESESTATUS_FAILED;
-  }
-  NXP_LOG_ESE_D("phTmlEse_get_ese_access(), exit  %d", status);
-#endif
-  return status;
-}
 /*******************************************************************************
 **
 ** Function         phNxpEse_SPM_RelAccess

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2019, 2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -83,53 +83,12 @@ ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg);
 
 /**
  * \ingroup SPI_Power_Management
- * \brief This function request to the nfc i2c driver
- *                  to enable power to ese. This api should be called before
- *                  sending any apdu to ese.
- *
- *
- * \retval       -On Success ESESTATUS_SUCCESS else proper error code
- */
-ESESTATUS phNxpEse_SPM_EnablePwr(void);
-
-/**
- * \ingroup SPI_Power_Management
- * \brief This function request to the nfc i2c driver
- *                  to disable power to ese. This api should be called
- *                  once apdu exchange is done.
- *
- *
- * \retval       -On Success ESESTATUS_SUCCESS else proper error code
- */
-ESESTATUS phNxpEse_SPM_DisablePwr(void);
-
-/**
- * \ingroup SPI_Power_Management
  * \brief This function gets the current power state of ESE
  * \param[in]    current_state       -input is of type spm_state_t.
  *
  * \retval       -On Success ESESTATUS_SUCCESS else proper error code
  */
 ESESTATUS phNxpEse_SPM_GetState(spm_state_t* current_state);
-
-/**
- * \ingroup SPI_Power_Management
- * \brief  This function request to the nfc i2c driver
- *                  to reset ese.
- *
- * \retval       -On Success ESESTATUS_SUCCESS else proper error code
- */
-ESESTATUS phNxpEse_SPM_ResetPwr(void);
-
-/**
- * \ingroup SPI_Power_Management
- * \brief  This function request to get access to eSE
- *
- * \param[in]    timeout - timeout to wait for ese access.
- *
- * \retval       -On Success ESESTATUS_SUCCESS else proper error code
- */
-ESESTATUS phNxpEse_SPM_GetAccess(long timeout);
 
 /**
  * \ingroup SPI_Power_Management

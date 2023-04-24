@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2021,2022 NXP
+ *  Copyright 2018-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -118,16 +118,6 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams);
 /**
  * \ingroup spi_libese
  *
- * \brief  Check if libese has opened
- *
- * \retval return false if it is close, otherwise true.
- *
- */
-bool phNxpEse_isOpen();
-
-/**
- * \ingroup spi_libese
- *
  * \brief  This function is used to communicate from nfc-hal to ese-hal
  *
  * \param[in]     ioctlType - ioctl cmd
@@ -181,21 +171,6 @@ ESESTATUS phNxpEse_ResetEndPoint_Cntxt(uint8_t uEndPoint);
  *
  */
 ESESTATUS phNxpEse_open(phNxpEse_initParams initParams);
-
-/**
- * \ingroup spi_libese
- * \brief This function is called by Jni during the
- *        initialization of the ESE. It opens the physical connection
- *        with ESE () and creates required client thread for
- *        operation.  This will get priority access to ESE for timeout period.
- *
- * \param[in]     initParams - Initialize with init mode ( normal/osu) and media
- * type(SPI- legacy/ APDU type).
- *
- * \retval ESESTATUS_SUCCESS On Success ESESTATUS_SUCCESS else proper error code
- *
- */
-ESESTATUS phNxpEse_openPrioSession(phNxpEse_initParams initParams);
 
 /**
  * \ingroup spi_libese
@@ -291,16 +266,6 @@ ESESTATUS phNxpEse_getAtr(phNxpEse_data* pATR);
 
 /**
  * \ingroup spi_libese
- * \brief This function sends the S-frame to indicate END_OF_APDU
- *
- *
- * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
- *
- */
-ESESTATUS phNxpEse_EndOfApdu(void);
-
-/**
- * \ingroup spi_libese
  * \brief This function  suspends execution of the calling thread for
  *           (at least) usec microseconds
  *
@@ -372,27 +337,6 @@ void* phNxpEse_calloc(size_t dataType, size_t size);
  *
  */
 void phNxpEse_free(void* ptr);
-
-/**
- * \ingroup spi_libese
- * \brief This function performs disable/enable power control
- *
- *
- * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
- *
- */
-ESESTATUS phNxpEse_DisablePwrCntrl(void);
-
-/**
- * \ingroup spi_libese
- * \brief This function is used to get the ESE timer status
- *
- * \param[out]       timer_buffer
- *
- * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
- *
- */
-ESESTATUS phNxpEse_GetEseStatus(phNxpEse_data* timer_buffer);
 
 /**
  * \ingroup spi_libese
