@@ -1360,11 +1360,13 @@ ESESTATUS phNxpEse_WriteFrame(uint32_t data_len, uint8_t* p_data) {
   phNxpEse_memcpy(nxpese_ctxt.p_cmd_data, p_data, data_len);
   nxpese_ctxt.cmd_len = data_len;
 
-  // eSE requires around 200 usec to switch from tx to rx mode
-  // As per the observation, debug logs when enabled introduces around
-  // same amount of delay, therefore below explicit delay is required
-  // only if debug logs are disabled
-  if (ese_log_level < NXPESE_LOGLEVEL_DEBUG) phPalEse_BusyWait(200 /*usecs*/);
+  if (GET_CHIP_OS_VERSION() < OS_VERSION_8_9) {
+    // eSE requires around 200 usec to switch from tx to rx mode
+    // As per the observation, debug logs when enabled introduces around
+    // same amount of delay, therefore below explicit delay is required
+    // only if debug logs are disabled
+    if (ese_log_level < NXPESE_LOGLEVEL_DEBUG) phPalEse_BusyWait(200 /*usecs*/);
+  }
 
   dwNoBytesWrRd = phPalEse_write(nxpese_ctxt.pDevHandle, nxpese_ctxt.p_cmd_data,
                                  nxpese_ctxt.cmd_len);
