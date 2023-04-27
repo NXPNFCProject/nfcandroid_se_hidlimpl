@@ -16,6 +16,7 @@
  *
  ******************************************************************************/
 
+#ifdef NXP_BOOTTIME_UPDATE
 #include "eSEClientIntf.h"
 #include "phNxpEse_Api.h"
 
@@ -37,3 +38,4 @@ typedef enum {
 } SEDomainID;
 
 #endif /* ESE_UPDATE_2_H_ */
+#endif /* NXP_BOOTTIME_UPDATE */

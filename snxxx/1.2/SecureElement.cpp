@@ -17,8 +17,8 @@
  ******************************************************************************/
 #include "SecureElement.h"
 
-#include "NxpEse.h"
 #ifdef NXP_BOOTTIME_UPDATE
+#include "NxpEse.h"
 #include "eSEClient.h"
 #endif
 #include <android-base/logging.h>
@@ -55,7 +55,9 @@ static sTransceiveBuffer_t gsTxRxBuffer;
 static hidl_vec<uint8_t> gsRspDataBuff(256);
 sp<V1_0::ISecureElementHalCallback> SecureElement::mCallbackV1_0 = nullptr;
 std::vector<bool> SecureElement::mOpenedChannels;
+#ifdef NXP_BOOTTIME_UPDATE
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
+#endif
 SecureElement::SecureElement()
     : mMaxChannelCount(0), mOpenedchannelCount(0), mIsEseInitialized(false) {}
 

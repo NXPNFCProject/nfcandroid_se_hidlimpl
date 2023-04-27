@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019,2022 NXP
+ *  Copyright 2018-2019,2022-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  *  limitations under the License.
  *
  ******************************************************************************/
+#ifdef NXP_BOOTTIME_UPDATE
 #ifndef VENDOR_NXP_NXPNFC_V1_0_NXPNFC_H
 #define VENDOR_NXP_NXPNFC_V1_0_NXPNFC_H
 
@@ -56,7 +57,6 @@ struct NxpEse : public INxpEse {
   // Methods from ::android::hidl::base::V1_0::IBase follow.
   Return<void> debug(const hidl_handle& handle,
                      const hidl_vec<hidl_string>& options) override;
-
   Return<void> ioctl(uint64_t ioctlType, const hidl_vec<uint8_t>& inOutData,
                      ioctl_cb _hidl_cb) override;
   static Return<void> setSeCallBack(
@@ -73,7 +73,6 @@ struct NxpEse : public INxpEse {
           clientCallback);
   static void initSEService();
   static void initVIrtualISOService();
-
  private:
   Return<void> ioctlHandler(uint64_t ioctlType,
                             ese_nxp_IoctlInOutData_t& inpOutData);
@@ -86,3 +85,4 @@ struct NxpEse : public INxpEse {
 }  // namespace vendor
 
 #endif  // VENDOR_NXP_NXPNFC_V1_0_NXPNFC_H
+#endif // NXP_BOOTTIME_UPDATE

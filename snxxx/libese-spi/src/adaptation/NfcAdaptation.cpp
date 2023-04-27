@@ -232,6 +232,7 @@ ESESTATUS NfcAdaptation::resetEse(uint64_t level) {
   return result;
 }
 
+#ifdef NXP_BOOTTIME_UPDATE
 /*******************************************************************************
 **
 ** Function:    NfcAdaptation::setEseUpdateState
@@ -270,7 +271,7 @@ ESESTATUS NfcAdaptation::setEseUpdateState(void* p_data) {
 
   return result;
 }
-
+#endif
 /*******************************************************************************
 **
 ** Function:    ThreadCondVar::ThreadCondVar()

@@ -16,6 +16,7 @@
  *
  ******************************************************************************/
 
+#ifdef NXP_BOOTTIME_UPDATE
 #include "eSEClient.h"
 
 #include <IChannel.h>
@@ -501,3 +502,4 @@ SESTATUS eSEUpdate_SeqHandler() {
   }
   return SESTATUS_SUCCESS;
 }
+#endif /* NXP_BOOTTIME_UPDATE */

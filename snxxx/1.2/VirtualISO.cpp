@@ -17,9 +17,9 @@
  ******************************************************************************/
 #include "VirtualISO.h"
 
-#include "NxpEse.h"
 #include "SecureElement.h"
 #ifdef NXP_BOOTTIME_UPDATE
+#include "NxpEse.h"
 #include "eSEClient.h"
 #endif
 #include <android-base/logging.h>
@@ -42,7 +42,9 @@ namespace implementation {
 #define DEFAULT_BASIC_CHANNEL 0x00
 
 using ::android::hardware::secure_element::V1_2::ISecureElement;
+#ifdef NXP_BOOTTIME_UPDATE
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
+#endif
 
 typedef struct gsTransceiveBuffer {
   phNxpEse_data cmdData;

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2020,2022 NXP
+ *  Copyright 2020,2022-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -69,10 +69,12 @@ class AutoThreadMutex {
 class NfcAdaptation {
  public:
   virtual ~NfcAdaptation();
-  void Initialize();
   static NfcAdaptation& GetInstance();
   static ESESTATUS resetEse(uint64_t level);
+  void Initialize();
+#ifdef NXP_BOOTTIME_UPDATE
   static ESESTATUS setEseUpdateState(void* p_data);
+#endif
   ese_nxp_IoctlInOutData_t* mCurrentIoctlData;
 
  private:

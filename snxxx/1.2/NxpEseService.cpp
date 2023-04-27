@@ -22,14 +22,14 @@
 #include <hidl/LegacySupport.h>
 #include <log/log.h>
 #include <string.h>
-#include <vendor/nxp/nxpese/1.0/INxpEse.h>
 
 #include <regex>
 
-#include "NxpEse.h"
 #include "SecureElement.h"
 #include "VirtualISO.h"
 #ifdef NXP_BOOTTIME_UPDATE
+#include <vendor/nxp/nxpese/1.0/INxpEse.h>
+#include "NxpEse.h"
 #include "eSEClient.h"
 #endif
 
@@ -46,8 +46,10 @@ using android::hardware::registerPassthroughServiceImplementation;
 using INfc = android::hardware::nfc::V1_2::INfc;
 using android::hardware::secure_element::V1_2::ISecureElement;
 using android::hardware::secure_element::V1_2::implementation::SecureElement;
+#ifdef NXP_BOOTTIME_UPDATE
 using vendor::nxp::nxpese::V1_0::INxpEse;
 using vendor::nxp::nxpese::V1_0::implementation::NxpEse;
+#endif
 using vendor::nxp::virtual_iso::V1_0::implementation::VirtualISO;
 using INfcAidl = ::aidl::android::hardware::nfc::INfc;
 
@@ -94,7 +96,9 @@ int main() {
   bool ret = false;
 
   android::sp<ISecureElement> se_service = nullptr;
+#ifdef NXP_BOOTTIME_UPDATE
   android::sp<INxpEse> nxp_se_service = nullptr;
+#endif
   android::sp<ISecureElement> virtual_iso_service = nullptr;
 
   try {
@@ -124,7 +128,7 @@ int main() {
         goto shutdown;
       }
       ALOGI("Secure Element Service is ready");
-
+#ifdef NXP_BOOTTIME_UPDATE
       ALOGI("NXP Secure Element Extn Service 1.0 is starting.");
       nxp_se_service = new NxpEse();
       if (nxp_se_service == nullptr) {
@@ -142,6 +146,7 @@ int main() {
         goto shutdown;
       }
       ALOGI("Secure Element Service is ready");
+#endif
     }
 
 #ifdef NXP_VISO_ENABLE

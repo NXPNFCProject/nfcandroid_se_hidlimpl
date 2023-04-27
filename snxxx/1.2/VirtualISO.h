@@ -21,6 +21,8 @@
 #include <android-base/stringprintf.h>
 #include <android/hardware/secure_element/1.0/types.h>
 #include <android/hardware/secure_element/1.2/ISecureElement.h>
+#include <android/binder_manager.h>
+#include <android/binder_process.h>
 #include <hardware/hardware.h>
 #include <hidl/MQDescriptor.h>
 #include <hidl/Status.h>

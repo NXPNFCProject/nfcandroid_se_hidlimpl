@@ -46,7 +46,7 @@ cc_binary {
         "libmemunreachable",
         "libutils",
         "ese_spi_nxp_snxxx",
-        "nfc_nci_nxp_snxxx",
+        "se_extn_client",
         "android.hardware.nfc@1.2",
         "android.hardware.nfc-V1-ndk",
         "vendor.nxp.nxpnfc_aidl-V1-ndk",
@@ -55,8 +55,6 @@ cc_binary {
     include_dirs: [
         "hardware/nxp/secure_element_extns/inc",
         "hardware/nxp/secure_element/snxxx/extns/impl",
-        "hardware/nxp/secure_element_extns/jcos_client/inc",
-        "hardware/nxp/secure_element_extns/ls_client/inc",
         "hardware/nxp/secure_element/snxxx/libese-spi/common/include",
         "hardware/nxp/secure_element/snxxx/libese-spi/p73/common",
         "hardware/nxp/secure_element/snxxx/libese-spi/p73/inc",
