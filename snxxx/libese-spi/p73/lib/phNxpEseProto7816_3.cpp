@@ -191,15 +191,6 @@ static ESESTATUS TransceiveProcess(void);
 
 /**
  * \ingroup ISO7816-3_protocol_lib
- * \brief      This internal function is used to
- *                  1. Send proprietary S-Frame command for re-sync
- *T=1 sequence at worker
- *
- */
-static ESESTATUS phNxpEseProto7816_RSync(void);
-
-/**
- * \ingroup ISO7816-3_protocol_lib
  * \brief       This function is used to send the spi hard reset command
  *
  */
@@ -1864,29 +1855,6 @@ static void printCmdRspTimeDuration(ESESTATUS status, uint32_t cmdLen,
 }
 
 /******************************************************************************
- * Function         phNxpEseProto7816_RSync
- *
- * Description      This function is used to send the RSync command
- *
- * Returns          On success return true or else false.
- *
- ******************************************************************************/
-static ESESTATUS phNxpEseProto7816_RSync(void) {
-  ESESTATUS status = ESESTATUS_FAILED;
-  phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
-      PH_NXP_ESE_PROTO_7816_TRANSCEIVE;
-  /* send the end of session s-frame */
-  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
-  phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.sFrameType =
-      RESYNCH_REQ;
-  phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState = SEND_S_RSYNC;
-  status = TransceiveProcess();
-  phNxpEseProto7816_3_Var.phNxpEseProto7816_CurrentState =
-      PH_NXP_ESE_PROTO_7816_IDLE;
-  return status;
-}
-
-/******************************************************************************
  * Function         phNxpEseProto7816_HardReset
  *
  * Description      This function is used to send the spi hard reset command
@@ -1983,17 +1951,12 @@ ESESTATUS phNxpEseProto7816_Reset(void) {
   ESESTATUS status = ESESTATUS_FAILED;
   /* Resetting host protocol instance */
   phNxpEseProto7816_ResetProtoParams();
-  if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-    status = phNxpEseProto7816_HardReset();
-    if (status == ESESTATUS_SUCCESS) {
-      /* Updating the ATR information(IFS,..) to 7816 stack */
-      phNxpEse_data atrRsp;
-      phNxpEseProto7816_getAtr(&atrRsp);
-      phNxpEse_free(atrRsp.p_data);
-    }
-  } else {
-    /* Resynchronising ESE protocol instance */
-    status = phNxpEseProto7816_RSync();
+  status = phNxpEseProto7816_HardReset();
+  if (status == ESESTATUS_SUCCESS) {
+    /* Updating the ATR information(IFS,..) to 7816 stack */
+    phNxpEse_data atrRsp;
+    phNxpEseProto7816_getAtr(&atrRsp);
+    phNxpEse_free(atrRsp.p_data);
   }
   return status;
 }
@@ -2025,16 +1988,12 @@ ESESTATUS phNxpEseProto7816_Open(phNxpEseProto7816InitParam_t initParam) {
     }
   } else /* Initialisation condition to achieve usecases like JCOP download */
   {
-    if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-      status = phNxpEseProto7816_HardReset();
-      /* Updating the ATR information (Eg: IFS,..) to 7816 stack */
-      if (status == ESESTATUS_SUCCESS) {
-        phNxpEse_data atrRsp;
-        phNxpEseProto7816_getAtr(&atrRsp);
-        phNxpEse_free(atrRsp.p_data);
-      }
-    } else {
-      status = phNxpEseProto7816_RSync();
+    status = phNxpEseProto7816_HardReset();
+    /* Updating the ATR information (Eg: IFS,..) to 7816 stack */
+    if (status == ESESTATUS_SUCCESS) {
+      phNxpEse_data atrRsp;
+      phNxpEseProto7816_getAtr(&atrRsp);
+      phNxpEse_free(atrRsp.p_data);
     }
   }
   return status;
