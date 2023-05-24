@@ -880,13 +880,15 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
                                    (phNxpEseProto7816_3_Var.atrInfo.bgt[1]));
   NXP_LOG_ESE_D("BWT = %d ms", phNxpEseProto7816_3_Var.atrInfo.bwt[0] << 8 |
                                    phNxpEseProto7816_3_Var.atrInfo.bwt[1]);
-  NXP_LOG_ESE_D("Max supported frequency = %d Hz",
+  NXP_LOG_ESE_D("Max supported frequency = %d KHz",
                 phNxpEseProto7816_3_Var.atrInfo.maxFreq[0] << 8 |
                     phNxpEseProto7816_3_Var.atrInfo.maxFreq[1]);
   NXP_LOG_ESE_D("Checksum LRC(0)/CRC(1) supports = 0x%x",
                 phNxpEseProto7816_3_Var.atrInfo.checksum);
   NXP_LOG_ESE_D("DefaultIFSC = %d bytes",
                 phNxpEseProto7816_3_Var.atrInfo.defaultIFSC);
+  NXP_LOG_ESE_D("Number of logical connections supported = %d",
+                phNxpEseProto7816_3_Var.atrInfo.numChannels);
   NXP_LOG_ESE_D("Max IFSC = %d bytes",
                 phNxpEseProto7816_3_Var.atrInfo.maxIFSC[0] << 8 |
                     phNxpEseProto7816_3_Var.atrInfo.maxIFSC[1]);
