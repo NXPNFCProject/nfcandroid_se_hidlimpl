@@ -77,6 +77,7 @@ void EseSpiTransport::Close(void* pDevHandle) {
   return;
 }
 
+#ifdef NXP_BOOTTIME_UPDATE
 /*******************************************************************************
 **
 ** Function         phNxpEse_spiIoctl
@@ -118,6 +119,8 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
 #endif
   return status;
 }
+#endif
+
 #if (NFC_NXP_ESE_VER == JCOP_VER_4_0)
 /*******************************************************************************
 **

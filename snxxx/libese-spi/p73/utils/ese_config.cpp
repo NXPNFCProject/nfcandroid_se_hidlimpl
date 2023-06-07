@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018 NXP
+ *  Copyright 2018,2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -79,9 +79,3 @@ unsigned EseConfig::getUnsigned(const std::string& key,
   if (hasKey(key)) return getUnsigned(key);
   return default_value;
 }
-
-std::vector<uint8_t> EseConfig::getBytes(const std::string& key) {
-  return getInstance().config_.getBytes(key);
-}
-
-void EseConfig::clear() { getInstance().config_.clear(); }

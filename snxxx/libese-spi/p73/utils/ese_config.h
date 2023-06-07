@@ -61,8 +61,6 @@ class EseConfig {
                                std::string default_value);
   static unsigned getUnsigned(const std::string& key);
   static unsigned getUnsigned(const std::string& key, unsigned default_value);
-  static std::vector<uint8_t> getBytes(const std::string& key);
-  static void clear();
 
  private:
   static EseConfig& getInstance();

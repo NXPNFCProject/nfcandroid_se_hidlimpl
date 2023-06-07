@@ -115,6 +115,7 @@ typedef struct phNxpEse_initParams {
  */
 ESESTATUS phNxpEse_init(phNxpEse_initParams initParams);
 
+#ifdef NXP_BOOTTIME_UPDATE
 /**
  * \ingroup spi_libese
  *
@@ -128,6 +129,8 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams);
  *
  */
 ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data);
+#endif
+
 /**
  * \ingroup spi_libese
  *

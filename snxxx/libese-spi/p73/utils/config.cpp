@@ -15,9 +15,9 @@
  */
 /******************************************************************************
  *
- *  The original Work has been changed by NXP Semiconductors.
+ *  The original Work has been changed by NXP.
  *
- *  Copyright (C) 2019 NXP Semiconductors
+ *  Copyright 2019,2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -156,9 +156,3 @@ std::string ConfigFile::getString(const std::string& key) {
 unsigned ConfigFile::getUnsigned(const std::string& key) {
   return getValue(key).getUnsigned();
 }
-
-std::vector<uint8_t> ConfigFile::getBytes(const std::string& key) {
-  return getValue(key).getBytes();
-}
-
-void ConfigFile::clear() { values_.clear(); }
