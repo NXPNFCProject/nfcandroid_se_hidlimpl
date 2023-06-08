@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 NXP
+ * Copyright 2022-2023 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 #include <unistd.h>
 
 NxpTimer::NxpTimer(std::string tag) {
-  logtag = tag;
+  logtag = std::move(tag);
   is_running = false;
   start_ts = end_ts = 0;
 }
