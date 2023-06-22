@@ -65,6 +65,9 @@ using ndk::ScopedAStatus;
 #ifndef DEFAULT_BASIC_CHANNEL
 #define DEFAULT_BASIC_CHANNEL 0x00
 #endif
+#ifndef MAX_AID_LENGTH
+#define MAX_AID_LENGTH 0x10
+#endif
 
 struct SecureElement : public BnSecureElement {
  public:

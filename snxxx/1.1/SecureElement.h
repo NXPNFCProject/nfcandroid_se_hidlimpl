@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2019,2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -76,6 +76,9 @@ using ::android::hidl::base::V1_0::IBase;
 #endif
 #ifndef DEFAULT_BASIC_CHANNEL
 #define DEFAULT_BASIC_CHANNEL 0x00
+#endif
+#ifndef MAX_AID_LENGTH
+#define MAX_AID_LENGTH 0x10
 #endif
 
 struct SecureElement : public V1_1::ISecureElement,
