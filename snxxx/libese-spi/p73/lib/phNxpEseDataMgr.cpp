@@ -87,6 +87,10 @@ ESESTATUS phNxpEse_GetData(uint32_t* data_len, uint8_t** pbuffer) {
  *
  ******************************************************************************/
 ESESTATUS phNxpEse_StoreDatainList(uint32_t data_len, uint8_t* pbuff) {
+  if (data_len > MAX_DATA_LEN) {
+    ALOGE("%s Data length causes oob write error", __FUNCTION__);
+    return ESESTATUS_INVALID_RECEIVE_LENGTH;
+  }
   phNxpEse_sCoreRecvBuff_List_t* newNode = NULL;
 
   newNode = (phNxpEse_sCoreRecvBuff_List_t*)phNxpEse_memalloc(
