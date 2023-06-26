@@ -231,6 +231,7 @@ ScopedAStatus SecureElement::transmit(const std::vector<uint8_t>& data,
   AutoMutex guard(seHalLock);
   ESESTATUS status = ESESTATUS_FAILED;
   std::vector<uint8_t> result;
+  ScopedAStatus scopedStatus = ScopedAStatus::ok();
   phNxpEse_memset(&gsTxRxBuffer.cmdData, 0x00, sizeof(phNxpEse_data));
   phNxpEse_memset(&gsTxRxBuffer.rspData, 0x00, sizeof(phNxpEse_data));
   gsTxRxBuffer.cmdData.len = (uint32_t)data.size();
@@ -281,6 +282,8 @@ ScopedAStatus SecureElement::transmit(const std::vector<uint8_t>& data,
       uint8_t sw[2] = {0x69, 0x86};
       result.resize(sizeof(sw));
       memcpy(&result[0], sw, sizeof(sw));
+      scopedStatus =
+          ScopedAStatus::fromServiceSpecificError(CHANNEL_NOT_AVAILABLE);
     }
   }
   status = phNxpEse_ResetEndPoint_Cntxt(0);
@@ -298,7 +301,7 @@ ScopedAStatus SecureElement::transmit(const std::vector<uint8_t>& data,
     gsTxRxBuffer.rspData.p_data = NULL;
   }
 
-  return ScopedAStatus::ok();
+  return scopedStatus;
 }
 
 ScopedAStatus SecureElement::openLogicalChannel(
