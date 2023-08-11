@@ -1347,6 +1347,10 @@ static int phNxpEse_readPacket_legacy(void* pDevHandle, uint8_t* pBuffer,
  *
  ******************************************************************************/
 ESESTATUS phNxpEse_WriteFrame(uint32_t data_len, uint8_t* p_data) {
+  if (data_len > MAX_DATA_LEN || data_len == 0) {
+    ALOGE("%s Data length causes oob write error", __FUNCTION__);
+    return ESESTATUS_FAILED;
+  }
   ESESTATUS status = ESESTATUS_INVALID_PARAMETER;
   int32_t dwNoBytesWrRd = 0;
   NXP_LOG_ESE_D("Enter %s ", __FUNCTION__);
