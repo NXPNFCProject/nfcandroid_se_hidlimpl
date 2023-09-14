@@ -50,6 +50,19 @@ static std::vector<uint8_t> gsRspDataBuff(256);
 std::shared_ptr<ISecureElementCallback> SecureElement::mCb = nullptr;
 AIBinder_DeathRecipient* clientDeathRecipient = nullptr;
 std::vector<bool> SecureElement::mOpenedChannels;
+static const std::vector<std::vector<uint8_t>> kWeaverAIDs = {
+    {0xA0, 0x00, 0x00, 0x03, 0x96, 0x10, 0x10},  // Primary AID
+    {0xA0, 0x00, 0x00, 0x03, 0x96, 0x54, 0x53, 0x00, 0x00, 0x00, 0x01, 0x00,
+     0x23, 0x00, 0x00, 0x00},  // Alternate AID
+};
+
+static bool isWeaverApplet(std::vector<uint8_t> aid) {
+  if (std::find(kWeaverAIDs.begin(), kWeaverAIDs.end(), aid) !=
+      kWeaverAIDs.end()) {
+    return true;
+  }
+  return false;
+}
 
 SecureElement::SecureElement()
     : mMaxChannelCount(0), mOpenedchannelCount(0), mIsEseInitialized(false) {}
@@ -941,13 +954,11 @@ static int getResponseInternal(uint8_t cla, phNxpEse_7816_rpdu_t& rpdu,
 }
 
 uint8_t SecureElement::getReserveChannelCnt(const std::vector<uint8_t>& aid) {
-  const std::vector<uint8_t> weaverAid = {0xA0, 0x00, 0x00, 0x03,
-                                          0x96, 0x10, 0x10};
   const std::vector<uint8_t> araAid = {0xA0, 0x00, 0x00, 0x01, 0x51,
                                        0x41, 0x43, 0x4C, 0x00};
   uint8_t reserveChannel = 0;
   // Check priority access enabled then only reserve channel
-  if (mHasPriorityAccess && aid != weaverAid && aid != araAid) {
+  if (mHasPriorityAccess && !isWeaverApplet(aid) && aid != araAid) {
     // Exclude basic channel
     reserveChannel = 1;
   }
