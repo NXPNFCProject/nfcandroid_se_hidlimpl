@@ -244,6 +244,14 @@ ScopedAStatus SecureElement::transmit(const std::vector<uint8_t>& data,
   AutoMutex guard(seHalLock);
   ESESTATUS status = ESESTATUS_FAILED;
   std::vector<uint8_t> result;
+  if (!mOpenedchannelCount) {
+    // 0x69, 0x86 = COMMAND NOT ALLOWED
+    uint8_t sw[2] = {0x69, 0x86};
+    result.resize(sizeof(sw));
+    memcpy(&result[0], sw, sizeof(sw));
+    return ScopedAStatus::fromServiceSpecificError(CHANNEL_NOT_AVAILABLE);
+  }
+
   phNxpEse_memset(&gsTxRxBuffer.cmdData, 0x00, sizeof(phNxpEse_data));
   phNxpEse_memset(&gsTxRxBuffer.rspData, 0x00, sizeof(phNxpEse_data));
   gsTxRxBuffer.cmdData.len = (uint32_t)data.size();
@@ -289,12 +297,6 @@ ScopedAStatus SecureElement::transmit(const std::vector<uint8_t>& data,
     memcpy(&result[0], respBuf, sizeof(respBuf));
   } else {
     LOG(ERROR) << "transmit failed!!!";
-    if (!mOpenedchannelCount) {
-      // 0x69, 0x86 = COMMAND NOT ALLOWED
-      uint8_t sw[2] = {0x69, 0x86};
-      result.resize(sizeof(sw));
-      memcpy(&result[0], sw, sizeof(sw));
-    }
   }
   status = phNxpEse_ResetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
@@ -582,6 +584,8 @@ ScopedAStatus SecureElement::openBasicChannel(
       *_aidl_return = result;
       return ScopedAStatus::fromServiceSpecificError(FAILED);
     } else {
+      mOpenedChannels[0] = true;
+      mOpenedchannelCount++;
       *_aidl_return = result;
       return ScopedAStatus::ok();
     }
