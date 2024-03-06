@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2023 NXP
+ *  Copyright 2018-2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -1111,8 +1111,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
                       GET_WAKE_UP_DELAY() * CHAINED_PKT_SCALER);
         phPalEse_BusyWait(GET_WAKE_UP_DELAY() * CHAINED_PKT_SCALER);
       } else {
-        /*DLOG_IF(INFO, ese_log_level)
-         << StringPrintf("%s Normal Pkt, delay read %dus", __FUNCTION__,
+        /*NXP_LOG_ESE_D("%s Normal Pkt, delay read %dus", __FUNCTION__,
          WAKE_UP_DELAY_SN1xx * NAD_POLLING_SCALER_SN1xx);*/
         phPalEse_BusyWait(nxpese_ctxt.nadPollingRetryTime *
                           GET_WAKE_UP_DELAY() * NAD_POLLING_SCALER);

@@ -76,7 +76,6 @@ cc_library_shared {
         "libbinder_ndk",
         "liblog",
         "libbase",
-        "libchrome",
         "vendor.nxp.nxpese@1.0",
         "vendor.nxp.nxpnfc@2.0",
         "vendor.nxp.nxpnfc_aidl-V1-ndk",
