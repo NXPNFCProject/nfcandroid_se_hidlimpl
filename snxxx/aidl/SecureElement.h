@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2023 NXP
+ *  Copyright 2023-2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -93,6 +93,7 @@ struct SecureElement : public BnSecureElement {
   static void NotifySeWaitExtension(phNxpEse_wtxState state);
   void updateSeHalInitState(bool);
   int seHalDeInit();
+  void handleStateOnDeath();
 
  private:
   uint8_t mMaxChannelCount;
@@ -100,14 +101,22 @@ struct SecureElement : public BnSecureElement {
   Mutex seHalLock;
   bool mIsEseInitialized = false;
   static std::vector<bool> mOpenedChannels;
+  Mutex seHalClientLock;
+  Mutex initLock;
 
   static std::shared_ptr<ISecureElementCallback> mCb;
+  static uid_t mCbClientUid;
   bool mHasPriorityAccess = false;
+  bool isOmapi;
 
   ESESTATUS seHalInit();
   int internalCloseChannel(uint8_t channelNumber);
   uint8_t getReserveChannelCnt(const std::vector<uint8_t>& aid);
   uint8_t getMaxChannelCnt();
+  bool isClientVts(uid_t clientUid);
+  void handleClientCloseChannel();
+  bool handleClientCallback(
+      const std::shared_ptr<ISecureElementCallback>& clientCallback);
 };
 
 }  // namespace secure_element
