@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019,2021 NXP
+ *  Copyright 2018-2019,2021,2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@
  */
 
 #define MIN_HEADER_LEN 4
+#define MAX_RAPDU_DATA_SIZE 256
 
 /**
  * \ingroup ISO7816-4_application_protocol_implementation

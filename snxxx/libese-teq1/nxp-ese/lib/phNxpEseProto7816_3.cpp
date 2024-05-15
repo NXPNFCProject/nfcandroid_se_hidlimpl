@@ -441,8 +441,12 @@ static ESESTATUS phNxpEseProto7816_SendSFrame(sFrameInfo_t sFrameData) {
       p_framebuff[2] = sframeData.len;
       if (!sframeData.len)
         p_framebuff[3] = PH_PROTO_7816_VALUE_ZERO;
-      else
+      else {
+        if (sframeData.len + 2 > frame_len) {
+          return ESESTATUS_FAILED;
+        }
         phNxpEse_memcpy(&(p_framebuff[3]), sframeData.p_data, sframeData.len);
+      }
       pcb_byte |= PH_PROTO_7816_S_BLOCK_REQ; /* PCB */
       pcb_byte |= PH_PROTO_7816_S_END_OF_APDU;
       break;
