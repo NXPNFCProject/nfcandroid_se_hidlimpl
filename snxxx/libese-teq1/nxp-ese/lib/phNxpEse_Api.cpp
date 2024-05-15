@@ -1190,8 +1190,15 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
         }
         if (!flushData) {
           /* Read the Complete data + one byte CRC*/
-          ret = phPalEse_read(pDevHandle, &pBuffer[headerIndex],
-                              (nNbBytesToRead + 1));
+          if ((headerIndex + nNbBytesToRead + 1) > MAX_DATA_LEN) {
+            NXP_LOG_ESE_E(
+                "_spi_read() [HDR]errno : %x buffer overflow ret : %X", errno,
+                ret);
+            ret = -1;
+          } else {
+            ret = phPalEse_read(pDevHandle, &pBuffer[headerIndex],
+                                (nNbBytesToRead + 1));
+          }
           if (ret < 0) {
             NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
             ret = -1;
@@ -1225,7 +1232,13 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       }
       nxpese_ctxt.rnack_sent = true;
       phPalEse_sleep(nxpese_ctxt.invalidFrame_Rnack_Delay);
-      ret = phPalEse_read(pDevHandle, &pBuffer[2], total_frame_size);
+      if ((total_frame_size + 2) > MAX_DATA_LEN) {
+        NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x buffer overflow ret : %X",
+                      errno, ret);
+        ret = -1;
+      } else {
+        ret = phPalEse_read(pDevHandle, &pBuffer[2], total_frame_size);
+      }
       if (ret < 0) {
         NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
       } else { /* LRC fail expected for this frame to send R-NACK*/
@@ -1358,6 +1371,10 @@ ESESTATUS phNxpEse_WriteFrame(uint32_t data_len, uint8_t* p_data) {
     p_data[0] = nxpese_ctxt.nadInfo.nadTx;
   } else {
     p_data[0] = ESE_NAD_TX;
+  }
+  if (data_len > MAX_DATA_LEN) {
+    NXP_LOG_ESE_E("%s data_len has exceeded MAX_DATA_LEN\n", __FUNCTION__);
+    return ESESTATUS_FAILED;
   }
   /* Create local copy of cmd_data */
   phNxpEse_memcpy(nxpese_ctxt.p_cmd_data, p_data, data_len);
