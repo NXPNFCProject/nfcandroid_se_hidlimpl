@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2023 NXP
+ *  Copyright 2018-2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -2065,8 +2065,10 @@ ESESTATUS phNxpEseProto7816_CloseAllSessions(void) {
    * be removed while integrating with TEE/REE as ATR
    * information is not available in REE case*/
 
-  if (phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN -
-                                               1] >= PH_SE_OS_VERSION_10) {
+  if ((phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN -
+                                                1] == PH_SE_OS_VERSION_10) ||
+      (phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN -
+                                                1] == PH_SE_OS_VERSION_11)) {
     uint8_t* buffer = (uint8_t*)phNxpEse_memalloc(sizeof(uint8_t));
     if (buffer != NULL) {
       buffer[PH_PROTO_7816_VALUE_ZERO] = PH_PROTO_CLOSE_ALL_SESSION_INF;

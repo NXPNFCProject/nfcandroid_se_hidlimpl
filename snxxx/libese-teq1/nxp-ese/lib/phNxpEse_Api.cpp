@@ -885,15 +885,12 @@ ESESTATUS phNxpEse_deInit(void) {
         if (status != ESESTATUS_SUCCESS) {
           NXP_LOG_ESE_E("%s phNxpEseP61_DisablePwrCntrl: failed", __FUNCTION__);
         }
-      } else {
-        NXP_LOG_ESE_D("Interface reset for DPD");
-        status = phNxpEseProto7816_IntfReset(
-            (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
-        if (status != ESESTATUS_SUCCESS) {
-          NXP_LOG_ESE_E("%s IntfReset Failed ", __FUNCTION__);
-        }
       }
 #endif
+    } else if ((GET_CHIP_OS_VERSION() > OS_VERSION_5_2_2) &&
+               (status != ESESTATUS_RESPONSE_TIMEOUT)) {
+      NXP_LOG_ESE_D("eSE not responding perform hard reset");
+      phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
     }
   }
   return status;
