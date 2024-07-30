@@ -2070,9 +2070,9 @@ ESESTATUS phNxpEseProto7816_CloseAllSessions(void) {
    * information is not available in REE case*/
 
   if ((phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN -
-                                                1] == PH_SE_OS_VERSION_10) ||
+                                                1] >= PH_SE_OS_VERSION_10) &&
       (phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN -
-                                                1] == PH_SE_OS_VERSION_11)) {
+                                                1] < PH_SE_OS_VERSION_20)) {
     uint8_t* buffer = (uint8_t*)phNxpEse_memalloc(sizeof(uint8_t));
     if (buffer != NULL) {
       buffer[PH_PROTO_7816_VALUE_ZERO] = PH_PROTO_CLOSE_ALL_SESSION_INF;
