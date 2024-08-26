@@ -104,11 +104,11 @@ ESESTATUS phNxpEse_7816_Transceive(pphNxpEse_7816_cpdu_t pCmd,
           status = ESESTATUS_FAILED;
         }
       }
-      if (pCmd_data != NULL) {
-        NXP_LOG_ESE_D("Freeing memory pCmd_data");
-        phNxpEse_free(pCmd_data);
-      }
     }
+  }
+  if (pCmd_data != NULL) {
+    NXP_LOG_ESE_D("Freeing memory pCmd_data");
+    phNxpEse_free(pCmd_data);
   }
   NXP_LOG_ESE_D(" %s Exit status 0x%x \n", __FUNCTION__, status);
   return status;
