@@ -17,6 +17,6 @@
 package com.nxp.sems;
 
 public class SemsGetLastExecStatus {
-    public String outScriptSignature;
-    public int status;
+  public String outScriptSignature;
+  public int status;
 }
