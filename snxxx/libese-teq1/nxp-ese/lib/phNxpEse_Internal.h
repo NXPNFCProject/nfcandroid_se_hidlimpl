@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019 NXP
+ *  Copyright 2018-2019,2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -38,9 +38,9 @@ typedef enum {
 } phNxpEse_LibStatus;
 
 typedef enum {
-  PN67T_POWER_SCHEME = 0x01,
-  PN80T_LEGACY_SCHEME,
-  PN80T_EXT_PMU_SCHEME,
+  POWER_SCHEME = 0x01,
+  LEGACY_SCHEME,
+  EXT_PMU_SCHEME,
 } phNxpEse_PowerScheme;
 
 typedef enum {
@@ -54,9 +54,6 @@ typedef enum {
 #define SECOND_TO_MILLISECOND(X) X * 1000
 #define CONVERT_TO_PERCENTAGE(X, Y) X* Y / 100
 #define ADDITIONAL_SECURE_TIME_PERCENTAGE 5
-#define ESE_JCOP_OS_DWNLD_RETRY_CNT \
-  10 /* Maximum retry count for ESE JCOP OS Dwonload*/
-#define ESE_FW_DWNLD_RETRY_CNT 10 /* Maximum retry count for FW Dwonload*/
 
 /*!
  * \brief  Secure timer values F1, F2, F3
@@ -91,15 +88,6 @@ typedef struct phNxpEseNadInfo {
   nadInfoTx_t nadTx; /*!< nod address for tx */
   nadInfoRx_t nadRx; /*!< nod address for rx */
 } phNxpEseNadInfo_t;
-
-/* JCOP download states */
-typedef enum jcop_dwnld_state {
-  JCP_DWNLD_IDLE = SPM_STATE_JCOP_DWNLD, /* jcop dwnld is not ongoing*/
-  JCP_DWNLD_INIT = 0x8010,               /* jcop dwonload init state*/
-  JCP_DWNLD_START = 0x8020,              /* download started */
-  JCP_SPI_DWNLD_COMPLETE = 0x8040, /* jcop download complete in spi interface*/
-  JCP_DWP_DWNLD_COMPLETE = 0x8080, /* jcop download complete */
-} phNxpEse_JcopDwnldState;
 
 /*!
  * \brief  SPI Control structure

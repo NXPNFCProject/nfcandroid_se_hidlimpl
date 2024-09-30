@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019, 2022-2023 NXP
+ *  Copyright 2018-2019, 2022-2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -96,11 +96,9 @@ ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg) {
   int32_t ret = -1;
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
   spm_state_t current_spm_state = SPM_STATE_INVALID;
-  if (GET_CHIP_OS_VERSION() > OS_VERSION_4_0) {
-    /*None of the IOCTLs valid except SPM_RECOVERY_RESET*/
-    if (arg != SPM_RECOVERY_RESET) {
-      return ESESTATUS_SUCCESS;
-    }
+  /*None of the IOCTLs valid except SPM_RECOVERY_RESET*/
+  if (arg != SPM_RECOVERY_RESET) {
+    return ESESTATUS_SUCCESS;
   }
   ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle, arg);
   switch (arg) {
@@ -108,10 +106,6 @@ ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg) {
       if (ret < 0) {
         NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
         wSpmStatus = ESESTATUS_FAILED;
-      } else {
-        if (phNxpEse_SPM_RelAccess() != ESESTATUS_SUCCESS) {
-          NXP_LOG_ESE_E(" %s phNxpEse_SPM_RelAccess : failed \n", __FUNCTION__);
-        }
       }
     } break;
     case SPM_POWER_ENABLE: {
@@ -122,10 +116,6 @@ ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg) {
           if (wSpmStatus != ESESTATUS_SUCCESS) {
             NXP_LOG_ESE_E(" %s : phNxpEse_SPM_GetPwrState Failed",
                           __FUNCTION__);
-            if (phNxpEse_SPM_RelAccess() != ESESTATUS_SUCCESS) {
-              NXP_LOG_ESE_E(" %s phNxpEse_SPM_RelAccess : failed \n",
-                            __FUNCTION__);
-            }
             return wSpmStatus;
           } else {
             if (current_spm_state & SPM_STATE_DWNLD) {
@@ -136,12 +126,6 @@ ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg) {
           }
         } else {
           wSpmStatus = ESESTATUS_FAILED;
-        }
-        if (wSpmStatus != ESESTATUS_SUCCESS) {
-          if (phNxpEse_SPM_RelAccess() != ESESTATUS_SUCCESS) {
-            NXP_LOG_ESE_E(" %s phNxpEse_SPM_RelAccess : failed \n",
-                          __FUNCTION__);
-          }
         }
       }
     } break;
@@ -224,30 +208,6 @@ ESESTATUS phNxpEse_SPM_SetPwrScheme(long arg) {
 }
 
 /******************************************************************************
- * Function         phNxpEseP61_SPM_EnableDisablePwrCntrl
- *
- * Description      This function request to the nfc i2c driver
- *                  to set the chip type and power scheme.
- *
- * Returns          On Success ESESTATUS_SUCCESS else proper error code
- *
- ******************************************************************************/
-ESESTATUS phNxpEse_SPM_DisablePwrControl(unsigned long arg) {
-  int32_t ret = -1;
-  ESESTATUS status = ESESTATUS_SUCCESS;
-
-  NXP_LOG_ESE_D("%s : Inhibit power control is set to  = 0x%ld", __FUNCTION__,
-                arg);
-  ret = phPalEse_ioctl(phPalEse_e_DisablePwrCntrl, pEseDeviceHandle, arg);
-  if (ret < 0) {
-    NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
-    status = ESESTATUS_FAILED;
-  }
-
-  return status;
-}
-
-/******************************************************************************
  * Function         phNxpEse_SPM_GetState
  *
  * Description      This function gets the current power state of ESE
@@ -277,29 +237,6 @@ ESESTATUS phNxpEse_SPM_GetState(spm_state_t* current_state) {
 }
 
 /******************************************************************************
- * Function         phNxpEse_SPM_SetJcopDwnldState
- *
- * Description      This function is used to set the JCOP OS download state
- *
- * Returns          On Success ESESTATUS_SUCCESS else proper error code
- *
- ******************************************************************************/
-ESESTATUS phNxpEse_SPM_SetJcopDwnldState(long arg) {
-  int ret = -1;
-  ESESTATUS status = ESESTATUS_SUCCESS;
-
-  NXP_LOG_ESE_D("%s :phNxpEse_SPM_SetJcopDwnldState  = 0x%ld", __FUNCTION__,
-                arg);
-  ret = phPalEse_ioctl(phPalEse_e_SetJcopDwnldState, pEseDeviceHandle, arg);
-  if (ret < 0) {
-    NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
-    status = ESESTATUS_FAILED;
-  }
-
-  return status;
-}
-
-/******************************************************************************
  * Function         phNxpEse_SPM_SetEseClientUpdateState
  *
  * Description      This function is used to set the ese Update state
@@ -321,30 +258,3 @@ ESESTATUS phNxpEse_SPM_SetEseClientUpdateState(long arg) {
 
   return status;
 }
-
-/*******************************************************************************
-**
-** Function         phNxpEse_SPM_RelAccess
-**
-** Description
-**
-** Parameters       timeout - Releases the ese access
-**
-** Returns          success or failure
-**
-*******************************************************************************/
-ESESTATUS phNxpEse_SPM_RelAccess(void) {
-  ESESTATUS status = ESESTATUS_SUCCESS;
-#if ((NFC_NXP_ESE_VER == JCOP_VER_3_1) || (NFC_NXP_ESE_VER == JCOP_VER_3_2))
-  int ret = -1;
-  NXP_LOG_ESE_D("phNxpEse_SPM_RelAccess(): enter");
-
-  ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle, 5);
-  if (ret < 0) {
-    status = ESESTATUS_FAILED;
-  }
-  NXP_LOG_ESE_D("phNxpEse_SPM_RelAccess(): exit  %d", status);
-#endif
-  return status;
-}
-/** @} */

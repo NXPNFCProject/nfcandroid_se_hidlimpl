@@ -38,12 +38,6 @@
 #define MAX_SUPPORTED_DATA_SIZE 0x800B
 static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
                                int nNbBytesToRead);
-static int phNxpEse_readPacket_legacy(void* pDevHandle, uint8_t* pBuffer,
-                                      int nNbBytesToRead);
-
-static ESESTATUS phNxpEse_checkJcopDwnldState(void);
-static ESESTATUS phNxpEse_setJcopDwnldState(phNxpEse_JcopDwnldState state);
-static ESESTATUS phNxpEse_checkFWDwnldStatus(void);
 static void phNxpEse_GetMaxTimer(unsigned long* pMaxTimer);
 static __inline bool phNxpEse_isColdResetRequired(phNxpEse_initMode mode,
                                                   ESESTATUS status);
@@ -69,17 +63,13 @@ uint8_t ese_log_level = 0;
 
 ESESTATUS phNxpEse_SetEndPoint_Cntxt(uint8_t uEndPoint) {
   ESESTATUS status = ESESTATUS_FAILED;
-  if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-    status = phNxpEseProto7816_SetEndPoint(uEndPoint);
-    if (status == ESESTATUS_SUCCESS) {
-      nxpese_ctxt.nadInfo.nadRx = nadInfoRx_ptr[uEndPoint];
-      nxpese_ctxt.nadInfo.nadTx = nadInfoTx_ptr[uEndPoint];
-      nxpese_ctxt.endPointInfo = uEndPoint;
-    }
-    NXP_LOG_ESE_D("%s: Endpoint=%d", __FUNCTION__, uEndPoint);
-  } else {
-    NXP_LOG_ESE_E("%s- Function not supported", __FUNCTION__);
+  status = phNxpEseProto7816_SetEndPoint(uEndPoint);
+  if (status == ESESTATUS_SUCCESS) {
+    nxpese_ctxt.nadInfo.nadRx = nadInfoRx_ptr[uEndPoint];
+    nxpese_ctxt.nadInfo.nadTx = nadInfoTx_ptr[uEndPoint];
+    nxpese_ctxt.endPointInfo = uEndPoint;
   }
+  NXP_LOG_ESE_D("%s: Endpoint=%d", __FUNCTION__, uEndPoint);
   return status;
 }
 
@@ -93,11 +83,7 @@ ESESTATUS phNxpEse_SetEndPoint_Cntxt(uint8_t uEndPoint) {
  ******************************************************************************/
 ESESTATUS phNxpEse_ResetEndPoint_Cntxt(uint8_t uEndPoint) {
   ESESTATUS status = ESESTATUS_FAILED;
-  if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-    status = phNxpEseProto7816_ResetEndPoint(uEndPoint);
-  } else {
-    NXP_LOG_ESE_E("%s- Function not supported", __FUNCTION__);
-  }
+  status = phNxpEseProto7816_ResetEndPoint(uEndPoint);
   return status;
 }
 /******************************************************************************
@@ -207,14 +193,6 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
                 nxpese_ctxt.secureTimerParams.secureTimer3);
 
   phNxpEse_GetMaxTimer(&maxTimer);
-#ifdef SPM_INTEGRATED
-  if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
-    wConfigStatus = phNxpEse_SPM_DisablePwrControl(maxTimer);
-    if (wConfigStatus != ESESTATUS_SUCCESS) {
-      NXP_LOG_ESE_E("%s phNxpEse_SPM_DisablePwrControl: failed", __FUNCTION__);
-    }
-  }
-#endif
   do {
     /* T=1 Protocol layer open */
     wConfigStatus = phNxpEseProto7816_Open(protoInitParam);
@@ -222,11 +200,9 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
       phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
   } while (phNxpEse_isColdResetRequired(initParams.initMode, wConfigStatus) &&
            retry++ < 1);
-  if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-    if (ESESTATUS_TRANSCEIVE_FAILED == wConfigStatus ||
-        ESESTATUS_FAILED == wConfigStatus) {
-      nxpese_ctxt.EseLibStatus = ESE_STATUS_RECOVERY;
-    }
+  if (ESESTATUS_TRANSCEIVE_FAILED == wConfigStatus ||
+      ESESTATUS_FAILED == wConfigStatus) {
+    nxpese_ctxt.EseLibStatus = ESE_STATUS_RECOVERY;
   }
 
   if (ESESTATUS_SUCCESS == wConfigStatus) {
@@ -310,8 +286,7 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   if (EseConfig::hasKey(NAME_NXP_OS_VERSION)) {
     num = EseConfig::getUnsigned(NAME_NXP_OS_VERSION);
     NXP_LOG_ESE_D("Chip type read from config file - %lu", num);
-    sOsVersion = (num == 1) ? OS_VERSION_4_0
-                            : ((num == 2) ? OS_VERSION_5_1 : OS_VERSION_5_2);
+    sOsVersion = (num == 2) ? OS_VERSION_5_1 : OS_VERSION_5_2;
   } else {
     sOsVersion = OS_VERSION_5_2;
     NXP_LOG_ESE_D("Chip type not defined in config file osVersion- %d",
@@ -326,20 +301,7 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
     NXP_LOG_ESE_D("SPI Throughput not defined in config file - %lu",
                   tpm_enable);
   }
-#if (NXP_POWER_SCHEME_SUPPORT == true)
-  if (EseConfig::hasKey(NAME_NXP_POWER_SCHEME)) {
-    num = EseConfig::getUnsigned(NAME_NXP_POWER_SCHEME);
-    nxpese_ctxt.pwr_scheme = num;
-    NXP_LOG_ESE_D("Power scheme read from config file - %lu", num);
-  } else {
-    nxpese_ctxt.pwr_scheme = PN67T_POWER_SCHEME;
-    NXP_LOG_ESE_D("Power scheme not defined in config file - %lu", num);
-  }
-#else
-  nxpese_ctxt.pwr_scheme = PN67T_POWER_SCHEME;
-  tpm_enable = 0x00;
-#endif
-
+  nxpese_ctxt.pwr_scheme = LEGACY_SCHEME;
   if (EseConfig::hasKey(NAME_NXP_NAD_POLL_RETRY_TIME)) {
     num = EseConfig::getUnsigned(NAME_NXP_NAD_POLL_RETRY_TIME);
     nxpese_ctxt.nadPollingRetryTime = num;
@@ -360,10 +322,8 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   wConfigStatus = phPalEse_open_and_configure(&tPalConfig);
   if (wConfigStatus != ESESTATUS_SUCCESS) {
     NXP_LOG_ESE_E("phPalEse_Init Failed");
-    if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-      if (ESESTATUS_DRIVER_BUSY == wConfigStatus)
-        NXP_LOG_ESE_E("Ese Driver is Busy!!!");
-    }
+    if (ESESTATUS_DRIVER_BUSY == wConfigStatus)
+      NXP_LOG_ESE_E("Ese Driver is Busy!!!");
     goto clean_and_return;
   }
   /* Copying device handle to ESE Lib context*/
@@ -388,14 +348,6 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
     wConfigStatus = ESESTATUS_FAILED;
     goto clean_and_return_1;
   }
-  if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
-    wConfigStatus = phNxpEse_checkFWDwnldStatus();
-    if (wConfigStatus != ESESTATUS_SUCCESS) {
-      NXP_LOG_ESE_E("Failed to open SPI due to VEN pin used by FW download \n");
-      wConfigStatus = ESESTATUS_FAILED;
-      goto clean_and_return_1;
-    }
-  }
   wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
     NXP_LOG_ESE_E(" %s : phNxpEse_SPM_GetPwrState Failed", __FUNCTION__);
@@ -419,17 +371,6 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   }
   phNxpEse_memcpy(&nxpese_ctxt.initParams, &initParams,
                   sizeof(phNxpEse_initParams));
-  if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
-    /* Updating ESE power state based on the init mode */
-    if (ESE_MODE_OSU == nxpese_ctxt.initParams.initMode) {
-      NXP_LOG_ESE_D("%s Init mode ---->OSU", __FUNCTION__);
-      wConfigStatus = phNxpEse_checkJcopDwnldState();
-      if (wConfigStatus != ESESTATUS_SUCCESS) {
-        NXP_LOG_ESE_E("phNxpEse_checkJcopDwnldState failed");
-        goto clean_and_return_1;
-      }
-    }
-  }
   wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_ENABLE);
   if (wSpmStatus != ESESTATUS_SUCCESS) {
     NXP_LOG_ESE_E("phNxpEse_SPM_ConfigPwr: enabling power Failed");
@@ -446,16 +387,6 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
     nxpese_ctxt.spm_power_state = true;
   }
 #endif
-  if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
-    if (tpm_enable) {
-      wConfigStatus = phPalEse_ioctl(phPalEse_e_EnableThroughputMeasurement,
-                                     nxpese_ctxt.pDevHandle, 0);
-      if (wConfigStatus != ESESTATUS_SUCCESS) {
-        NXP_LOG_ESE_E("phPalEse_IoCtl Failed");
-        goto clean_and_return;
-      }
-    }
-  }
   NXP_LOG_ESE_D("wConfigStatus %x", wConfigStatus);
   return wConfigStatus;
 
@@ -476,75 +407,6 @@ clean_and_return_2:
   nxpese_ctxt.EseLibStatus = ESE_STATUS_CLOSE;
   nxpese_ctxt.spm_power_state = false;
   return ESESTATUS_FAILED;
-}
-
-/******************************************************************************
- * Function         phNxpEse_setJcopDwnldState
- *
- * Description      This function is  used to check whether JCOP OS
- *                  download can be started or not.
- *
- * Returns          returns  ESESTATUS_SUCCESS or ESESTATUS_FAILED
- *
- ******************************************************************************/
-static ESESTATUS phNxpEse_setJcopDwnldState(phNxpEse_JcopDwnldState state) {
-  ESESTATUS wConfigStatus = ESESTATUS_FAILED;
-  NXP_LOG_ESE_D("phNxpEse_setJcopDwnldState Enter");
-
-  if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
-    wConfigStatus = phNxpEse_SPM_SetJcopDwnldState(state);
-  } else {
-    NXP_LOG_ESE_E("%s function not supported", __FUNCTION__);
-  }
-  return wConfigStatus;
-}
-
-/******************************************************************************
- * Function         phNxpEse_checkJcopDwnldState
- *
- * Description      This function is  used to check whether JCOP OS
- *                  download can be started or not.
- *
- * Returns          returns  ESESTATUS_SUCCESS or ESESTATUS_BUSY
- *
- ******************************************************************************/
-static ESESTATUS phNxpEse_checkJcopDwnldState(void) {
-  NXP_LOG_ESE_D("phNxpEse_checkJcopDwnld Enter");
-  ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
-  spm_state_t current_spm_state = SPM_STATE_INVALID;
-  uint8_t ese_dwnld_retry = 0x00;
-  ESESTATUS status = ESESTATUS_FAILED;
-
-  wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
-  if (wSpmStatus == ESESTATUS_SUCCESS) {
-    /* Check current_spm_state and update config/Spm status*/
-    if ((current_spm_state & SPM_STATE_JCOP_DWNLD) ||
-        (current_spm_state & SPM_STATE_WIRED))
-      return ESESTATUS_BUSY;
-
-    status = phNxpEse_setJcopDwnldState(JCP_DWNLD_INIT);
-    if (status == ESESTATUS_SUCCESS) {
-      while (ese_dwnld_retry < ESE_JCOP_OS_DWNLD_RETRY_CNT) {
-        NXP_LOG_ESE_D("ESE_JCOP_OS_DWNLD_RETRY_CNT retry count");
-        wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
-        if (wSpmStatus == ESESTATUS_SUCCESS) {
-          if ((current_spm_state & SPM_STATE_JCOP_DWNLD)) {
-            status = ESESTATUS_SUCCESS;
-            break;
-          }
-        } else {
-          status = ESESTATUS_FAILED;
-          break;
-        }
-        phNxpEse_Sleep(
-            200000); /*sleep for 200 ms checking for jcop dwnld status*/
-        ese_dwnld_retry++;
-      }
-    }
-  }
-
-  NXP_LOG_ESE_D("phNxpEse_checkJcopDwnldState status %x", status);
-  return status;
 }
 
 /******************************************************************************
@@ -616,12 +478,7 @@ ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp) {
 ESESTATUS phNxpEse_coldReset(void) {
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
   NXP_LOG_ESE_D(" %s Enter \n", __FUNCTION__);
-  if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-    wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
-  } else {
-    wSpmStatus = ESESTATUS_FAILED;
-    NXP_LOG_ESE_E(" %s Function not supported \n", __FUNCTION__);
-  }
+  wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
   NXP_LOG_ESE_D(" %s Exit status 0x%x \n", __FUNCTION__, wSpmStatus);
   return wSpmStatus;
 }
@@ -658,14 +515,8 @@ ESESTATUS phNxpEse_reset(void) {
                 nxpese_ctxt.secureTimerParams.secureTimer3);
   phNxpEse_GetMaxTimer(&maxTimer);
 #ifdef SPM_INTEGRATED
-  if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
-    status = phNxpEse_SPM_DisablePwrControl(maxTimer);
-    if (status != ESESTATUS_SUCCESS) {
-      NXP_LOG_ESE_E("%s phNxpEse_SPM_DisablePwrControl: failed", __FUNCTION__);
-    }
-  }
-  if ((nxpese_ctxt.pwr_scheme == PN67T_POWER_SCHEME) ||
-      (nxpese_ctxt.pwr_scheme == PN80T_LEGACY_SCHEME)) {
+  if ((nxpese_ctxt.pwr_scheme == POWER_SCHEME) ||
+      (nxpese_ctxt.pwr_scheme == LEGACY_SCHEME)) {
     wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_RESET);
     if (wSpmStatus != ESESTATUS_SUCCESS) {
       NXP_LOG_ESE_E("phNxpEse_SPM_ConfigPwr: reset Failed");
@@ -725,28 +576,7 @@ ESESTATUS phNxpEse_resetJcopUpdate(void) {
     }
   }
 #ifdef SPM_INTEGRATED
-#if (NXP_POWER_SCHEME_SUPPORT == true)
-  if (EseConfig::hasKey(NAME_NXP_POWER_SCHEME)) {
-    num = EseConfig::getUnsigned(NAME_NXP_POWER_SCHEME);
-    if ((num == 1) || (num == 2)) {
-      NXP_LOG_ESE_D(" %s Call Config Pwr Reset \n", __FUNCTION__);
-      status = phNxpEse_SPM_ConfigPwr(SPM_POWER_RESET);
-      if (status != ESESTATUS_SUCCESS) {
-        NXP_LOG_ESE_E("phNxpEse_resetJcopUpdate: reset Failed");
-        status = ESESTATUS_FAILED;
-      }
-    } else if (num == 3) {
-      NXP_LOG_ESE_D(" %s Call eSE Chip Reset \n", __FUNCTION__);
-      status = phNxpEse_chipReset();
-      if (status != ESESTATUS_SUCCESS) {
-        NXP_LOG_ESE_E("phNxpEse_resetJcopUpdate: chip reset Failed");
-        status = ESESTATUS_FAILED;
-      }
-    } else {
-      NXP_LOG_ESE_D(" %s Invalid Power scheme \n", __FUNCTION__);
-    }
-  }
-#else
+#if (NXP_POWER_SCHEME_SUPPORT == false)
   {
     status = phNxpEse_SPM_ConfigPwr(SPM_POWER_RESET);
     if (status != ESESTATUS_SUCCESS) {
@@ -766,33 +596,6 @@ ESESTATUS phNxpEse_resetJcopUpdate(void) {
 #endif
 
   NXP_LOG_ESE_D(" %s Exit \n", __FUNCTION__);
-  return status;
-}
-
-/******************************************************************************
- * Function         phNxpEse_chipReset
- *
- * Description      This function is used to reset the ESE.
- *
- * Returns          Always return ESESTATUS_SUCCESS (0).
- *
- ******************************************************************************/
-ESESTATUS phNxpEse_chipReset(void) {
-  ESESTATUS status = ESESTATUS_FAILED;
-  ESESTATUS bStatus = ESESTATUS_FAILED;
-  if (nxpese_ctxt.pwr_scheme == PN80T_EXT_PMU_SCHEME) {
-    bStatus = phNxpEseProto7816_Reset();
-    if (!bStatus) {
-      NXP_LOG_ESE_E(
-          "Inside phNxpEse_chipReset, phNxpEseProto7816_Reset Failed");
-    }
-    status = phPalEse_ioctl(phPalEse_e_ChipRst, nxpese_ctxt.pDevHandle, 6);
-    if (status != ESESTATUS_SUCCESS) {
-      NXP_LOG_ESE_E("phNxpEse_chipReset  Failed");
-    }
-  } else {
-    NXP_LOG_ESE_D("phNxpEse_chipReset is not supported in legacy power scheme");
-  }
   return status;
 }
 
@@ -833,13 +636,8 @@ static __inline bool phNxpEse_isColdResetRequired(phNxpEse_initMode mode,
 ESESTATUS phNxpEse_doResetProtection(bool flag) {
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
   NXP_LOG_ESE_D(" %s Enter \n", __FUNCTION__);
-  if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-    wSpmStatus = phPalEse_ioctl(phPalEse_e_ResetProtection,
-                                nxpese_ctxt.pDevHandle, flag);
-  } else {
-    wSpmStatus = ESESTATUS_FAILED;
-    NXP_LOG_ESE_E(" %s Function not supported \n", __FUNCTION__);
-  }
+  wSpmStatus =
+      phPalEse_ioctl(phPalEse_e_ResetProtection, nxpese_ctxt.pDevHandle, flag);
   NXP_LOG_ESE_D(" %s Exit status 0x%x \n", __FUNCTION__, wSpmStatus);
   return wSpmStatus;
 }
@@ -856,8 +654,7 @@ ESESTATUS phNxpEse_deInit(void) {
   ESESTATUS status = ESESTATUS_SUCCESS;
   unsigned long maxTimer = 0;
   unsigned long num = 0;
-  if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0 &&
-      (ESE_STATUS_RECOVERY == nxpese_ctxt.EseLibStatus) &&
+  if ((ESE_STATUS_RECOVERY == nxpese_ctxt.EseLibStatus) &&
       ESE_PROTOCOL_MEDIA_SPI != nxpese_ctxt.initParams.mediaType) {
     return status;
   }
@@ -879,14 +676,6 @@ ESESTATUS phNxpEse_deInit(void) {
                     nxpese_ctxt.secureTimerParams.secureTimer2,
                     nxpese_ctxt.secureTimerParams.secureTimer3);
       phNxpEse_GetMaxTimer(&maxTimer);
-#ifdef SPM_INTEGRATED
-      if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
-        status = phNxpEse_SPM_DisablePwrControl(maxTimer);
-        if (status != ESESTATUS_SUCCESS) {
-          NXP_LOG_ESE_E("%s phNxpEseP61_DisablePwrCntrl: failed", __FUNCTION__);
-        }
-      }
-#endif
     } else if ((GET_CHIP_OS_VERSION() > OS_VERSION_5_2_2) &&
                (status != ESESTATUS_RESPONSE_TIMEOUT)) {
       NXP_LOG_ESE_D("eSE not responding perform hard reset");
@@ -929,42 +718,33 @@ ESESTATUS phNxpEse_close(ESESTATUS deInitStatus) {
     nxpese_ctxt.spm_power_state = false;
   }
 
-  if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
-    if (ESE_MODE_OSU == nxpese_ctxt.initParams.initMode) {
-      status = phNxpEse_setJcopDwnldState(JCP_SPI_DWNLD_COMPLETE);
+  if (NULL != nxpese_ctxt.pDevHandle) {
+    if (ESE_PROTOCOL_MEDIA_SPI == nxpese_ctxt.initParams.mediaType) {
+      NXP_LOG_ESE_D("Inform eSE that trusted Mode is over");
+      status = phPalEse_ioctl(phPalEse_e_SetSecureMode, nxpese_ctxt.pDevHandle,
+                              0x00);
       if (status != ESESTATUS_SUCCESS) {
-        NXP_LOG_ESE_E("%s: phNxpEse_setJcopDwnldState failed", __FUNCTION__);
+        NXP_LOG_ESE_E("%s: phPalEse_e_SetSecureMode failed", __FUNCTION__);
       }
-    }
-  } else {
-    if (NULL != nxpese_ctxt.pDevHandle) {
-      if (ESE_PROTOCOL_MEDIA_SPI == nxpese_ctxt.initParams.mediaType) {
-        NXP_LOG_ESE_D("Inform eSE that trusted Mode is over");
-        status = phPalEse_ioctl(phPalEse_e_SetSecureMode,
-                                nxpese_ctxt.pDevHandle, 0x00);
-        if (status != ESESTATUS_SUCCESS) {
-          NXP_LOG_ESE_E("%s: phPalEse_e_SetSecureMode failed", __FUNCTION__);
-        }
-        if (ESESTATUS_SUCCESS != phNxpEseProto7816_CloseAllSessions()) {
-          NXP_LOG_ESE_D("eSE not responding perform hard reset");
-          phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
-        }
-      } else {
-        if (nxpese_ctxt.EseLibStatus == ESE_STATUS_RECOVERY ||
-            (deInitStatus == ESESTATUS_RESPONSE_TIMEOUT) ||
-            ESESTATUS_SUCCESS != phNxpEseProto7816_CloseAllSessions()) {
-          NXP_LOG_ESE_D("eSE not responding perform hard reset");
-          phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
-        }
-      }
-      NXP_LOG_ESE_D("Interface reset for DPD");
-      status = phNxpEseProto7816_IntfReset(
-          (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
-      if (status == ESESTATUS_TRANSCEIVE_FAILED || status == ESESTATUS_FAILED) {
-        NXP_LOG_ESE_E("%s IntfReset Failed, perform hard reset", __FUNCTION__);
-        // max wtx or no response of interface reset after protocol recovery
+      if (ESESTATUS_SUCCESS != phNxpEseProto7816_CloseAllSessions()) {
+        NXP_LOG_ESE_D("eSE not responding perform hard reset");
         phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
       }
+    } else {
+      if (nxpese_ctxt.EseLibStatus == ESE_STATUS_RECOVERY ||
+          (deInitStatus == ESESTATUS_RESPONSE_TIMEOUT) ||
+          ESESTATUS_SUCCESS != phNxpEseProto7816_CloseAllSessions()) {
+        NXP_LOG_ESE_D("eSE not responding perform hard reset");
+        phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
+      }
+    }
+    NXP_LOG_ESE_D("Interface reset for DPD");
+    status = phNxpEseProto7816_IntfReset(
+        (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams);
+    if (status == ESESTATUS_TRANSCEIVE_FAILED || status == ESESTATUS_FAILED) {
+      NXP_LOG_ESE_E("%s IntfReset Failed, perform hard reset", __FUNCTION__);
+      // max wtx or no response of interface reset after protocol recovery
+      phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
     }
   }
 
@@ -1045,301 +825,212 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
   int total_count = 0, numBytesToRead = 0, headerIndex = 0;
 
   NXP_LOG_ESE_D("%s Enter", __FUNCTION__);
-  if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-    int max_sof_counter = 0;
-    /*Max retry to get SOF in case of chaining*/
-    if (poll_sof_chained_delay == 1) {
-      /*Wait Max for 1.3 sec before retry/recovery*/
-      /*(max_sof_counter(1300) * 10 us) = 1.3 sec */
-      max_sof_counter = ESE_POLL_TIMEOUT * 10;
-    }
-    /*Max retry to get SOF in case of Non-chaining*/
-    else {
-      /*wait based on config option */
-      /*(nadPollingRetryTime * WAKE_UP_DELAY_SN1xx * NAD_POLLING_SCALER_SN1xx)*/
-      max_sof_counter = ((ESE_POLL_TIMEOUT * 1000) /
-                         (nxpese_ctxt.nadPollingRetryTime *
-                          GET_WAKE_UP_DELAY() * NAD_POLLING_SCALER));
-    }
-    if (nxpese_ctxt.rnack_sent) {
-      phPalEse_sleep(nxpese_ctxt.invalidFrame_Rnack_Delay);
-    }
-    NXP_LOG_ESE_D(
-        "read() max_sof_counter: "
-        "%X ESE_POLL_TIMEOUT %2X",
-        max_sof_counter, ESE_POLL_TIMEOUT);
-    do {
-      ret = -1;
-      ret = phPalEse_read(pDevHandle, pBuffer, 2);
-      if (ret < 0) {
-        /*Polling for read on spi, hence Debug log*/
-        NXP_LOG_ESE_D("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
-      } else {
-        if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) ||
-            (pBuffer[0] == RECEIVE_PACKET_SOF)) {
-          /* Read the HEADER of one byte*/
-          NXP_LOG_ESE_D("%s Read HDR SOF + PCB", __FUNCTION__);
-          numBytesToRead = 1; /*Read only INF LEN*/
-          headerIndex = 1;
-          break;
-        } else if (((pBuffer[0] == 0x00) || (pBuffer[0] == 0xFF)) &&
-                   ((pBuffer[1] == nxpese_ctxt.nadInfo.nadRx) ||
-                    (pBuffer[1] == RECEIVE_PACKET_SOF))) {
-          /* Read the HEADER of Two bytes*/
-          NXP_LOG_ESE_D("%s Read HDR only SOF", __FUNCTION__);
-          pBuffer[0] = pBuffer[1];
-          numBytesToRead = 2; /*Read PCB + INF LEN*/
-          headerIndex = 0;
-          break;
-        } else if (((pBuffer[0] == 0x00) && (pBuffer[1] == 0x00)) ||
-                   ((pBuffer[0] == 0xFF) && (pBuffer[1] == 0xFF))) {
-          // LOG(ERROR) << StringPrintf("_spi_read() Buf[0]: %X Buf[1]: %X",
-          // pBuffer[0], pBuffer[1]);
-        } else if (ret >= 0) { /* Corruption happened during the receipt from
-                                  Card, go flush out the data */
-          NXP_LOG_ESE_E("_spi_read() Corruption Buf[0]: %X Buf[1]: %X ..len=%d",
-                        pBuffer[0], pBuffer[1], ret);
-          break;
-        }
-      }
-      /*If it is Chained packet wait for 100 usec*/
-      if (poll_sof_chained_delay == 1) {
-        NXP_LOG_ESE_D("%s Chained Pkt, delay read %dus", __FUNCTION__,
-                      GET_WAKE_UP_DELAY() * CHAINED_PKT_SCALER);
-        phPalEse_BusyWait(GET_WAKE_UP_DELAY() * CHAINED_PKT_SCALER);
-      } else {
-        /*NXP_LOG_ESE_D("%s Normal Pkt, delay read %dus", __FUNCTION__,
-         WAKE_UP_DELAY_SN1xx * NAD_POLLING_SCALER_SN1xx);*/
-        phPalEse_BusyWait(nxpese_ctxt.nadPollingRetryTime *
-                          GET_WAKE_UP_DELAY() * NAD_POLLING_SCALER);
-      }
-      sof_counter++;
-    } while (sof_counter < max_sof_counter);
 
-    /*SOF Read timeout happened, go for frame retransmission*/
-    if (sof_counter == max_sof_counter) {
-      ret = -1;
-    }
-    if (ret < 0) {
-      /*In case of IO Error*/
-      ret = -2;
-      pBuffer[0] = 0x64;
-      pBuffer[1] = 0xFF;
-    } else if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) ||
-               (pBuffer[0] == RECEIVE_PACKET_SOF)) {
-      NXP_LOG_ESE_D("%s SOF FOUND", __FUNCTION__);
-      /* Read the HEADER of one/Two bytes based on how two bytes read A5 PCB or
-       * 00 A5*/
-      ret =
-          phPalEse_read(pDevHandle, &pBuffer[1 + headerIndex], numBytesToRead);
-      if (ret < 0) {
-        NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
-        flushData = true;
-      } else {
-        if ((pBuffer[1] == CHAINED_PACKET_WITHOUTSEQN) ||
-            (pBuffer[1] == CHAINED_PACKET_WITHSEQN)) {
-          poll_sof_chained_delay = 1;
-          NXP_LOG_ESE_D("poll_sof_chained_delay value is %d ",
-                        poll_sof_chained_delay);
-        } else {
-          poll_sof_chained_delay = 0;
-          NXP_LOG_ESE_D("poll_sof_chained_delay value is %d ",
-                        poll_sof_chained_delay);
-        }
-        total_count = 3;
-        uint8_t pcb;
-        phNxpEseProto7816_PCB_bits_t pcb_bits;
-        pcb = pBuffer[PH_PROPTO_7816_PCB_OFFSET];
-
-        phNxpEse_memset(&pcb_bits, 0x00, sizeof(phNxpEseProto7816_PCB_bits_t));
-        phNxpEse_memcpy(&pcb_bits, &pcb, sizeof(uint8_t));
-
-        /*For I-Frame Only*/
-        if (0 == pcb_bits.msb) {
-          if (pBuffer[2] != EXTENDED_FRAME_MARKER) {
-            nNbBytesToRead = (pBuffer[2] & 0x000000FF);
-            headerIndex = 3;
-          } else {
-            ret = phPalEse_read(pDevHandle, &pBuffer[3], 2);
-            if (ret < 0) {
-              NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
-              flushData = true;
-            } else {
-              nNbBytesToRead = (pBuffer[3] << 8);
-              nNbBytesToRead = nNbBytesToRead | pBuffer[4];
-              /*If I-Frame received with invalid length respond with RNACK*/
-              if ((nNbBytesToRead == 0) || (nNbBytesToRead > MAX_DATA_LEN) ||
-                  (nNbBytesToRead > phNxpEseProto7816_GetIfs())) {
-                NXP_LOG_ESE_D("I-Frame with invalid len == %d", nNbBytesToRead);
-                flushData = true;
-              } else {
-                NXP_LOG_ESE_E("_spi_read() [HDR]EXTENDED_FRAME_MARKER, ret=%d",
-                              ret);
-                total_count += 2;
-                headerIndex = 5;
-              }
-            }
-          }
-        } else {
-          /*For Non-IFrame*/
-          nNbBytesToRead = (pBuffer[2] & 0x000000FF);
-          headerIndex = 3;
-        }
-        if (!flushData) {
-          /* Read the Complete data + one byte CRC*/
-          if ((headerIndex + nNbBytesToRead + 1) > MAX_DATA_LEN) {
-            NXP_LOG_ESE_E(
-                "_spi_read() [HDR]errno : %x buffer overflow ret : %X", errno,
-                ret);
-            ret = -1;
-          } else {
-            ret = phPalEse_read(pDevHandle, &pBuffer[headerIndex],
-                                (nNbBytesToRead + 1));
-          }
-          if (ret < 0) {
-            NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
-            ret = -1;
-          } else {
-            ret = (total_count + (nNbBytesToRead + 1));
-          }
-          nxpese_ctxt.rnack_sent = false;
-        }
-      }
-    } else {
-      flushData = true;
-    }
-    if (flushData) {
-      /* Received corrupted frame:
-         Flushing out data in the Rx buffer so that Card can switch the mode */
-      uint16_t ifsd_size = phNxpEseProto7816_GetIfs();
-      uint32_t total_frame_size = 0;
-      NXP_LOG_ESE_E("_spi_read() corrupted, IFSD size=%d flushing it out!!",
-                    ifsd_size);
-      /* If a non-zero byte is received while polling for NAD byte and the byte
-         is not a valid NAD byte (0xA5 or 0xB4): 1)  Read & discard (without
-         de-asserting SPI CS line) : a.  Max IFSD size + 5 (remaining four
-         prologue + one LRC bytes) bytes from eSE  if max IFS size is greater
-         than 254 bytes OR b.  Max IFSD size + 3 (remaining two prologue + one
-         LRC bytes) bytes from eSE  if max IFS size is less than 255 bytes.
-         2) Send R-NACK to request eSE to re-transmit the frame*/
-      if (ifsd_size > IFSC_SIZE_SEND) {
-        total_frame_size = ifsd_size + 4;
-      } else {
-        total_frame_size = ifsd_size + 2;
-      }
-      nxpese_ctxt.rnack_sent = true;
-      phPalEse_sleep(nxpese_ctxt.invalidFrame_Rnack_Delay);
-      if ((total_frame_size + 2) > MAX_DATA_LEN) {
-        NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x buffer overflow ret : %X",
-                      errno, ret);
-        ret = -1;
-      } else {
-        ret = phPalEse_read(pDevHandle, &pBuffer[2], total_frame_size);
-      }
-      if (ret < 0) {
-        NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
-      } else { /* LRC fail expected for this frame to send R-NACK*/
-        NXP_LOG_ESE_D(
-            "_spi_read() SUCCESS  ret : %X LRC fail expected for this frame",
-            ret);
-        PH_PAL_ESE_PRINT_PACKET_RX(pBuffer, ret);
-      }
-      pBuffer[0] = 0x90;
-      pBuffer[1] = RECEIVE_PACKET_SOF;
-      ret = 0x02;
-      phPalEse_sleep(nxpese_ctxt.invalidFrame_Rnack_Delay);
-    }
-  } else {
-    ret = phNxpEse_readPacket_legacy(pDevHandle, pBuffer, nNbBytesToRead);
+  int max_sof_counter = 0;
+  /*Max retry to get SOF in case of chaining*/
+  if (poll_sof_chained_delay == 1) {
+    /*Wait Max for 1.3 sec before retry/recovery*/
+    /*(max_sof_counter(1300) * 10 us) = 1.3 sec */
+    max_sof_counter = ESE_POLL_TIMEOUT * 10;
   }
-  NXP_LOG_ESE_D("%s Exit ret = %d", __FUNCTION__, ret);
-  return ret;
-}
-
-/******************************************************************************
- * Function         phNxpEse_readPacket_legacy
- *
- * Description      This function Reads requested number of bytes from
- *                  pn547 device into given buffer.
- *
- * Returns          nNbBytesToRead- number of successfully read bytes
- *                  -1        - read operation failure
- *
- ******************************************************************************/
-static int phNxpEse_readPacket_legacy(void* pDevHandle, uint8_t* pBuffer,
-                                      int nNbBytesToRead) {
-  int ret = -1;
-  int sof_counter = 0; /* one read may take 1 ms*/
-  int total_count = 0, numBytesToRead = 0, headerIndex = 0;
+  /*Max retry to get SOF in case of Non-chaining*/
+  else {
+    /*wait based on config option */
+    /*(nadPollingRetryTime * WAKE_UP_DELAY_SN1xx * NAD_POLLING_SCALER_SN1xx)*/
+    max_sof_counter = ((ESE_POLL_TIMEOUT * 1000) /
+                       (nxpese_ctxt.nadPollingRetryTime *
+                        GET_WAKE_UP_DELAY() * NAD_POLLING_SCALER));
+  }
+  if (nxpese_ctxt.rnack_sent) {
+    phPalEse_sleep(nxpese_ctxt.invalidFrame_Rnack_Delay);
+  }
+  NXP_LOG_ESE_D(
+      "read() max_sof_counter: "
+      "%X ESE_POLL_TIMEOUT %2X",
+      max_sof_counter, ESE_POLL_TIMEOUT);
   do {
-    sof_counter++;
     ret = -1;
     ret = phPalEse_read(pDevHandle, pBuffer, 2);
     if (ret < 0) {
       /*Polling for read on spi, hence Debug log*/
       NXP_LOG_ESE_D("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
-    }
-    if (pBuffer[0] == RECEIVE_PACKET_SOF) {
-      /* Read the HEADER of one byte*/
-      NXP_LOG_ESE_D("%s Read HDR", __FUNCTION__);
-      numBytesToRead = 1;
-      headerIndex = 1;
-      break;
-    } else if (pBuffer[1] == RECEIVE_PACKET_SOF) {
-      /* Read the HEADER of Two bytes*/
-      NXP_LOG_ESE_D("%s Read HDR", __FUNCTION__);
-      pBuffer[0] = RECEIVE_PACKET_SOF;
-      numBytesToRead = 2;
-      headerIndex = 0;
-      break;
+    } else {
+      if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) ||
+          (pBuffer[0] == RECEIVE_PACKET_SOF)) {
+        /* Read the HEADER of one byte*/
+        NXP_LOG_ESE_D("%s Read HDR SOF + PCB", __FUNCTION__);
+        numBytesToRead = 1; /*Read only INF LEN*/
+        headerIndex = 1;
+        break;
+      } else if (((pBuffer[0] == 0x00) || (pBuffer[0] == 0xFF)) &&
+                 ((pBuffer[1] == nxpese_ctxt.nadInfo.nadRx) ||
+                  (pBuffer[1] == RECEIVE_PACKET_SOF))) {
+        /* Read the HEADER of Two bytes*/
+        NXP_LOG_ESE_D("%s Read HDR only SOF", __FUNCTION__);
+        pBuffer[0] = pBuffer[1];
+        numBytesToRead = 2; /*Read PCB + INF LEN*/
+        headerIndex = 0;
+        break;
+      } else if (((pBuffer[0] == 0x00) && (pBuffer[1] == 0x00)) ||
+                 ((pBuffer[0] == 0xFF) && (pBuffer[1] == 0xFF))) {
+        // LOG(ERROR) << StringPrintf("_spi_read() Buf[0]: %X Buf[1]: %X",
+        // pBuffer[0], pBuffer[1]);
+      } else if (ret >= 0) { /* Corruption happened during the receipt from
+                                Card, go flush out the data */
+        NXP_LOG_ESE_E("_spi_read() Corruption Buf[0]: %X Buf[1]: %X ..len=%d",
+                      pBuffer[0], pBuffer[1], ret);
+        break;
+      }
     }
     /*If it is Chained packet wait for 100 usec*/
     if (poll_sof_chained_delay == 1) {
       NXP_LOG_ESE_D("%s Chained Pkt, delay read %dus", __FUNCTION__,
                     GET_WAKE_UP_DELAY() * CHAINED_PKT_SCALER);
-      phPalEse_sleep(GET_WAKE_UP_DELAY() * CHAINED_PKT_SCALER);
+      phPalEse_BusyWait(GET_WAKE_UP_DELAY() * CHAINED_PKT_SCALER);
     } else {
-      NXP_LOG_ESE_D("%s Normal Pkt, delay read %dus", __FUNCTION__,
-                    GET_WAKE_UP_DELAY() * NAD_POLLING_SCALER);
-      phPalEse_sleep(GET_WAKE_UP_DELAY() * NAD_POLLING_SCALER);
+      /*NXP_LOG_ESE_D("%s Normal Pkt, delay read %dus", __FUNCTION__,
+       WAKE_UP_DELAY_SN1xx * NAD_POLLING_SCALER_SN1xx);*/
+      phPalEse_BusyWait(nxpese_ctxt.nadPollingRetryTime *
+                        GET_WAKE_UP_DELAY() * NAD_POLLING_SCALER);
     }
-  } while (sof_counter < ESE_NAD_POLLING_MAX);
-  if (pBuffer[0] == RECEIVE_PACKET_SOF) {
-    NXP_LOG_ESE_D("%s SOF FOUND", __FUNCTION__);
-    /* Read the HEADER of one/Two bytes based on how two bytes read A5 PCB or
-     * 00 A5*/
-    ret = phPalEse_read(pDevHandle, &pBuffer[1 + headerIndex], numBytesToRead);
-    if (ret < 0) {
-      NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
-    }
-    if ((pBuffer[1] == CHAINED_PACKET_WITHOUTSEQN) ||
-        (pBuffer[1] == CHAINED_PACKET_WITHSEQN)) {
-      poll_sof_chained_delay = 1;
-      NXP_LOG_ESE_D("poll_sof_chained_delay value is %d ",
-                    poll_sof_chained_delay);
-    } else {
-      poll_sof_chained_delay = 0;
-      NXP_LOG_ESE_D("poll_sof_chained_delay value is %d ",
-                    poll_sof_chained_delay);
-    }
-    total_count = 3;
-    nNbBytesToRead = (pBuffer[2] & 0x000000FF);
-    /* Read the Complete data + one byte CRC*/
-    ret = phPalEse_read(pDevHandle, &pBuffer[3], (nNbBytesToRead + 1));
-    if (ret < 0) {
-      NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
-      ret = -1;
-    } else {
-      ret = (total_count + (nNbBytesToRead + 1));
-    }
-  } else if (ret < 0) {
+    sof_counter++;
+  } while (sof_counter < max_sof_counter);
+
+  /*SOF Read timeout happened, go for frame retransmission*/
+  if (sof_counter == max_sof_counter) {
+    ret = -1;
+  }
+  if (ret < 0) {
     /*In case of IO Error*/
     ret = -2;
     pBuffer[0] = 0x64;
     pBuffer[1] = 0xFF;
+  } else if ((pBuffer[0] == nxpese_ctxt.nadInfo.nadRx) ||
+             (pBuffer[0] == RECEIVE_PACKET_SOF)) {
+    NXP_LOG_ESE_D("%s SOF FOUND", __FUNCTION__);
+    /* Read the HEADER of one/Two bytes based on how two bytes read A5 PCB or
+     * 00 A5*/
+    ret =
+        phPalEse_read(pDevHandle, &pBuffer[1 + headerIndex], numBytesToRead);
+    if (ret < 0) {
+      NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
+      flushData = true;
+    } else {
+      if ((pBuffer[1] == CHAINED_PACKET_WITHOUTSEQN) ||
+          (pBuffer[1] == CHAINED_PACKET_WITHSEQN)) {
+        poll_sof_chained_delay = 1;
+        NXP_LOG_ESE_D("poll_sof_chained_delay value is %d ",
+                      poll_sof_chained_delay);
+      } else {
+        poll_sof_chained_delay = 0;
+        NXP_LOG_ESE_D("poll_sof_chained_delay value is %d ",
+                      poll_sof_chained_delay);
+      }
+      total_count = 3;
+      uint8_t pcb;
+      phNxpEseProto7816_PCB_bits_t pcb_bits;
+      pcb = pBuffer[PH_PROPTO_7816_PCB_OFFSET];
+
+      phNxpEse_memset(&pcb_bits, 0x00, sizeof(phNxpEseProto7816_PCB_bits_t));
+      phNxpEse_memcpy(&pcb_bits, &pcb, sizeof(uint8_t));
+
+      /*For I-Frame Only*/
+      if (0 == pcb_bits.msb) {
+        if (pBuffer[2] != EXTENDED_FRAME_MARKER) {
+          nNbBytesToRead = (pBuffer[2] & 0x000000FF);
+          headerIndex = 3;
+        } else {
+          ret = phPalEse_read(pDevHandle, &pBuffer[3], 2);
+          if (ret < 0) {
+            NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
+            flushData = true;
+          } else {
+            nNbBytesToRead = (pBuffer[3] << 8);
+            nNbBytesToRead = nNbBytesToRead | pBuffer[4];
+            /*If I-Frame received with invalid length respond with RNACK*/
+            if ((nNbBytesToRead == 0) || (nNbBytesToRead > MAX_DATA_LEN) ||
+                (nNbBytesToRead > phNxpEseProto7816_GetIfs())) {
+              NXP_LOG_ESE_D("I-Frame with invalid len == %d", nNbBytesToRead);
+              flushData = true;
+            } else {
+              NXP_LOG_ESE_E("_spi_read() [HDR]EXTENDED_FRAME_MARKER, ret=%d",
+                            ret);
+              total_count += 2;
+              headerIndex = 5;
+            }
+          }
+        }
+      } else {
+        /*For Non-IFrame*/
+        nNbBytesToRead = (pBuffer[2] & 0x000000FF);
+        headerIndex = 3;
+      }
+      if (!flushData) {
+        /* Read the Complete data + one byte CRC*/
+        if ((headerIndex + nNbBytesToRead + 1) > MAX_DATA_LEN) {
+          NXP_LOG_ESE_E(
+              "_spi_read() [HDR]errno : %x buffer overflow ret : %X", errno,
+              ret);
+          ret = -1;
+        } else {
+          ret = phPalEse_read(pDevHandle, &pBuffer[headerIndex],
+                              (nNbBytesToRead + 1));
+        }
+        if (ret < 0) {
+          NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
+          ret = -1;
+        } else {
+          ret = (total_count + (nNbBytesToRead + 1));
+        }
+        nxpese_ctxt.rnack_sent = false;
+      }
+    }
   } else {
-    ret = -1;
+    flushData = true;
   }
+  if (flushData) {
+    /* Received corrupted frame:
+       Flushing out data in the Rx buffer so that Card can switch the mode */
+    uint16_t ifsd_size = phNxpEseProto7816_GetIfs();
+    uint32_t total_frame_size = 0;
+    NXP_LOG_ESE_E("_spi_read() corrupted, IFSD size=%d flushing it out!!",
+                  ifsd_size);
+    /* If a non-zero byte is received while polling for NAD byte and the byte
+       is not a valid NAD byte (0xA5 or 0xB4): 1)  Read & discard (without
+       de-asserting SPI CS line) : a.  Max IFSD size + 5 (remaining four
+       prologue + one LRC bytes) bytes from eSE  if max IFS size is greater
+       than 254 bytes OR b.  Max IFSD size + 3 (remaining two prologue + one
+       LRC bytes) bytes from eSE  if max IFS size is less than 255 bytes.
+       2) Send R-NACK to request eSE to re-transmit the frame*/
+    if (ifsd_size > IFSC_SIZE_SEND) {
+      total_frame_size = ifsd_size + 4;
+    } else {
+      total_frame_size = ifsd_size + 2;
+    }
+    nxpese_ctxt.rnack_sent = true;
+    phPalEse_sleep(nxpese_ctxt.invalidFrame_Rnack_Delay);
+    if ((total_frame_size + 2) > MAX_DATA_LEN) {
+      NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x buffer overflow ret : %X",
+                    errno, ret);
+      ret = -1;
+    } else {
+      ret = phPalEse_read(pDevHandle, &pBuffer[2], total_frame_size);
+    }
+    if (ret < 0) {
+      NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
+    } else { /* LRC fail expected for this frame to send R-NACK*/
+      NXP_LOG_ESE_D(
+          "_spi_read() SUCCESS  ret : %X LRC fail expected for this frame",
+          ret);
+      PH_PAL_ESE_PRINT_PACKET_RX(pBuffer, ret);
+    }
+    pBuffer[0] = 0x90;
+    pBuffer[1] = RECEIVE_PACKET_SOF;
+    ret = 0x02;
+    phPalEse_sleep(nxpese_ctxt.invalidFrame_Rnack_Delay);
+  }
+
+  NXP_LOG_ESE_D("%s Exit ret = %d", __FUNCTION__, ret);
   return ret;
 }
 
@@ -1363,12 +1054,8 @@ ESESTATUS phNxpEse_WriteFrame(uint32_t data_len, uint8_t* p_data) {
   ESESTATUS status = ESESTATUS_INVALID_PARAMETER;
   int32_t dwNoBytesWrRd = 0;
   NXP_LOG_ESE_D("Enter %s ", __FUNCTION__);
-  if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-    /* TODO where to set the nad id */
-    p_data[0] = nxpese_ctxt.nadInfo.nadTx;
-  } else {
-    p_data[0] = ESE_NAD_TX;
-  }
+  /* TODO where to set the nad id */
+  p_data[0] = nxpese_ctxt.nadInfo.nadTx;
   if (data_len > MAX_DATA_LEN) {
     NXP_LOG_ESE_E("%s data_len has exceeded MAX_DATA_LEN\n", __FUNCTION__);
     return ESESTATUS_FAILED;
@@ -1410,11 +1097,7 @@ ESESTATUS phNxpEse_WriteFrame(uint32_t data_len, uint8_t* p_data) {
  ******************************************************************************/
 ESESTATUS phNxpEse_getAtr(phNxpEse_data* pATR) {
   ESESTATUS status = ESESTATUS_FAILED;
-  if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-    status = phNxpEseProto7816_getAtr(pATR);
-  } else {
-    NXP_LOG_ESE_E(" %s - Function not supported\n", __FUNCTION__);
-  }
+  status = phNxpEseProto7816_getAtr(pATR);
   return status;
 }
 
@@ -1555,49 +1238,6 @@ phNxpEse_OsVersion_t phNxpEse_getOsVersion() { return sOsVersion; }
  ******************************************************************************/
 void phNxpEse_setOsVersion(phNxpEse_OsVersion_t chipType) {
   sOsVersion = chipType;
-}
-
-/******************************************************************************
- * Function         phNxpEse_checkFWDwnldStatus
- *
- * Description      This function is  used to  check whether FW download
- *                  is completed or not.
- *
- * Returns          returns  ESESTATUS_SUCCESS or ESESTATUS_BUSY
- *
- ******************************************************************************/
-static ESESTATUS phNxpEse_checkFWDwnldStatus(void) {
-  NXP_LOG_ESE_D("phNxpEse_checkFWDwnldStatus Enter");
-  ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
-  spm_state_t current_spm_state = SPM_STATE_INVALID;
-  uint8_t ese_dwnld_retry = 0x00;
-  ESESTATUS status = ESESTATUS_FAILED;
-
-  wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
-  if (wSpmStatus == ESESTATUS_SUCCESS) {
-    /* Check current_spm_state and update config/Spm status*/
-    while (ese_dwnld_retry < ESE_FW_DWNLD_RETRY_CNT) {
-      NXP_LOG_ESE_D("ESE_FW_DWNLD_RETRY_CNT retry count");
-      wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
-      if (wSpmStatus == ESESTATUS_SUCCESS) {
-        if ((current_spm_state & SPM_STATE_DWNLD)) {
-          status = ESESTATUS_FAILED;
-        } else {
-          NXP_LOG_ESE_E("Exit polling no FW Download ..");
-          status = ESESTATUS_SUCCESS;
-          break;
-        }
-      } else {
-        status = ESESTATUS_FAILED;
-        break;
-      }
-      phNxpEse_Sleep(500000); /*sleep for 500 ms checking for fw dwnld status*/
-      ese_dwnld_retry++;
-    }
-  }
-
-  NXP_LOG_ESE_D("phNxpEse_checkFWDwnldStatus status %x", status);
-  return status;
 }
 
 /******************************************************************************

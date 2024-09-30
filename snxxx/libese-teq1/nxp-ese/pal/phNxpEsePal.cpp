@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020,2022 NXP
+ *  Copyright 2018-2020,2022,2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -184,11 +184,6 @@ ESESTATUS phPalEse_ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,
   ESESTATUS ret = ESESTATUS_FAILED;
   NXP_LOG_ESE_D("phPalEse_spi_ioctl(), ioctl %x , level %lx", eControlCode,
                 level);
-  if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0) {
-    if (NULL == pDevHandle) {
-      return ESESTATUS_IOCTL_FAILED;
-    }
-  }
   if (pDevHandle == NULL) {
     phPalEse_ConfigTransport();
   }

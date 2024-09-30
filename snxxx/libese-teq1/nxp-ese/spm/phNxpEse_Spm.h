@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019, 2023 NXP
+ *  Copyright 2018-2019, 2023-2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -122,16 +122,6 @@ ESESTATUS phNxpEse_SPM_SetPwrScheme(long arg);
 
 /**
  * \ingroup SPI_Power_Management
- * \brief    This function request to the nfc i2c driver
- *                  to set the chip type and power scheme.
- *
- * \param[in]    arg - arg.
- *
- * \retval       -On Success ESESTATUS_SUCCESS else proper error code
- */
-ESESTATUS phNxpEse_SPM_DisablePwrControl(unsigned long arg);
-/**
- * \ingroup SPI_Power_Management
  * \brief   This function is used to set the ese Update state.
  *
  * \param[in]    arg - eSE update status started/completed.
@@ -139,16 +129,6 @@ ESESTATUS phNxpEse_SPM_DisablePwrControl(unsigned long arg);
  * \retval       -On Success ESESTATUS_SUCCESS else proper error code
  */
 ESESTATUS phNxpEse_SPM_SetEseClientUpdateState(long arg);
-
-/**
- * \ingroup SPI_Power_Management
- * \brief   This function is used to set the ese Update state.
- *
- * \param[in]    arg -  JCOP update status started/completed..
- *
- * \retval       -On Success ESESTATUS_SUCCESS else proper error code
- */
-ESESTATUS phNxpEse_SPM_SetJcopDwnldState(long arg);
 
 #endif /*  _PHNXPESE_SPM_H    */
 /** @} */

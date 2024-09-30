@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2023 NXP
+ *  Copyright 2018-2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -234,16 +234,6 @@ ESESTATUS phNxpEse_reset(void);
  *
  */
 ESESTATUS phNxpEse_resetJcopUpdate(void);
-
-/**
- * \ingroup spi_libese
- * \brief This function reset the P73 through ISO RST pin
- *
- *
- * \retval ESESTATUS_SUCCESS Always return ESESTATUS_SUCCESS (0).
- *
- */
-ESESTATUS phNxpEse_chipReset(void);
 
 /**
  * \ingroup spi_libese
