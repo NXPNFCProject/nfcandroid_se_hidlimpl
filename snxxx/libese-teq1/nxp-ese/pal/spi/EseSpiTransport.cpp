@@ -305,13 +305,6 @@ ESESTATUS EseSpiTransport::Ioctl(phPalEse_ControlCode_t eControlCode,
       ret = ESESTATUS_SUCCESS;
       break;
 
-    case phPalEse_e_EnableLog:
-      ret = ESESTATUS_SUCCESS;
-      break;
-
-    case phPalEse_e_EnablePollMode:
-      ret = ESESTATUS_SUCCESS;
-      break;
     case phPalEse_e_SetSecureMode:
       ret =
           (ESESTATUS)ioctl((intptr_t)pDevHandle, ESE_SET_TRUSTED_ACCESS, level);
@@ -354,24 +347,6 @@ ESESTATUS EseSpiTransport::Ioctl(phPalEse_ControlCode_t eControlCode,
         NXP_LOG_ESE_E("phPalEse_e_ResetProtection ioctl failed status :%x !",
                       retioctl);
       }
-      break;
-    case phPalEse_e_EnableThroughputMeasurement:
-      ret = ESESTATUS_SUCCESS;
-      break;
-    case phPalEse_e_SetPowerScheme:
-      ret = ESESTATUS_SUCCESS;
-      break;
-    case phPalEse_e_GetSPMStatus:
-      ret = ESESTATUS_SUCCESS;
-      break;
-    case phPalEse_e_GetEseAccess:
-      ret = ESESTATUS_SUCCESS;
-      break;
-    case phPalEse_e_SetJcopDwnldState:
-      ret = ESESTATUS_SUCCESS;
-      break;
-    case phPalEse_e_DisablePwrCntrl:
-      ret = ESESTATUS_SUCCESS;
       break;
     default:
       ret = ESESTATUS_IOCTL_FAILED;

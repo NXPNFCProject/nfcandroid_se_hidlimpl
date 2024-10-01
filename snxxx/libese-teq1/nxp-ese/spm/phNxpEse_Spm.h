@@ -27,27 +27,7 @@
 #include <phEseStatus.h>
 #include <phNxpEseFeatures.h>
 /*! SPI Power Manager (SPM) possible error codes */
-typedef enum spm_power {
-  SPM_POWER_DISABLE = 0,
-  SPM_POWER_ENABLE,       /*!< SPM power disable */
-  SPM_POWER_RESET,        /*!< SPM Reset pwer */
-  SPM_POWER_PRIO_ENABLE,  /*!< SPM prio mode enable */
-  SPM_POWER_PRIO_DISABLE, /*!< SPM prio mode disable */
-  SPM_RECOVERY_RESET
-} spm_power_t;
-
-/*! SPI Power Manager (SPM) possible states */
-typedef enum spm_state {
-  SPM_STATE_INVALID = 0x0000,      /*!< Nfc i2c driver misbehaving */
-  SPM_STATE_IDLE = 0x0100,         /*!< ESE is free to use */
-  SPM_STATE_WIRED = 0x0200,        /*!< p61 is being accessed by DWP (NFCC)*/
-  SPM_STATE_SPI = 0x0400,          /*!< ESE is being accessed by SPI */
-  SPM_STATE_DWNLD = 0x0800,        /*!< NFCC fw download is in progress */
-  SPM_STATE_SPI_PRIO = 0x1000,     /*!< Start of p61 access by SPI on priority*/
-  SPM_STATE_SPI_PRIO_END = 0x2000, /*!< End of p61 access by SPI on priority*/
-  SPM_STATE_SPI_FAILED = 0x0010,   /*SPI open/close failed*/
-  SPM_STATE_JCOP_DWNLD = 0x8000    /*!< P73 state JCOP Download*/
-} spm_state_t;
+#define SPM_RECOVERY_RESET 5
 
 /**
  * \ingroup SPI_Power_Management
@@ -75,50 +55,11 @@ ESESTATUS phNxpEse_SPM_DeInit(void);
  * to enable/disable power to ese. This api should be called
  *before sending any apdu to ese/once apdu exchange is done.
  *
- * \param[in]    arg       -input can be of  type spm_power_t.
+ * \param[in]    arg       -input can be of  type int.
  *
  * \retval       -On Success ESESTATUS_SUCCESS else proper error code
  */
-ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg);
-
-/**
- * \ingroup SPI_Power_Management
- * \brief This function gets the current power state of ESE
- * \param[in]    current_state       -input is of type spm_state_t.
- *
- * \retval       -On Success ESESTATUS_SUCCESS else proper error code
- */
-ESESTATUS phNxpEse_SPM_GetState(spm_state_t* current_state);
-
-/**
- * \ingroup SPI_Power_Management
- * \brief  This function set the SPM power state
- *
- * \param[in]    arg - state value.
- *
- * \retval       -On Success ESESTATUS_SUCCESS else proper error code
- */
-ESESTATUS phNxpEse_SPM_SetState(long arg);
-
-/**
- * \ingroup SPI_Power_Management
- * \brief  phNxpEse_SPM_RelAccess
- *
- *
- * \retval       -On Success ESESTATUS_SUCCESS else proper error code
- */
-ESESTATUS phNxpEse_SPM_RelAccess(void);
-
-/**
- * \ingroup SPI_Power_Management
- * \brief   This function request to the nfc i2c driver
- *                  to set the chip type and power scheme.
- *
- * \param[in]    arg - set power scheme from config.
- *
- * \retval       -On Success ESESTATUS_SUCCESS else proper error code
- */
-ESESTATUS phNxpEse_SPM_SetPwrScheme(long arg);
+ESESTATUS phNxpEse_SPM_ConfigPwr(int arg);
 
 /**
  * \ingroup SPI_Power_Management

@@ -92,148 +92,20 @@ ESESTATUS phNxpEse_SPM_DeInit(void) {
  * Returns          On Success ESESTATUS_SUCCESS else proper error code
  *
  ******************************************************************************/
-ESESTATUS phNxpEse_SPM_ConfigPwr(spm_power_t arg) {
+ESESTATUS phNxpEse_SPM_ConfigPwr(int arg) {
   int32_t ret = -1;
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
-  spm_state_t current_spm_state = SPM_STATE_INVALID;
   /*None of the IOCTLs valid except SPM_RECOVERY_RESET*/
   if (arg != SPM_RECOVERY_RESET) {
     return ESESTATUS_SUCCESS;
   }
   ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle, arg);
-  switch (arg) {
-    case SPM_POWER_DISABLE: {
-      if (ret < 0) {
-        NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
-        wSpmStatus = ESESTATUS_FAILED;
-      }
-    } break;
-    case SPM_POWER_ENABLE: {
-      if (ret < 0) {
-        NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
-        if (errno == -EBUSY) {
-          wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
-          if (wSpmStatus != ESESTATUS_SUCCESS) {
-            NXP_LOG_ESE_E(" %s : phNxpEse_SPM_GetPwrState Failed",
-                          __FUNCTION__);
-            return wSpmStatus;
-          } else {
-            if (current_spm_state & SPM_STATE_DWNLD) {
-              wSpmStatus = ESESTATUS_DWNLD_BUSY;
-            } else {
-              wSpmStatus = ESESTATUS_BUSY;
-            }
-          }
-        } else {
-          wSpmStatus = ESESTATUS_FAILED;
-        }
-      }
-    } break;
-    case SPM_POWER_RESET: {
-      if (ret < 0) {
-        NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
-        if (errno == -EBUSY) {
-          wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
-          if (wSpmStatus != ESESTATUS_SUCCESS) {
-            NXP_LOG_ESE_E(" %s : phNxpEse_SPM_GetPwrState Failed",
-                          __FUNCTION__);
-            return wSpmStatus;
-          } else {
-            if (current_spm_state & SPM_STATE_DWNLD) {
-              wSpmStatus = ESESTATUS_DWNLD_BUSY;
-            } else {
-              wSpmStatus = ESESTATUS_BUSY;
-            }
-          }
-        } else {
-          wSpmStatus = ESESTATUS_FAILED;
-        }
-      }
-    } break;
-    case SPM_POWER_PRIO_ENABLE: {
-      if (ret < 0) {
-        NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
-        if (errno == -EBUSY) {
-          wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
-          if (wSpmStatus != ESESTATUS_SUCCESS) {
-            NXP_LOG_ESE_E(" %s : phNxpEse_SPM_GetPwrState Failed",
-                          __FUNCTION__);
-            return wSpmStatus;
-          } else {
-            if (current_spm_state & SPM_STATE_DWNLD) {
-              wSpmStatus = ESESTATUS_DWNLD_BUSY;
-            } else {
-              wSpmStatus = ESESTATUS_BUSY;
-            }
-          }
-
-        } else {
-          wSpmStatus = ESESTATUS_FAILED;
-        }
-      }
-    } break;
-    case SPM_POWER_PRIO_DISABLE: {
-      if (ret < 0) {
-        NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
-        wSpmStatus = ESESTATUS_FAILED;
-      }
-    } break;
-    case SPM_RECOVERY_RESET: {
-    } break;
+  if(ret < 0) {
+    NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
+    wSpmStatus = ESESTATUS_FAILED;
   }
+
   return wSpmStatus;
-}
-
-/******************************************************************************
- * Function         phNxpEse_SPM_SetPwrScheme
- *
- * Description      This function request to the nfc i2c driver
- *                  to set the chip type and power scheme.
- *
- * Returns          On Success ESESTATUS_SUCCESS else proper error code
- *
- ******************************************************************************/
-ESESTATUS phNxpEse_SPM_SetPwrScheme(long arg) {
-  int32_t ret = -1;
-  ESESTATUS status = ESESTATUS_SUCCESS;
-
-  NXP_LOG_ESE_D("%s : Power scheme is set to  = 0x%ld", __FUNCTION__, arg);
-  ret = phPalEse_ioctl(phPalEse_e_SetPowerScheme, pEseDeviceHandle, arg);
-  if (ret < 0) {
-    NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
-    status = ESESTATUS_FAILED;
-  }
-
-  return status;
-}
-
-/******************************************************************************
- * Function         phNxpEse_SPM_GetState
- *
- * Description      This function gets the current power state of ESE
- *
- * Returns          On Success ESESTATUS_SUCCESS else proper error code
- *
- ******************************************************************************/
-ESESTATUS phNxpEse_SPM_GetState(spm_state_t* current_state) {
-  int32_t ret = -1;
-  ESESTATUS status = ESESTATUS_SUCCESS;
-  spm_state_t ese_current_state = SPM_STATE_INVALID;
-
-  if (current_state == NULL) {
-    NXP_LOG_ESE_E("%s : failed Invalid argument", __FUNCTION__);
-    return ESESTATUS_FAILED;
-  }
-  ret = phPalEse_ioctl(phPalEse_e_GetSPMStatus, pEseDeviceHandle,
-                       (unsigned long)&ese_current_state);
-  if (ret < 0) {
-    NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
-    status = ESESTATUS_FAILED;
-  } else {
-    *current_state = ese_current_state; /* Current ESE state */
-  }
-
-  return status;
 }
 
 /******************************************************************************

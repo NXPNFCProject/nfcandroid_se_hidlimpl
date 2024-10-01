@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2022 NXP
+ *  Copyright 2018-2022, 2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -45,15 +45,7 @@
 typedef enum {
   phPalEse_e_Invalid = 0,                         /*!< Invalid control code */
   phPalEse_e_ResetDevice = PH_PALESE_RESETDEVICE, /*!< Reset the device */
-  phPalEse_e_EnableLog,      /*!< Enable the spi driver logs */
-  phPalEse_e_EnablePollMode, /*!< Enable the polling for SPI */
-  phPalEse_e_GetEseAccess,   /*!< get the bus access in specified timeout */
   phPalEse_e_ChipRst,        /*!< eSE Chip reset using ISO RST pin*/
-  phPalEse_e_EnableThroughputMeasurement, /*!< Enable throughput measurement */
-  phPalEse_e_SetPowerScheme,              /*!< Set power scheme */
-  phPalEse_e_GetSPMStatus,                /*!< Get SPM(power mgt) status */
-  phPalEse_e_DisablePwrCntrl,
-  phPalEse_e_SetJcopDwnldState,    /*!< Set Jcop Download state */
   phPalEse_e_SetClientUpdateState, /*!< Set Jcop Download state */
   phPalEse_e_SetSecureMode,        /*!< Set the Trusted SE Mode */
   phPalEse_e_ResetProtection,

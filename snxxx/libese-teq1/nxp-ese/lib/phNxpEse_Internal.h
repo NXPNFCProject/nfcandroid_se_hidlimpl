@@ -38,12 +38,6 @@ typedef enum {
 } phNxpEse_LibStatus;
 
 typedef enum {
-  POWER_SCHEME = 0x01,
-  LEGACY_SCHEME,
-  EXT_PMU_SCHEME,
-} phNxpEse_PowerScheme;
-
-typedef enum {
   END_POINT_ESE = 0, /*!< eSE services */
   END_POINT_EUICC,   /*!< UICC services*/
   MAX_END_POINTS
@@ -106,10 +100,8 @@ typedef struct phNxpEse_Context {
   uint8_t p_read_buff[MAX_DATA_LEN];        /*!<read buffer */
   uint8_t p_cmd_data[MAX_DATA_LEN];         /*!<cmd  buffer */
   uint16_t cmd_len;                         /*!<cmd buffer length */
-  uint8_t pwr_scheme;                       /*!<eSE power scheme */
   uint8_t endPointInfo;                     /*!<info end point*/
   bool rnack_sent;                          /*!<rnack send info */
-  bool spm_power_state;                     /*!<spm_power_state */
   NotifyWtxReq* fPtr_WtxNtf; /*!< Wait extension callback notification*/
 } phNxpEse_Context_t;
 

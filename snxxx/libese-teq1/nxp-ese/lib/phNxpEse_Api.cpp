@@ -261,7 +261,6 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   std::string ese_node;
 #ifdef SPM_INTEGRATED
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
-  spm_state_t current_spm_state = SPM_STATE_INVALID;
 #endif
   /* initialize trace level */
   phNxpLog_InitializeLogLevel();
@@ -301,7 +300,6 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
     NXP_LOG_ESE_D("SPI Throughput not defined in config file - %lu",
                   tpm_enable);
   }
-  nxpese_ctxt.pwr_scheme = LEGACY_SCHEME;
   if (EseConfig::hasKey(NAME_NXP_NAD_POLL_RETRY_TIME)) {
     num = EseConfig::getUnsigned(NAME_NXP_NAD_POLL_RETRY_TIME);
     nxpese_ctxt.nadPollingRetryTime = num;
@@ -342,60 +340,14 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
     wConfigStatus = ESESTATUS_FAILED;
     goto clean_and_return_2;
   }
-  wSpmStatus = phNxpEse_SPM_SetPwrScheme(nxpese_ctxt.pwr_scheme);
-  if (wSpmStatus != ESESTATUS_SUCCESS) {
-    NXP_LOG_ESE_E(" %s : phNxpEse_SPM_SetPwrScheme Failed", __FUNCTION__);
-    wConfigStatus = ESESTATUS_FAILED;
-    goto clean_and_return_1;
-  }
-  wSpmStatus = phNxpEse_SPM_GetState(&current_spm_state);
-  if (wSpmStatus != ESESTATUS_SUCCESS) {
-    NXP_LOG_ESE_E(" %s : phNxpEse_SPM_GetPwrState Failed", __FUNCTION__);
-    wConfigStatus = ESESTATUS_FAILED;
-    goto clean_and_return_1;
-  } else {
-    if (((current_spm_state & SPM_STATE_SPI) |
-         (current_spm_state & SPM_STATE_SPI_PRIO)) &&
-        !(current_spm_state & SPM_STATE_SPI_FAILED)) {
-      NXP_LOG_ESE_E(" %s : SPI is already opened...second instance not allowed",
-                    __FUNCTION__);
-      wConfigStatus = ESESTATUS_FAILED;
-      goto clean_and_return_1;
-    }
-  }
-  if (current_spm_state & SPM_STATE_JCOP_DWNLD) {
-    NXP_LOG_ESE_E(" %s : Denying to open JCOP Download in progress",
-                  __FUNCTION__);
-    wConfigStatus = ESESTATUS_FAILED;
-    goto clean_and_return_1;
-  }
   phNxpEse_memcpy(&nxpese_ctxt.initParams, &initParams,
                   sizeof(phNxpEse_initParams));
-  wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_ENABLE);
-  if (wSpmStatus != ESESTATUS_SUCCESS) {
-    NXP_LOG_ESE_E("phNxpEse_SPM_ConfigPwr: enabling power Failed");
-    if (wSpmStatus == ESESTATUS_BUSY) {
-      wConfigStatus = ESESTATUS_BUSY;
-    } else if (wSpmStatus == ESESTATUS_DWNLD_BUSY) {
-      wConfigStatus = ESESTATUS_DWNLD_BUSY;
-    } else {
-      wConfigStatus = ESESTATUS_FAILED;
-    }
-    goto clean_and_return;
-  } else {
-    NXP_LOG_ESE_D("nxpese_ctxt.spm_power_state true");
-    nxpese_ctxt.spm_power_state = true;
-  }
 #endif
   NXP_LOG_ESE_D("wConfigStatus %x", wConfigStatus);
   return wConfigStatus;
 
 clean_and_return:
 #ifdef SPM_INTEGRATED
-  wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_DISABLE);
-  if (wSpmStatus != ESESTATUS_SUCCESS) {
-    NXP_LOG_ESE_E("phNxpEse_SPM_ConfigPwr: disabling power Failed");
-  }
 clean_and_return_1:
   phNxpEse_SPM_DeInit();
 clean_and_return_2:
@@ -405,7 +357,6 @@ clean_and_return_2:
     phNxpEse_memset(&nxpese_ctxt, 0x00, sizeof(nxpese_ctxt));
   }
   nxpese_ctxt.EseLibStatus = ESE_STATUS_CLOSE;
-  nxpese_ctxt.spm_power_state = false;
   return ESESTATUS_FAILED;
 }
 
@@ -514,15 +465,7 @@ ESESTATUS phNxpEse_reset(void) {
                 nxpese_ctxt.secureTimerParams.secureTimer2,
                 nxpese_ctxt.secureTimerParams.secureTimer3);
   phNxpEse_GetMaxTimer(&maxTimer);
-#ifdef SPM_INTEGRATED
-  if ((nxpese_ctxt.pwr_scheme == POWER_SCHEME) ||
-      (nxpese_ctxt.pwr_scheme == LEGACY_SCHEME)) {
-    wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_RESET);
-    if (wSpmStatus != ESESTATUS_SUCCESS) {
-      NXP_LOG_ESE_E("phNxpEse_SPM_ConfigPwr: reset Failed");
-    }
-  }
-#else
+#ifndef SPM_INTEGRATED
   /* if arg ==2 (hard reset)
    * if arg ==1 (soft reset)
    */
@@ -575,17 +518,7 @@ ESESTATUS phNxpEse_resetJcopUpdate(void) {
       NXP_LOG_ESE_D("phNxpEseProto7816_SetIFS IFS adjustment argument invalid");
     }
   }
-#ifdef SPM_INTEGRATED
-#if (NXP_POWER_SCHEME_SUPPORT == false)
-  {
-    status = phNxpEse_SPM_ConfigPwr(SPM_POWER_RESET);
-    if (status != ESESTATUS_SUCCESS) {
-      NXP_LOG_ESE_E("phNxpEse_SPM_ConfigPwr: reset Failed");
-      status = ESESTATUS_FAILED;
-    }
-  }
-#endif
-#else
+#ifndef SPM_INTEGRATED
   /* if arg ==2 (hard reset)
    * if arg ==1 (soft reset)
    */
@@ -707,16 +640,6 @@ ESESTATUS phNxpEse_close(ESESTATUS deInitStatus) {
 
 #ifdef SPM_INTEGRATED
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
-#endif
-
-#ifdef SPM_INTEGRATED
-  /* Release the Access of  */
-  wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_POWER_DISABLE);
-  if (wSpmStatus != ESESTATUS_SUCCESS) {
-    NXP_LOG_ESE_E("phNxpEse_SPM_ConfigPwr: disabling power Failed");
-  } else {
-    nxpese_ctxt.spm_power_state = false;
-  }
 
   if (NULL != nxpese_ctxt.pDevHandle) {
     if (ESE_PROTOCOL_MEDIA_SPI == nxpese_ctxt.initParams.mediaType) {

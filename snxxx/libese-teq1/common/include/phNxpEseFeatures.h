@@ -25,7 +25,6 @@
 
 #define ESE_DEBUG_UTILS_INCLUDED true
 
-#define NXP_POWER_SCHEME_SUPPORT true
 #define NXP_ESE_END_OF_SESSION true
 
 #define NXP_ESE_WTX_RES_DELAY true
