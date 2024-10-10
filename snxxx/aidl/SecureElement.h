@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2023-2024 NXP
+ *  Copyright 2023-2025 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -115,6 +115,7 @@ struct SecureElement : public BnSecureElement {
   uint8_t getMaxChannelCnt();
   bool isClientVts(uid_t clientUid);
   void handleClientCbCleanup();
+  void handleClientCbCloseChannel();
   bool handleClientCallback(
       const std::shared_ptr<ISecureElementCallback>& clientCallback);
 };

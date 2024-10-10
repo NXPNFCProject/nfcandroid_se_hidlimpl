@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2023-2024 NXP
+ *  Copyright 2023-2025 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ namespace secure_element {
 #define NUM_OF_CH5 0x05
 #define AID_SECURE_ELEMENT 1068
 #define AID_ROOT 0
+#define AID_SE_UPDATE_AGENT 2904
 
 typedef struct gsTransceiveBuffer {
   phNxpEse_data cmdData;
@@ -102,6 +103,7 @@ ScopedAStatus SecureElement::init(
     return ScopedAStatus::fromExceptionCode(EX_NULL_POINTER);
   }
   uid_t clientUid = AIBinder_getCallingUid();
+  LOG(INFO)  << "clientUid: " << clientUid;
   // Allow VTS tests even if omapi acquires the lock.
   if (!isClientVts(clientUid) && !handleClientCallback(clientCallback)) {
     LOG(INFO) << __func__ << " client not allowed";
@@ -812,7 +814,7 @@ ScopedAStatus SecureElement::closeChannel(int8_t channelNumber) {
     }
     sestatus = SESTATUS_SUCCESS;
   }
-  handleClientCbCleanup();
+  handleClientCbCloseChannel();
   return sestatus == SESTATUS_SUCCESS
              ? ndk::ScopedAStatus::ok()
              : ndk::ScopedAStatus::fromServiceSpecificError(sestatus);
@@ -1008,12 +1010,15 @@ uint8_t SecureElement::getMaxChannelCnt() {
 }
 
 void SecureElement::handleStateOnDeath() {
-  if (!isClientVts(mCbClientUid)) {
-    seHalClientLock.unlock();
+    handleClientCbCleanup();
+}
+void SecureElement::handleClientCbCloseChannel() {
+  if (!isOmapi && !(AID_SE_UPDATE_AGENT == mCbClientUid)) {
+    handleClientCbCleanup();
   }
 }
 void SecureElement::handleClientCbCleanup() {
-  if (!isClientVts(mCbClientUid) && !isOmapi) {
+  if (!isClientVts(mCbClientUid)) {
     seHalClientLock.unlock();
   }
 }

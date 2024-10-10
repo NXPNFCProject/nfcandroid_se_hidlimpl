@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2023-2024 NXP
+ *  Copyright 2023-2025 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -76,7 +76,7 @@ int main() {
   bool ret = false;
 
   ALOGI("Secure Element AIDL HAL Service starting up");
-  if (!ABinderProcess_setThreadPoolMaxThreadCount(0)) {
+  if (!ABinderProcess_setThreadPoolMaxThreadCount(1)) {
     ALOGE("failed to set thread pool max thread count");
     return EXIT_FAILURE;
   }
