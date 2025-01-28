@@ -80,58 +80,68 @@ int main() {
     ALOGE("failed to set thread pool max thread count");
     return EXIT_FAILURE;
   }
-  ABinderProcess_startThreadPool();
-  waitForNFCHAL();
-  ALOGI("Secure Element AIDL HAL Service starting up");
-  std::shared_ptr<SecureElement> se_service =
-      ndk::SharedRefBase::make<SecureElement>();
-  std::shared_ptr<VirtualISO> virtual_iso_service = nullptr;
+  try {
+    ABinderProcess_startThreadPool();
+    waitForNFCHAL();
+    ALOGI("Secure Element AIDL HAL Service starting up");
+    std::shared_ptr<SecureElement> se_service =
+        ndk::SharedRefBase::make<SecureElement>();
+    std::shared_ptr<VirtualISO> virtual_iso_service = nullptr;
 
-  if (GetNxpStrValue(NAME_NXP_SPI_SE_TERMINAL_NUM, terminalID, TERMINAL_LEN)) {
-    LOG(ERROR) << "eSETerminalId found";
-    ALOGE("eSETerminalId found val = %s ", terminalID);
+    if (GetNxpStrValue(NAME_NXP_SPI_SE_TERMINAL_NUM, terminalID,
+                       TERMINAL_LEN)) {
+      LOG(ERROR) << "eSETerminalId found";
+      ALOGE("eSETerminalId found val = %s ", terminalID);
 
-    ret = true;
-  }
-  ALOGI("Terminal val = %s", terminalID);
-  if ((ret) && (strncmp(SEterminal, terminalID, 3) == 0)) {
-    ALOGI("Terminal ID found");
-    const std::string seInstName =
-        std::string() + SecureElement::descriptor + "/" + terminalID;
-    binder_status_t status = AServiceManager_addService(
-        se_service->asBinder().get(), seInstName.c_str());
-    if (status != OK) {
-      ALOGE("Could not register service for Secure Element HAL Iface (%d).",
-            status);
-      goto shutdown;
+      ret = true;
     }
-    ALOGI("Secure Element Service is ready");
-  }
+    ALOGI("Terminal val = %s", terminalID);
+    if ((ret) && (strncmp(SEterminal, terminalID, 3) == 0)) {
+      ALOGI("Terminal ID found");
+      const std::string seInstName =
+          std::string() + SecureElement::descriptor + "/" + terminalID;
+      binder_status_t status = AServiceManager_addService(
+          se_service->asBinder().get(), seInstName.c_str());
+      if (status != OK) {
+        ALOGE("Could not register service for Secure Element HAL Iface (%d).",
+              status);
+        goto shutdown;
+      }
+      ALOGI("Secure Element Service is ready");
+    }
 #ifdef NXP_VISO_ENABLE
-  ALOGI("Virtual ISO HAL Service 1.0 is starting.");
-  virtual_iso_service = ndk::SharedRefBase::make<VirtualISO>();
+    ALOGI("Virtual ISO HAL Service 1.0 is starting.");
+    virtual_iso_service = ndk::SharedRefBase::make<VirtualISO>();
 
-  ret = false;
-  if (GetNxpStrValue(NAME_NXP_VISO_SE_TERMINAL_NUM, terminalID, TERMINAL_LEN)) {
-    ALOGE("eUICCTerminalId found val = %s ", terminalID);
-    ret = true;
-  }
-  if ((ret) && (strncmp(SEterminal, terminalID, 3) == 0)) {
-    const std::string vISO_InstName =
-        std::string() + SecureElement::descriptor + "/" + terminalID;
-    binder_status_t status = AServiceManager_addService(
-        virtual_iso_service->asBinder().get(), vISO_InstName.c_str());
-
-    if (status != OK) {
-      ALOGE("Could not register service for Virtual ISO HAL Iface (%d).",
-            status);
-      goto shutdown;
+    ret = false;
+    if (GetNxpStrValue(NAME_NXP_VISO_SE_TERMINAL_NUM, terminalID,
+                       TERMINAL_LEN)) {
+      ALOGE("eUICCTerminalId found val = %s ", terminalID);
+      ret = true;
     }
-  }
+    if ((ret) && (strncmp(SEterminal, terminalID, 3) == 0)) {
+      const std::string vISO_InstName =
+          std::string() + SecureElement::descriptor + "/" + terminalID;
+      binder_status_t status = AServiceManager_addService(
+          virtual_iso_service->asBinder().get(), vISO_InstName.c_str());
 
-  ALOGI("Virtual ISO: Secure Element Service is ready");
+      if (status != OK) {
+        ALOGE("Could not register service for Virtual ISO HAL Iface (%d).",
+              status);
+        goto shutdown;
+      }
+    }
+
+    ALOGI("Virtual ISO: Secure Element Service is ready");
 #endif
-  ABinderProcess_joinThreadPool();
+    ABinderProcess_joinThreadPool();
+  } catch (std::length_error& e) {
+    ALOGE("Length Exception occurred = %s ", e.what());
+  } catch (std::__1::ios_base::failure& e) {
+    ALOGE("ios failure Exception occurred = %s ", e.what());
+  } catch (std::__1::system_error& e) {
+    ALOGE("system error Exception occurred = %s ", e.what());
+  }
 // Should not pass this line
 shutdown:
   // In normal operation, we don't expect the thread pool to exit
