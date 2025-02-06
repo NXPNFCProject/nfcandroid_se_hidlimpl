@@ -1030,7 +1030,8 @@ bool SecureElement::handleClientCallback(
   AutoMutex guard(initLock);
   LOG(INFO) << "isOmapi : " << isOmapi;
   uid_t currentClientUid = AIBinder_getCallingUid();
-  if (isOmapi && (currentClientUid != AID_SECURE_ELEMENT)) {
+  // To support private space UIDs of Omapi service
+  if (isOmapi && ((currentClientUid%100000) != AID_SECURE_ELEMENT)) {
     return false;
   }
   // Lock the mutex until the acquired client either closes the channel or
@@ -1045,7 +1046,7 @@ bool SecureElement::handleClientCallback(
     seHalClientLock.unlock();
     return false;
   }
-  isOmapi = (currentClientUid == AID_SECURE_ELEMENT);
+  isOmapi = ((currentClientUid%100000) == AID_SECURE_ELEMENT);
 
   return true;
 }
