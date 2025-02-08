@@ -1173,10 +1173,10 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
               /*If I-Frame received with invalid length respond with RNACK*/
               if ((nNbBytesToRead == 0) || (nNbBytesToRead > MAX_DATA_LEN) ||
                   (nNbBytesToRead > phNxpEseProto7816_GetIfs())) {
-                NXP_LOG_ESE_D("I-Frame with invalid len == %d", nNbBytesToRead);
+                NXP_LOG_ESE_E("I-Frame with invalid len == %d", nNbBytesToRead);
                 flushData = true;
               } else {
-                NXP_LOG_ESE_E("_spi_read() [HDR]EXTENDED_FRAME_MARKER, ret=%d",
+                NXP_LOG_ESE_D("_spi_read() [HDR]EXTENDED_FRAME_MARKER, ret=%d",
                               ret);
                 total_count += 2;
                 headerIndex = 5;
@@ -1397,7 +1397,7 @@ ESESTATUS phNxpEse_WriteFrame(uint32_t data_len, uint8_t* p_data) {
     status = ESESTATUS_SUCCESS;
     PH_PAL_ESE_PRINT_PACKET_TX(nxpese_ctxt.p_cmd_data, nxpese_ctxt.cmd_len);
   }
-  NXP_LOG_ESE_I("Exit %s status %x\n", __FUNCTION__, status);
+  NXP_LOG_ESE_D("Exit %s status %x\n", __FUNCTION__, status);
   return status;
 }
 
