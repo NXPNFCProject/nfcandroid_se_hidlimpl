@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019,2022,2024-2025 NXP
+ *  Copyright 2018-2019,2022,2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -105,10 +105,6 @@ ESESTATUS phNxpEse_7816_Transceive(pphNxpEse_7816_cpdu_t pCmd,
         }
       }
     }
-  }
-
-  if ((pRspTrans.p_data != NULL)) {
-          phNxpEse_free(pRspTrans.p_data);
   }
   if (pCmd_data != NULL) {
     NXP_LOG_ESE_D("Freeing memory pCmd_data");

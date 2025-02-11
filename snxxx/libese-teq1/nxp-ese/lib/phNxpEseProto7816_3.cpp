@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2023, 2025 NXP
+ *  Copyright 2018-2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -198,20 +198,6 @@ static ESESTATUS phNxpEseProto7816_HardReset(void);
 
 /**
  * \ingroup ISO7816-3_protocol_lib
- * \brief      This internal function is to decode the secure timer.
- *                  value from the payload
- *\param[in]     frameOffset -To get the L of TLV
- *\param[in]     secureTimer -V of TLV: Retrieve each byte(4 byte) and push it
- *to get the secure timer value (unsigned long) \param[in]    p_data -pointer to
- *data.
- *
- */
-static void phNxpEseProto7816_DecodeSecureTimer(uint8_t* frameOffset,
-                                                unsigned int* secureTimer,
-                                                uint8_t* p_data);
-
-/**
- * \ingroup ISO7816-3_protocol_lib
  * \brief       This internal function is to decode S-frame payload.
  *\param[in]    p_data -Raw Data IFS.
  *
@@ -225,14 +211,6 @@ static void phNxpEseProto7816_DecodeSFrameIFSData(uint8_t* p_data);
  *
  */
 static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data);
-
-/**
- * \ingroup ISO7816-3_protocol_lib
- * \brief       This internal function is to decode S-frame (secure timer TLV)
- *payload. \param[in]    p_data -raw data - secure timer  TLV.
- *
- */
-static void phNxpEseProto7816_DecodeSFrameSecureTimerData(uint8_t* p_data);
 
 /**
  * \ingroup ISO7816-3_protocol_lib
@@ -443,6 +421,9 @@ static ESESTATUS phNxpEseProto7816_SendSFrame(sFrameInfo_t sFrameData) {
         p_framebuff[3] = PH_PROTO_7816_VALUE_ZERO;
       else {
         if (sframeData.len + 2 > frame_len) {
+          if (NULL != p_framebuff) {
+            phNxpEse_free(p_framebuff);
+          }
           return ESESTATUS_FAILED;
         }
         phNxpEse_memcpy(&(p_framebuff[3]), sframeData.p_data, sframeData.len);
@@ -501,8 +482,7 @@ static ESESTATUS phNxpEseProto7816_SendSFrame(sFrameInfo_t sFrameData) {
     status = phNxpEseProto7816_SendRawFrame(frame_len, p_framebuff);
     phNxpEse_free(p_framebuff);
     /*After S-Frame Tx 1 ms sleep before Rx*/
-    if ((GET_CHIP_OS_VERSION() != OS_VERSION_4_0) &&
-        (sframeData.sFrameType != PROP_END_APDU_REQ)) {
+    if (sframeData.sFrameType != PROP_END_APDU_REQ) {
       phNxpEse_Sleep(1 * 1000);
     }
   } else {
@@ -941,56 +921,6 @@ static void phNxpEseProto7816_DecodeSFrameATRData(uint8_t* p_data) {
 }
 
 /******************************************************************************
- * Function         phNxpEseProto7816_DecodeSFrameData
- *
- * Description      This internal function is to decode S-frame payload.
- * Returns          void
- *
- ******************************************************************************/
-static void phNxpEseProto7816_DecodeSFrameSecureTimerData(uint8_t* p_data) {
-  uint8_t maxSframeLen = 0, dataType = 0, frameOffset = 0;
-  frameOffset = PH_PROPTO_7816_FRAME_LENGTH_OFFSET;
-  maxSframeLen =
-      p_data[frameOffset] +
-      frameOffset; /* to be in sync with offset which starts from index 0 */
-
-  /* Secure Timer specific parser */
-  while (maxSframeLen > frameOffset) {
-    frameOffset += 1; /* To get the Type (TLV) */
-    dataType = p_data[frameOffset];
-    NXP_LOG_ESE_D("%s frameoffset=%d value=0x%x\n", __FUNCTION__, frameOffset,
-                  p_data[frameOffset]);
-    switch (dataType) /* Type (TLV) */
-    {
-      case PH_PROPTO_7816_SFRAME_TIMER1:
-        phNxpEseProto7816_DecodeSecureTimer(
-            &frameOffset,
-            &phNxpEseProto7816_3_Var.secureTimerParams.secureTimer1, p_data);
-        break;
-      case PH_PROPTO_7816_SFRAME_TIMER2:
-        phNxpEseProto7816_DecodeSecureTimer(
-            &frameOffset,
-            &phNxpEseProto7816_3_Var.secureTimerParams.secureTimer2, p_data);
-        break;
-      case PH_PROPTO_7816_SFRAME_TIMER3:
-        phNxpEseProto7816_DecodeSecureTimer(
-            &frameOffset,
-            &phNxpEseProto7816_3_Var.secureTimerParams.secureTimer3, p_data);
-        break;
-      default:
-        frameOffset +=
-            p_data[frameOffset + 1]; /* Goto the end of current marker */
-        break;
-    }
-  }
-  NXP_LOG_ESE_D("secure timer t1 = 0x%x t2 = 0x%x t3 = 0x%x",
-                phNxpEseProto7816_3_Var.secureTimerParams.secureTimer1,
-                phNxpEseProto7816_3_Var.secureTimerParams.secureTimer2,
-                phNxpEseProto7816_3_Var.secureTimerParams.secureTimer3);
-  return;
-}
-
-/******************************************************************************
  * Function         phNxpEseProto7816_SetTxstate
  *
  * Description      This internal function is used to set the Tranceive state
@@ -1319,9 +1249,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         break;
       case RESYNCH_RSP:
         if (phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo
-                .errCode == OTHER_ERROR ||
-            phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo
-                .errCode == PARITY_ERROR) {
+                .errCode == OTHER_ERROR) {
           phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo
               .sFrameType = RESYNCH_RSP;
           phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.errCode =
@@ -1378,59 +1306,26 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
                       phNxpEseProto7816_3_Var.wtx_counter);
         NXP_LOG_ESE_D("%s Wtx_counter wtx_counter_limit - %lu", __FUNCTION__,
                       phNxpEseProto7816_3_Var.wtx_counter_limit);
-        /* Previous sent frame is some S-frame but not WTX response S-frame */
-        if (GET_CHIP_OS_VERSION() == OS_VERSION_4_0 &&
-            phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.sFrameType !=
-                WTX_RSP &&
-            phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.FrameType == SFRAME) {
-          /* Goto recovery if it
-          keep coming here for more than recovery counter max. value */
-          if (phNxpEseProto7816_3_Var.recoveryCounter <
-              GET_FRAME_RETRY_COUNT()) { /* Re-transmitting the previous
-                                                  sent S-frame */
-            phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx =
-                phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx;
-            phNxpEseProto7816_3_Var.recoveryCounter++;
-          } else {
-            phNxpEseProto7816_RecoverySteps();
-            phNxpEseProto7816_3_Var.recoveryCounter++;
-          }
+        /* Checking for WTX counter with max. allowed WTX count */
+        if (phNxpEseProto7816_3_Var.wtx_counter ==
+            phNxpEseProto7816_3_Var.wtx_counter_limit) {
+          phNxpEseProto7816_CheckAndNotifyWtx(WTX_END);
+          NXP_LOG_ESE_D(
+              "%s Power cycle to eSE  max "
+              "WTX received",
+              __FUNCTION__);
+          phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+              IDLE_STATE;
+          status = ESESTATUS_TRANSCEIVE_FAILED;
         } else {
-          /* Checking for WTX counter with max. allowed WTX count */
-          if (phNxpEseProto7816_3_Var.wtx_counter ==
-              phNxpEseProto7816_3_Var.wtx_counter_limit) {
-            phNxpEseProto7816_CheckAndNotifyWtx(WTX_END);
-            if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-              NXP_LOG_ESE_D(
-                  "%s Power cycle to eSE  max "
-                  "WTX received",
-                  __FUNCTION__);
-              phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
-                  IDLE_STATE;
-              status = ESESTATUS_TRANSCEIVE_FAILED;
-            } else {
-              phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo
-                  .sFrameType = INTF_RESET_REQ;
-              phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
-              phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo
-                  .sFrameType = INTF_RESET_REQ;
-              phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
-                  SEND_S_INTF_RST;
-              NXP_LOG_ESE_D(
-                  "%s Interface Reset to eSE wtx"
-                  " count reached!!!",
-                  __FUNCTION__);
-            }
-          } else {
-            phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
-            phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo
-                .sFrameType = WTX_REQ;
-            phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
-            phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.sFrameType =
-                WTX_RSP;
-            phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
-                SEND_S_WTX_RSP;
-          }
+          phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
+          phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo
+              .sFrameType = WTX_REQ;
+          phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = SFRAME;
+          phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.SframeInfo.sFrameType =
+              WTX_RSP;
+          phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
+              SEND_S_WTX_RSP;
         }
         break;
       case WTX_RSP:
@@ -1460,8 +1355,8 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         if (p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] > 0) {
           phNxpEseProto7816_DecodeSFrameATRData(p_data);
         } else {
-          phNxpEse_setOsVersion(OS_VERSION_4_0);
-        }
+          NXP_LOG_ESE_E("%s Unsupported OS Version", __FUNCTION__);
+         }
         break;
       case PROP_END_APDU_REQ:
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
@@ -1471,7 +1366,8 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo.sFrameType =
             PROP_END_APDU_RSP;
         if (p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET] > 0)
-          phNxpEseProto7816_DecodeSFrameSecureTimerData(p_data);
+          NXP_LOG_ESE_E("%s Unsupported End of APDU ", __FUNCTION__);
+
         phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = UNKNOWN;
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
@@ -1492,7 +1388,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
               p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET],
               &p_data[PH_PROPTO_7816_FRAME_LENGTH_OFFSET + 1]);
         } else {
-          phNxpEse_setOsVersion(OS_VERSION_4_0);
+          NXP_LOG_ESE_E("%s Wrong ATR Response", __FUNCTION__);
         }
         if (phNxpEseProto7816_3_Var.reset_type == RESET_TYPE_OS_RESET) {
           phNxpEseProto7816_SetTxstate(SEND_S_IFS_ADJ);
@@ -1507,8 +1403,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         break;
     }
     /*After S-Frame Rx 1 microsecond delay before next Tx*/
-    if ((GET_CHIP_OS_VERSION() != OS_VERSION_4_0) &&
-        (frameType != PROP_END_APDU_RSP)) {
+    if (frameType != PROP_END_APDU_RSP) {
       phNxpEse_Sleep(1000);
     }
   } else {
@@ -1560,9 +1455,7 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
               << 4;
           phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
               SEND_R_NACK;
-          if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-            phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
-          }
+          phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
         }
         phNxpEseProto7816_3_Var.rnack_retry_counter++;
       } else {
@@ -1612,9 +1505,7 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
         /* Re-transmission failed completely, Going to exit */
         phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
             IDLE_STATE;
-        if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-          status = ESESTATUS_FAILED;
-        }
+        status = ESESTATUS_FAILED;
         phNxpEseProto7816_3_Var.timeoutCounter = PH_PROTO_7816_VALUE_ZERO;
         NXP_LOG_ESE_D("%s calling phNxpEse_StoreDatainList", __FUNCTION__);
         ESESTATUS storeDataStatus = phNxpEse_StoreDatainList(data_len, p_data);
@@ -1664,9 +1555,7 @@ static ESESTATUS TransceiveProcess(void) {
         break;
       case SEND_R_NACK:
         status = phNxpEseProto7816_sendRframe(RNACK);
-        if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-          phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
-        }
+        phNxpEse_Sleep(GET_DELAY_ERROR_RECOVERY());
         break;
       case SEND_S_RSYNC:
         sFrameInfo.sFrameType = RESYNCH_REQ;
@@ -2071,8 +1960,10 @@ ESESTATUS phNxpEseProto7816_CloseAllSessions(void) {
    * be removed while integrating with TEE/REE as ATR
    * information is not available in REE case*/
 
-  if (phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN -
-                                               1] >= PH_SE_OS_VERSION_10) {
+  if ((phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN -
+                                                1] >= PH_SE_OS_VERSION_10) &&
+      (phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN -
+                                                1] < PH_SE_OS_VERSION_20)) {
     uint8_t* buffer = (uint8_t*)phNxpEse_memalloc(sizeof(uint8_t));
     if (buffer != NULL) {
       buffer[PH_PROTO_7816_VALUE_ZERO] = PH_PROTO_CLOSE_ALL_SESSION_INF;

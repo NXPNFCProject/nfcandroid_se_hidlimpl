@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2023 NXP
+ *  Copyright 2018-2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -369,10 +369,7 @@ typedef struct phNxpEseProto7816_PCB_bits {
  */
 #define DELAY_ERROR_RECOVERY_1_MS 1000
 
-#define GET_DELAY_ERROR_RECOVERY()           \
-  ((GET_CHIP_OS_VERSION() != OS_VERSION_4_0) \
-       ? (10 * DELAY_ERROR_RECOVERY_1_MS)    \
-       : (3.5 * DELAY_ERROR_RECOVERY_1_MS))
+#define GET_DELAY_ERROR_RECOVERY() (10 * DELAY_ERROR_RECOVERY_1_MS)
 /*!
  * \brief 7816-3 protocol frame
  * header length
@@ -446,11 +443,7 @@ typedef struct phNxpEseProto7816_PCB_bits {
 /*!
  * \brief 7816-3 protocol max. error retry counter based on OS version
  */
-#define GET_FRAME_RETRY_COUNT()              \
-  ((GET_CHIP_OS_VERSION() != OS_VERSION_4_0) \
-       ? (3 * PH_PROTO_7816_FRAME_RETRY)     \
-       : (10 * PH_PROTO_7816_FRAME_RETRY))
-
+#define GET_FRAME_RETRY_COUNT() (3 * PH_PROTO_7816_FRAME_RETRY)
 /*!
  * \brief 7816-3 protocol max. WTX default count
  */

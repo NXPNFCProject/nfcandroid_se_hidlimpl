@@ -975,9 +975,7 @@ static int getResponseInternal(uint8_t cla, phNxpEse_7816_rpdu_t& rpdu,
     rpdu.sw1 = INVALID_LEN_SW1;
     rpdu.sw2 = INVALID_LEN_SW2;
   }
-  if ((rspApdu.p_data != NULL)) {
-          phNxpEse_free(rspApdu.p_data);
-  }
+
   return sestatus;
 }
 
@@ -1028,10 +1026,9 @@ void SecureElement::handleClientCbCleanup() {
 bool SecureElement::handleClientCallback(
     const std::shared_ptr<ISecureElementCallback>& clientCallback) {
   AutoMutex guard(initLock);
-  LOG(INFO) << "isOmapi : " << isOmapi;
+  LOG(INFO)  << "isOmapi : " << isOmapi;
   uid_t currentClientUid = AIBinder_getCallingUid();
-  // To support private space UIDs of Omapi service
-  if (isOmapi && ((currentClientUid%100000) != AID_SECURE_ELEMENT)) {
+  if (isOmapi && (currentClientUid != AID_SECURE_ELEMENT)) {
     return false;
   }
   // Lock the mutex until the acquired client either closes the channel or
@@ -1046,7 +1043,7 @@ bool SecureElement::handleClientCallback(
     seHalClientLock.unlock();
     return false;
   }
-  isOmapi = ((currentClientUid%100000) == AID_SECURE_ELEMENT);
+  isOmapi = (currentClientUid == AID_SECURE_ELEMENT);
 
   return true;
 }

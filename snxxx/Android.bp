@@ -23,17 +23,16 @@ package {
 }
 
 subdirs = [
-    "aidl",
-    "1.2",
+    "aidl","1.2",
 ]
 filegroup {
     name: "OsuHalCommonFile",
     srcs: ["OsuHal/src/OsuHalExtn.cpp"],
 }
-
 filegroup {
     name: "ExtnsFile",
-    srcs: [
-        "extns/impl/NxpEse.cpp",
+     srcs: [
+         "extns/impl/NxpEse.cpp",
+         "ese-clients/src/eSEClient.cpp",
     ],
 }

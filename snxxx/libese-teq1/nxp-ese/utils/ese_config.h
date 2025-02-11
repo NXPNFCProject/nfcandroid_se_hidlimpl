@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020,2022-2023 NXP
+ *  Copyright 2018-2020,2022-2024 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -18,20 +18,17 @@
 
 #pragma once
 
-#include <config.h>
-
 #include <string>
 #include <vector>
+
+#include <config.h>
 
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
 #define NAME_SE_LOG_LEVEL "SE_LOG_LEVEL"
 #define NAME_SE_KPI_MEASUREMENT_ENABLED "SE_KPI_MEASUREMENT_ENABLED"
-#define NAME_NXP_JCOPDL_AT_BOOT_ENABLE "NXP_JCOPDL_AT_BOOT_ENABLE"
 #define NAME_NXP_WTX_COUNT_VALUE "NXP_WTX_COUNT_VALUE"
-#define NAME_NXP_MAX_RSP_TIMEOUT "NXP_MAX_RSP_TIMEOUT"
-#define NAME_NXP_POWER_SCHEME "NXP_POWER_SCHEME"
 #define NAME_NXP_SOF_WRITE "NXP_SOF_WRITE"
 #define NAME_NXP_TP_MEASUREMENT "NXP_TP_MEASUREMENT"
 #define NAME_NXP_SPI_INTF_RST_ENABLE "NXP_SPI_INTF_RST_ENABLE"

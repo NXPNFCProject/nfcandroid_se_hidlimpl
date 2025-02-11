@@ -47,8 +47,8 @@ cc_library_shared {
         "hardware/nxp/nfc/snxxx/extns/impl/nxpnfc/aidl",
         "hardware/nxp/nfc/snxxx/extns/impl/nxpnfc/2.0",
         "hardware/nxp/secure_element/snxxx/extns/impl",
-        "hardware/nxp/secure_element/snxxx/ese-clients/inc",
-    ],
+        "hardware/nxp/secure_element/snxxx/ese-clients/inc"
+],
 
     cflags: [
         "-DANDROID",
@@ -84,7 +84,7 @@ cc_library_shared {
     product_variables: {
         debuggable: {
             cflags: [
-                "-DDCHECK_ALWAYS_ON",
+                "-DDCHECK_ALWAYS_ON"
             ],
         },
     },
