@@ -25,6 +25,7 @@
 #include <phNxpEsePal.h>
 #include <phNxpEseProto7816_3.h>
 #include <phNxpEse_Internal.h>
+#include <stdint.h>
 
 #define RECEIVE_PACKET_SOF 0xA5
 #define CHAINED_PACKET_WITHSEQN 0x60
@@ -36,6 +37,20 @@
 /* 32K(0x8000) Datasize + 10(0xA) Byte Max Header Size + 1 byte negative
  * testcase support */
 #define MAX_SUPPORTED_DATA_SIZE 0x800B
+
+#define NXP_EN_SN110U 1
+#define NXP_EN_SN100U 1
+#define NXP_EN_SN220U 1
+#define NXP_EN_PN557 1
+#define NXP_EN_PN560 1
+#define NXP_EN_SN300U 1
+#define NXP_EN_SN330U 1
+#define NFC_NXP_MW_ANDROID_VER (16U)  /* Android version used by NFC MW */
+#define NFC_NXP_MW_VERSION_MAJ (0x03) /* MW Major Version */
+#define NFC_NXP_MW_VERSION_MIN (0x00) /* MW Minor Version */
+#define NFC_NXP_MW_CUSTOMER_ID (0x00) /* MW Customer Id */
+#define NFC_NXP_MW_RC_VERSION (0x00)  /* MW RC Version */
+
 static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
                                int nNbBytesToRead);
 static void phNxpEse_GetMaxTimer(unsigned long* pMaxTimer);
@@ -52,6 +67,29 @@ static unsigned long int app_wtx_cnt = RESET_APP_WTX_COUNT;
 phNxpEse_Context_t nxpese_ctxt;
 
 uint8_t ese_log_level = 0;
+
+/******************************************************************************
+ * Function         printSeHalVersion
+ *
+ * Description      This function is called to SE version
+ *
+ * Returns          None
+ *
+ ******************************************************************************/
+static void printSeHalVersion() {
+  uint32_t validation = (NXP_EN_SN100U << 13);
+  validation |= (NXP_EN_SN110U << 14);
+  validation |= (NXP_EN_SN220U << 15);
+  validation |= (NXP_EN_PN560 << 16);
+  validation |= (NXP_EN_SN300U << 17);
+  validation |= (NXP_EN_SN330U << 18);
+  validation |= (NXP_EN_PN557 << 11);
+
+  NXP_LOG_ESE_D("SE HAL Version: NXP_AR_%02X_%05X_%02d.%02x.%02x",
+        NFC_NXP_MW_CUSTOMER_ID, validation, NFC_NXP_MW_ANDROID_VER,
+        NFC_NXP_MW_VERSION_MAJ, NFC_NXP_MW_VERSION_MIN);
+}
+
 /******************************************************************************
  * Function         phNxpEse_SetEndPoint_Cntxt
  *
@@ -132,6 +170,7 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
   phNxpEse_memset(&protoInitParam, 0x00, sizeof(phNxpEseProto7816InitParam_t));
   /* STATUS_OPEN */
   nxpese_ctxt.EseLibStatus = ESE_STATUS_OPEN;
+  printSeHalVersion();
 
   if (app_wtx_cnt > RESET_APP_WTX_COUNT) {
     protoInitParam.wtx_counter_limit = app_wtx_cnt;
