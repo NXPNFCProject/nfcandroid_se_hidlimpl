@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2024 NXP
+ *  Copyright 2018-2023 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -441,15 +441,8 @@ static ESESTATUS phNxpEseProto7816_SendSFrame(sFrameInfo_t sFrameData) {
       p_framebuff[2] = sframeData.len;
       if (!sframeData.len)
         p_framebuff[3] = PH_PROTO_7816_VALUE_ZERO;
-      else {
-        if (sframeData.len + 2 > frame_len) {
-          if (NULL != p_framebuff) {
-            phNxpEse_free(p_framebuff);
-          }
-          return ESESTATUS_FAILED;
-        }
+      else
         phNxpEse_memcpy(&(p_framebuff[3]), sframeData.p_data, sframeData.len);
-      }
       pcb_byte |= PH_PROTO_7816_S_BLOCK_REQ; /* PCB */
       pcb_byte |= PH_PROTO_7816_S_END_OF_APDU;
       break;
@@ -2072,10 +2065,8 @@ ESESTATUS phNxpEseProto7816_CloseAllSessions(void) {
    * be removed while integrating with TEE/REE as ATR
    * information is not available in REE case*/
 
-  if ((phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN -
-                                                1] >= PH_SE_OS_VERSION_10) &&
-      (phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN -
-                                                1] < PH_SE_OS_VERSION_20)) {
+  if (phNxpEseProto7816_3_Var.atrInfo.vendorID[PH_PROTO_ATR_RSP_VENDOR_ID_LEN -
+                                               1] >= PH_SE_OS_VERSION_10) {
     uint8_t* buffer = (uint8_t*)phNxpEse_memalloc(sizeof(uint8_t));
     if (buffer != NULL) {
       buffer[PH_PROTO_7816_VALUE_ZERO] = PH_PROTO_CLOSE_ALL_SESSION_INF;

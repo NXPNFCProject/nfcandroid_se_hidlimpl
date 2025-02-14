@@ -54,7 +54,7 @@
  * PHESESTATUS
  * Get grp_retval from Status Code
  */
-#define PHESESTATUS(phEseStatus) ((phEseStatus)&0x00FFU)
+#define PHESESTATUS(phEseStatus) ((phEseStatus) & 0x00FFU)
 
 /**
  * \ingroup ISO7816-3_protocol_lib_common

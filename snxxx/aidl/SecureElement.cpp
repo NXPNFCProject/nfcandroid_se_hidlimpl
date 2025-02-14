@@ -119,6 +119,7 @@ ScopedAStatus SecureElement::init(
   initParams.fPtr_WtxNtf = SecureElement::NotifySeWaitExtension;
 
   if (clientCallback == nullptr) {
+    handleClientCbCleanup();
     return ScopedAStatus::ok();
   } else {
     clientDeathRecipient = AIBinder_DeathRecipient_new(OnDeath);
@@ -175,6 +176,7 @@ ScopedAStatus SecureElement::init(
     mCb->onStateChange(true, "NXP SE HAL init ok");
   } else {
     LOG(ERROR) << "eSE-Hal Init failed";
+    handleClientCbCleanup();
     mCb->onStateChange(false, "NXP SE HAL init failed");
   }
   return ScopedAStatus::ok();
@@ -342,7 +344,7 @@ ScopedAStatus SecureElement::openLogicalChannel(
   if (aid.size() > MAX_AID_LENGTH) {
     LOG(ERROR) << "%s: AID out of range!!!" << __func__;
     *_aidl_return = resApduBuff;
-    handleClientCloseChannel();
+    handleClientCbCleanup();
     return ScopedAStatus::fromServiceSpecificError(FAILED);
   }
 
@@ -360,7 +362,7 @@ ScopedAStatus SecureElement::openLogicalChannel(
     ALOGE("%s: Reached Max supported(%d) Logical Channel", __func__,
           openedLogicalChannelCount);
     *_aidl_return = resApduBuff;
-    handleClientCloseChannel();
+    handleClientCbCleanup();
     return ScopedAStatus::fromServiceSpecificError(CHANNEL_NOT_AVAILABLE);
   }
 
@@ -371,14 +373,14 @@ ScopedAStatus SecureElement::openLogicalChannel(
       (IS_OSU_MODE(OsuHalExtn::getInstance().OPENLOGICAL))) {
     LOG(ERROR) << "%s: Not allowed in dedicated mode!!!" << __func__;
     *_aidl_return = resApduBuff;
-    handleClientCloseChannel();
+    handleClientCbCleanup();
     return ScopedAStatus::fromServiceSpecificError(IOERROR);
   }
   if (!mIsEseInitialized) {
     ESESTATUS status = seHalInit();
     if (status != ESESTATUS_SUCCESS) {
       LOG(ERROR) << "%s: seHalInit Failed!!!" << __func__;
-      handleClientCloseChannel();
+      handleClientCbCleanup();
       *_aidl_return = resApduBuff;
       return ScopedAStatus::fromServiceSpecificError(IOERROR);
     }
@@ -443,7 +445,7 @@ ScopedAStatus SecureElement::openLogicalChannel(
       LOG(ERROR) << "phNxpEse_ResetEndPoint_Cntxt failed!!!";
     }
     *_aidl_return = resApduBuff;
-    handleClientCloseChannel();
+    handleClientCbCleanup();
     return ScopedAStatus::fromServiceSpecificError(sestatus);
   }
   LOG(INFO) << "openLogicalChannel Sending selectApdu";
@@ -468,7 +470,7 @@ ScopedAStatus SecureElement::openLogicalChannel(
     ALOGE("%s: Invalid Channel no: %02x", __func__, resApduBuff.channelNumber);
     resApduBuff.channelNumber = 0xff;
     *_aidl_return = resApduBuff;
-    handleClientCloseChannel();
+    handleClientCbCleanup();
     return ScopedAStatus::fromServiceSpecificError(IOERROR);
   }
   cpdu.ins = 0xA4; /* Instruction code */
@@ -527,7 +529,7 @@ ScopedAStatus SecureElement::openLogicalChannel(
     }
   }
   if (sestatus != SESTATUS_SUCCESS) {
-    handleClientCloseChannel();
+    handleClientCbCleanup();
     int closeChannelStatus = internalCloseChannel(resApduBuff.channelNumber);
     if (closeChannelStatus != SESTATUS_SUCCESS) {
       LOG(ERROR) << "%s: closeChannel Failed" << __func__;
@@ -810,7 +812,7 @@ ScopedAStatus SecureElement::closeChannel(int8_t channelNumber) {
     }
     sestatus = SESTATUS_SUCCESS;
   }
-  handleClientCloseChannel();
+  handleClientCbCleanup();
   return sestatus == SESTATUS_SUCCESS
              ? ndk::ScopedAStatus::ok()
              : ndk::ScopedAStatus::fromServiceSpecificError(sestatus);
@@ -1010,8 +1012,7 @@ void SecureElement::handleStateOnDeath() {
     seHalClientLock.unlock();
   }
 }
-
-void SecureElement::handleClientCloseChannel() {
+void SecureElement::handleClientCbCleanup() {
   if (!isClientVts(mCbClientUid) && !isOmapi) {
     seHalClientLock.unlock();
   }
@@ -1020,7 +1021,7 @@ void SecureElement::handleClientCloseChannel() {
 bool SecureElement::handleClientCallback(
     const std::shared_ptr<ISecureElementCallback>& clientCallback) {
   AutoMutex guard(initLock);
-  LOG(INFO)  << "isOmapi : " << isOmapi;
+  LOG(INFO) << "isOmapi : " << isOmapi;
   uid_t currentClientUid = AIBinder_getCallingUid();
   if (isOmapi && (currentClientUid != AID_SECURE_ELEMENT)) {
     return false;
@@ -1037,7 +1038,7 @@ bool SecureElement::handleClientCallback(
     seHalClientLock.unlock();
     return false;
   }
-  isOmapi = (currentClientUid == AID_SECURE_ELEMENT) ? true : false;
+  isOmapi = (currentClientUid == AID_SECURE_ELEMENT);
 
   return true;
 }

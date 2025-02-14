@@ -22,7 +22,7 @@
 
 /* Macro to enable SPM Module */
 #define SPM_INTEGRATED
-//#undef SPM_INTEGRATED
+// #undef SPM_INTEGRATED
 #ifdef SPM_INTEGRATED
 #include "../spm/phNxpEse_Spm.h"
 #endif

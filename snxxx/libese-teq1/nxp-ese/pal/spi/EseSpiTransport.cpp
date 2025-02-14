@@ -395,8 +395,8 @@ ESESTATUS EseSpiTransport::Ioctl(phPalEse_ControlCode_t eControlCode,
       break;
     case phPalEse_e_ChipRst:
       if (GET_CHIP_OS_VERSION() != OS_VERSION_4_0) {
-        if (level == 5) {              // SPI driver communication part
-          if (!mConfigColdResetIntf) { // Call the driver IOCTL
+        if (level == 5) {               // SPI driver communication part
+          if (!mConfigColdResetIntf) {  // Call the driver IOCTL
             unsigned int cmd = ESE_PERFORM_COLD_RESET;
             if ((mConfigGpioReset == 0x01) &&
                 ((GET_CHIP_OS_VERSION() == OS_VERSION_8_9))) {
