@@ -330,6 +330,7 @@ ESESTATUS EseSpiTransport::Ioctl(phPalEse_ControlCode_t eControlCode,
             // Nfc Driver communication part
             pNfcAdapt.Initialize();
             ret = pNfcAdapt.resetEse(level);
+            pNfcAdapt.DeInitialize();
           } else {
             NXP_LOG_ESE_E("%s: Not supported", __func__);
             ret = ESESTATUS_SUCCESS;

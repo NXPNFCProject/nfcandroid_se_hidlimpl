@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020,2022-2023 NXP
+ *  Copyright 2018-2020,2022-2023, 2025 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -83,6 +83,13 @@ void NfcAdaptation::Initialize() {
       ALOGE("Failed to get INxpNfc::tryGetService");
     }
   }
+  NXP_LOG_ESE_D("%s: exit", func);
+}
+
+void NfcAdaptation::DeInitialize() {
+  const char* func = "NfcAdaptation::DeInitialize";
+  NXP_LOG_ESE_D("%s", func);
+  mAidlHalNxpNfc = nullptr;
   NXP_LOG_ESE_D("%s: exit", func);
 }
 /*******************************************************************************

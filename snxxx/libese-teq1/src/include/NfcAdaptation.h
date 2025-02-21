@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2020,2022-2023 NXP
+ *  Copyright 2020,2022-2023, 2025 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -72,6 +72,7 @@ class NfcAdaptation {
   static NfcAdaptation& GetInstance();
   static ESESTATUS resetEse(uint64_t level);
   void Initialize();
+  void DeInitialize();
 #ifdef NXP_BOOTTIME_UPDATE
   static ESESTATUS setEseUpdateState(void* p_data);
 #endif
