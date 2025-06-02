@@ -298,7 +298,6 @@ ScopedAStatus SecureElement::transmit(const std::vector<uint8_t>& data,
   } else {
     memcpy(gsTxRxBuffer.cmdData.p_data, data.data(), gsTxRxBuffer.cmdData.len);
   }
-  LOG(INFO) << "Acquired lock for SPI";
   status = phNxpEse_SetEndPoint_Cntxt(0);
   if (status != ESESTATUS_SUCCESS) {
     LOG(ERROR) << "phNxpEse_SetEndPoint_Cntxt failed!!!";
@@ -976,6 +975,9 @@ static int getResponseInternal(uint8_t cla, phNxpEse_7816_rpdu_t& rpdu,
     rpdu.sw2 = INVALID_LEN_SW2;
   }
 
+  if (rspApdu.p_data != NULL) {
+      phNxpEse_free(rspApdu.p_data);
+    }
   return sestatus;
 }
 

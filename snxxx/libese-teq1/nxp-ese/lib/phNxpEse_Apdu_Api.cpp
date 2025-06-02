@@ -106,6 +106,9 @@ ESESTATUS phNxpEse_7816_Transceive(pphNxpEse_7816_cpdu_t pCmd,
       }
     }
   }
+  if (pRspTrans.p_data != NULL) {
+    phNxpEse_free(pRspTrans.p_data);
+  }
   if (pCmd_data != NULL) {
     NXP_LOG_ESE_D("Freeing memory pCmd_data");
     phNxpEse_free(pCmd_data);
