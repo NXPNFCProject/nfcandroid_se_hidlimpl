@@ -1050,7 +1050,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
           } else {
             phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
                 SEND_R_NACK;
-            NXP_LOG_ESE_I("%s Invalid IframeData", __FUNCTION__);
+            NXP_LOG_ESE_E("%s Invalid IframeData", __FUNCTION__);
           }
         } else {
           phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdIframeInfo.isChained =
@@ -1067,7 +1067,7 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
             phNxpEseProto7816_3_Var.phNxpEseNextTx_Cntx.FrameType = RFRAME;
             phNxpEseProto7816_3_Var.phNxpEseProto7816_nextTransceiveState =
                 SEND_R_NACK;
-            NXP_LOG_ESE_I("%s Invalid IframeData", __FUNCTION__);
+            NXP_LOG_ESE_E("%s Invalid IframeData", __FUNCTION__);
           }
         }
       } else {
@@ -1467,7 +1467,7 @@ static ESESTATUS phNxpEseProto7816_ProcessResponse(void) {
       }
     }
   } else {
-    NXP_LOG_ESE_I("%s phNxpEseProto7816_GetRawFrame failed", __FUNCTION__);
+    NXP_LOG_ESE_E("%s phNxpEseProto7816_GetRawFrame failed", __FUNCTION__);
     if ((SFRAME == phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.FrameType) &&
         ((WTX_RSP ==
           phNxpEseProto7816_3_Var.phNxpEseLastTx_Cntx.SframeInfo.sFrameType) ||
@@ -1740,10 +1740,10 @@ static void printCmdRspTimeDuration(ESESTATUS status, uint32_t cmdLen,
   if (!phPalEse_getTimer()->is_enabled) return;
 
   if (status == ESESTATUS_SUCCESS) {
-    NXP_LOG_ESE_I(
+    NXP_LOG_ESE_W(
         "TX: Total time taken for sending C-Apdu of size: %d is %lu usecs",
         cmdLen, phPalEse_timerDuration(phPalEse_getTimer()->tx_timer));
-    NXP_LOG_ESE_I(
+    NXP_LOG_ESE_W(
         "RX: Total time taken for receiving R-Apdu of size: %d is %lu usecs",
         respLen, phPalEse_timerDuration(phPalEse_getTimer()->rx_timer));
   } else {

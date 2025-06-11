@@ -229,8 +229,6 @@ void phPalEse_BusyWait(long total_time /* usecs*/) {
 *******************************************************************************/
 void phPalEse_print_packet(const char* pString, const uint8_t* p_data,
                            uint16_t len) {
-  if (ese_log_level < NXPESE_LOGLEVEL_DEBUG) return;  // debug logs disabled
-
   uint32_t i;
   char print_buffer[len * 3 + 1];
 
@@ -239,9 +237,9 @@ void phPalEse_print_packet(const char* pString, const uint8_t* p_data,
     snprintf(&print_buffer[i * 2], 3, "%02X", p_data[i]);
   }
   if (0 == memcmp(pString, "SEND", 0x04)) {
-    NXP_LOG_ESE_D("NxpEseDataX len = %3d > %s", len, print_buffer);
+    NXP_LOG_ESE_I("NxpEseDataX len = %3d > %s", len, print_buffer);
   } else if (0 == memcmp(pString, "RECV", 0x04)) {
-    NXP_LOG_ESE_D("NxpEseDataR len = %3d > %s", len, print_buffer);
+    NXP_LOG_ESE_I("NxpEseDataR len = %3d > %s", len, print_buffer);
   }
   return;
 }
