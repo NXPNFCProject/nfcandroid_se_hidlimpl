@@ -974,10 +974,9 @@ static int getResponseInternal(uint8_t cla, phNxpEse_7816_rpdu_t& rpdu,
     rpdu.sw1 = INVALID_LEN_SW1;
     rpdu.sw2 = INVALID_LEN_SW2;
   }
-
   if (rspApdu.p_data != NULL) {
-      phNxpEse_free(rspApdu.p_data);
-    }
+    phNxpEse_free(rspApdu.p_data);
+  }
   return sestatus;
 }
 

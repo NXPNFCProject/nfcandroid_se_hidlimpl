@@ -580,7 +580,7 @@ static ESESTATUS phNxpEseProto7816_SendIframe(iFrameInfo_t iFrameData) {
   } else { /* Case for frame size < 254 bytes */
     /* store I frame length */
     p_framebuff[2] = iFrameData.sendDataLen;
-    frame_len = frame_len - 2;
+    frame_len = frame_len > 2 ? frame_len - 2 : 0;
     /* store I frame */
     phNxpEse_memcpy(&(p_framebuff[3]),
                     iFrameData.p_data + iFrameData.dataOffset,
