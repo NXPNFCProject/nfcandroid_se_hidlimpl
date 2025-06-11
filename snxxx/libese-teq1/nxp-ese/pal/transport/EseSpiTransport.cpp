@@ -55,7 +55,6 @@ eseIoctlData_t eseioctldata;
 #endif
 // Default max retry count for SPI CLT write blocked in secs
 static unsigned long int gsMaxSpiWriteRetryCnt = 10;
-
 /*******************************************************************************
 **
 ** Function         phPalEse_spi_close
@@ -122,7 +121,7 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
 ** Description      Open and configure pn547 device
 **
 ** Parameters       pConfig     - hardware information
-**                  pLinkHandle - device handle
+**                  pContext - Ese Context of T=1 library
 **
 ** Returns          ESE status:
 **                  ESESTATUS_SUCCESS            - open_and_configure operation
@@ -130,7 +129,8 @@ ESESTATUS phNxpEse_spiIoctl(uint64_t ioctlType, void* p_data) {
 **                  ESESTATUS_INVALID_DEVICE     - device open operation failure
 **
 *******************************************************************************/
-ESESTATUS EseSpiTransport::OpenAndConfigure(pphPalEse_Config_t pConfig) {
+ESESTATUS EseSpiTransport::OpenAndConfigure(pphPalEse_Config_t pConfig,
+                                            void* pContext) {
   int nHandle;
   int retryCnt = 0;
   ALOGD("NxpEse EseSpiTransport::OpenAndConfigure 1");

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2020, 2023 NXP
+ *  Copyright 2020, 2023, 2025 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -22,7 +22,8 @@
 class EseSpiTransport : public EseTransport {
  public:
   void Close(void* pDevHandle);
-  ESESTATUS OpenAndConfigure(pphPalEse_Config_t pConfig);
+  ESESTATUS OpenAndConfigure(pphPalEse_Config_t pConfig,
+                             void* pcontext = nullptr);
   int Read(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToRead);
   int Write(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToWrite);
   ESESTATUS Ioctl(phPalEse_ControlCode_t eControlCode, void* pDevHandle,

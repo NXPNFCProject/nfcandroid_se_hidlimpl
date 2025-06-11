@@ -83,7 +83,8 @@
 class EseTransport {
  public:
   virtual void Close(void* pDevHandle) = 0;
-  virtual ESESTATUS OpenAndConfigure(pphPalEse_Config_t pConfig) = 0;
+  virtual ESESTATUS OpenAndConfigure(pphPalEse_Config_t pConfig,
+                                     void* pContext = nullptr) = 0;
   virtual int Read(void* pDevHandle, uint8_t* pBuffer, int nNbBytesToRead) = 0;
   virtual int Write(void* pDevHandle, uint8_t* pBuffer,
                     int nNbBytesToWrite) = 0;

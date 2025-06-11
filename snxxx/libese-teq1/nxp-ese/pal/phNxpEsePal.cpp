@@ -82,18 +82,19 @@ void phPalEse_close(void* pDevHandle) {
 **
 ** Description      Open and configure ESE device
 **
-** Parameters       pConfig     - hardware information
+** Parameters       pConfig    - hardware information
+**                  pContext   - Ese Context of T=1 lib
 **
 ** Returns          ESE status:
-**                  ESESTATUS_SUCCESS            - open_and_configure operation
-*success
-**                  ESESTATUS_INVALID_DEVICE     - device open operation failure
+**                  ESESTATUS_SUCCESS  - open_and_configure operation success
+**                  ESESTATUS_INVALID_DEVICE  - device open operation failure
 **
 *******************************************************************************/
-ESESTATUS phPalEse_open_and_configure(pphPalEse_Config_t pConfig) {
+ESESTATUS phPalEse_open_and_configure(pphPalEse_Config_t pConfig,
+                                      void* pContext) {
   ESESTATUS status = ESESTATUS_FAILED;
   if (ESESTATUS_SUCCESS != phPalEse_ConfigTransport()) return ESESTATUS_FAILED;
-  status = gpTransportObj->OpenAndConfigure(pConfig);
+  status = gpTransportObj->OpenAndConfigure(pConfig, pContext);
   return status;
 }
 

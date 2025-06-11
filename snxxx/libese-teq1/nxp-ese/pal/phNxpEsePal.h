@@ -45,7 +45,7 @@
 typedef enum {
   phPalEse_e_Invalid = 0,                         /*!< Invalid control code */
   phPalEse_e_ResetDevice = PH_PALESE_RESETDEVICE, /*!< Reset the device */
-  phPalEse_e_ChipRst,        /*!< eSE Chip reset using ISO RST pin*/
+  phPalEse_e_ChipRst,              /*!< eSE Chip reset using ISO RST pin*/
   phPalEse_e_SetClientUpdateState, /*!< Set Jcop Download state */
   phPalEse_e_SetSecureMode,        /*!< Set the Trusted SE Mode */
   phPalEse_e_ResetProtection,
@@ -110,11 +110,13 @@ void phPalEse_close(void* pDevHandle);
  * \brief Open and configure ESE device
  *
  * \param[in]       pConfig: Config to open the device
+ * \param[in]       pcontext: Ese Cntx from T=1 lib
  *
  * \retval  ESESTATUS On Success ESESTATUS_SUCCESS else proper error code
  *
  */
-ESESTATUS phPalEse_open_and_configure(pphPalEse_Config_t pConfig);
+ESESTATUS phPalEse_open_and_configure(pphPalEse_Config_t pConfig,
+                                      void* pcontext);
 
 /**
  * \ingroup eSe_PAL

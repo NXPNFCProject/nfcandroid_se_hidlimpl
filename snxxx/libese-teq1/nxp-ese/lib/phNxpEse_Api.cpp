@@ -86,8 +86,8 @@ static void printSeHalVersion() {
   validation |= (NXP_EN_PN557 << 11);
 
   NXP_LOG_ESE_D("SE HAL Version: NXP_AR_%02X_%05X_%02d.%02x.%02x",
-        NFC_NXP_MW_CUSTOMER_ID, validation, NFC_NXP_MW_ANDROID_VER,
-        NFC_NXP_MW_VERSION_MAJ, NFC_NXP_MW_VERSION_MIN);
+                NFC_NXP_MW_CUSTOMER_ID, validation, NFC_NXP_MW_ANDROID_VER,
+                NFC_NXP_MW_VERSION_MAJ, NFC_NXP_MW_VERSION_MIN);
 }
 
 /******************************************************************************
@@ -356,7 +356,7 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   tPalConfig.pDevName = (int8_t*)ese_dev_node;
 
   /* Initialize PAL layer */
-  wConfigStatus = phPalEse_open_and_configure(&tPalConfig);
+  wConfigStatus = phPalEse_open_and_configure(&tPalConfig, (void*)&nxpese_ctxt);
   if (wConfigStatus != ESESTATUS_SUCCESS) {
     NXP_LOG_ESE_E("phPalEse_Init Failed");
     if (ESESTATUS_DRIVER_BUSY == wConfigStatus)
@@ -800,8 +800,8 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
     /*wait based on config option */
     /*(nadPollingRetryTime * WAKE_UP_DELAY_SN1xx * NAD_POLLING_SCALER_SN1xx)*/
     max_sof_counter = ((ESE_POLL_TIMEOUT * 1000) /
-                       (nxpese_ctxt.nadPollingRetryTime *
-                        GET_WAKE_UP_DELAY() * NAD_POLLING_SCALER));
+                       (nxpese_ctxt.nadPollingRetryTime * GET_WAKE_UP_DELAY() *
+                        NAD_POLLING_SCALER));
   }
   if (nxpese_ctxt.rnack_sent) {
     phPalEse_sleep(nxpese_ctxt.invalidFrame_Rnack_Delay);
@@ -852,8 +852,8 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
     } else {
       /*NXP_LOG_ESE_D("%s Normal Pkt, delay read %dus", __FUNCTION__,
        WAKE_UP_DELAY_SN1xx * NAD_POLLING_SCALER_SN1xx);*/
-      phPalEse_BusyWait(nxpese_ctxt.nadPollingRetryTime *
-                        GET_WAKE_UP_DELAY() * NAD_POLLING_SCALER);
+      phPalEse_BusyWait(nxpese_ctxt.nadPollingRetryTime * GET_WAKE_UP_DELAY() *
+                        NAD_POLLING_SCALER);
     }
     sof_counter++;
   } while (sof_counter < max_sof_counter);
@@ -872,8 +872,7 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
     NXP_LOG_ESE_D("%s SOF FOUND", __FUNCTION__);
     /* Read the HEADER of one/Two bytes based on how two bytes read A5 PCB or
      * 00 A5*/
-    ret =
-        phPalEse_read(pDevHandle, &pBuffer[1 + headerIndex], numBytesToRead);
+    ret = phPalEse_read(pDevHandle, &pBuffer[1 + headerIndex], numBytesToRead);
     if (ret < 0) {
       NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x ret : %X", errno, ret);
       flushData = true;
@@ -930,9 +929,8 @@ static int phNxpEse_readPacket(void* pDevHandle, uint8_t* pBuffer,
       if (!flushData) {
         /* Read the Complete data + one byte CRC*/
         if ((headerIndex + nNbBytesToRead + 1) > MAX_DATA_LEN) {
-          NXP_LOG_ESE_E(
-              "_spi_read() [HDR]errno : %x buffer overflow ret : %X", errno,
-              ret);
+          NXP_LOG_ESE_E("_spi_read() [HDR]errno : %x buffer overflow ret : %X",
+                        errno, ret);
           ret = -1;
         } else {
           ret = phPalEse_read(pDevHandle, &pBuffer[headerIndex],

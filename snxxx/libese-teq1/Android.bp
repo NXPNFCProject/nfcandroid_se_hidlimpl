@@ -20,7 +20,7 @@ cc_library_shared {
         "nxp-ese/lib/phNxpEse_Api.cpp",
         "nxp-ese/pal/phNxpEsePal.cpp",
         "nxp-ese/pal/EseTransportFactory.cpp",
-        "nxp-ese/pal/spi/EseSpiTransport.cpp",
+        "nxp-ese/pal/transport/EseSpiTransport.cpp",
         "nxp-ese/pal/NxpTimer.cpp",
         "nxp-ese/spm/phNxpEse_Spm.cpp",
         "nxp-ese/utils/ese_config.cpp",
@@ -33,7 +33,7 @@ cc_library_shared {
 
     local_include_dirs: [
         "nxp-ese/lib",
-        "nxp-ese/pal/spi",
+        "nxp-ese/pal/transport",
         "nxp-ese/utils",
     ],
     export_include_dirs: [

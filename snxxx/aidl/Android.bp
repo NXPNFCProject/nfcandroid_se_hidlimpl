@@ -1,5 +1,5 @@
 //
-// Copyright 2023 NXP
+// Copyright 2025 NXP
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -60,7 +60,6 @@ cc_binary {
         "hardware/nxp/secure_element/snxxx/libese-teq1/nxp-ese/inc",
         "hardware/nxp/secure_element/snxxx/libese-teq1/nxp-ese/lib",
         "hardware/nxp/secure_element/snxxx/libese-teq1/nxp-ese/pal",
-        "hardware/nxp/secure_element/snxxx/libese-teq1/nxp-ese/pal/spi",
         "hardware/nxp/secure_element/snxxx/libese-teq1/nxp-ese/utils",
         "hardware/nxp/secure_element/snxxx/libese-teq1/nxp-ese/spm",
         "hardware/nxp/secure_element/snxxx/libese-teq1/src/include",
