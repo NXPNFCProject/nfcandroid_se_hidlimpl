@@ -56,6 +56,8 @@ cc_binary {
         "vendor.nxp.nxpnfc@2.0",
         "vendor.nxp.nxpnfc_aidl-V1-ndk",
         "se_extn_client",
+        "ls_client",
+        "jcos_client",
         "android.hardware.nfc@1.0",
         "android.hardware.nfc@1.1",
         "android.hardware.nfc@1.2",
@@ -79,6 +81,7 @@ cc_binary {
     ],
     cflags: [
         "-DANDROID",
+        //"-DNXP_BOOTTIME_UPDATE",
         "-DJCOP_VER_3_1=1",
         "-DJCOP_VER_3_2=2",
         "-DJCOP_VER_3_3=3",

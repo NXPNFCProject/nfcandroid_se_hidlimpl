@@ -348,6 +348,7 @@ uint8_t performLSUpdate() {
   bool isSEPresent = false;
   bool isVISOPresent = false;
   ret = geteSETerminalId(terminalID);
+  const char* updater_path = "/vendor/etc/loaderservice_updater.txt";
   ALOGI("performLSUpdate Terminal val = %s", terminalID);
   if ((ret) && (strncmp(SEterminal, terminalID, 3) == 0)) {
     isSEPresent = true;
@@ -362,7 +363,7 @@ uint8_t performLSUpdate() {
     status = initializeEse(ESE_MODE_NORMAL, ESE);
     ALOGE("%s:On eSE domain ", __FUNCTION__);
     if (status == SESTATUS_SUCCESS) {
-      status = performLSDownload(&Ch);
+      status = performLSDownload(&Ch, updater_path, 0);
       if (phNxpEse_ResetEndPoint_Cntxt(ESE) != ESESTATUS_SUCCESS) {
         ALOGE("%s: Reset SE EndPoint failed", __FUNCTION__);
       }
@@ -373,7 +374,7 @@ uint8_t performLSUpdate() {
     ALOGE("%s:On eUICC domain ", __FUNCTION__);
     status = initializeEse(ESE_MODE_NORMAL, EUICC);
     if (status == SESTATUS_SUCCESS) {
-      status = performLSDownload(&Ch);
+      status = performLSDownload(&Ch, updater_path, 0);
       if (phNxpEse_ResetEndPoint_Cntxt(EUICC) != ESESTATUS_SUCCESS) {
         ALOGE("%s: Reset SE EndPoint failed", __FUNCTION__);
       }
