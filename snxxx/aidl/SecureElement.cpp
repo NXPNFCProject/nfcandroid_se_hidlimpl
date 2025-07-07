@@ -340,7 +340,7 @@ ScopedAStatus SecureElement::openLogicalChannel(
   std::vector<uint8_t> manageChannelCommand = {0x00, 0x70, 0x00, 0x00, 0x01};
 
   LogicalChannelResponse resApduBuff;
-  resApduBuff.channelNumber = 0xff;
+  resApduBuff.channelNumber = -1;
   memset(&resApduBuff, 0x00, sizeof(resApduBuff));
   if (aid.size() > MAX_AID_LENGTH) {
     LOG(ERROR) << "%s: AID out of range!!!" << __func__;
@@ -412,10 +412,10 @@ ScopedAStatus SecureElement::openLogicalChannel(
   }
   status = phNxpEse_Transceive(&cmdApdu, &rspApdu);
   if (status != ESESTATUS_SUCCESS) {
-    resApduBuff.channelNumber = 0xff;
+    resApduBuff.channelNumber = -1;
   } else if (rspApdu.p_data[rspApdu.len - 2] == 0x6A &&
              rspApdu.p_data[rspApdu.len - 1] == 0x81) {
-    resApduBuff.channelNumber = 0xff;
+    resApduBuff.channelNumber = -1;
     sestatus = ISecureElement::CHANNEL_NOT_AVAILABLE;
   } else if (rspApdu.p_data[rspApdu.len - 2] == 0x90 &&
              rspApdu.p_data[rspApdu.len - 1] == 0x00) {
@@ -469,7 +469,7 @@ ScopedAStatus SecureElement::openLogicalChannel(
     cpdu.cla = resApduBuff.channelNumber; /* Class of instruction */
   } else {
     ALOGE("%s: Invalid Channel no: %02x", __func__, resApduBuff.channelNumber);
-    resApduBuff.channelNumber = 0xff;
+    resApduBuff.channelNumber = -1;
     *_aidl_return = resApduBuff;
     handleClientCbCleanup();
     return ScopedAStatus::fromServiceSpecificError(IOERROR);
@@ -535,7 +535,7 @@ ScopedAStatus SecureElement::openLogicalChannel(
     if (closeChannelStatus != SESTATUS_SUCCESS) {
       LOG(ERROR) << "%s: closeChannel Failed" << __func__;
     } else {
-      resApduBuff.channelNumber = 0xff;
+      resApduBuff.channelNumber = -1;
     }
   }
   status = phNxpEse_ResetEndPoint_Cntxt(0);

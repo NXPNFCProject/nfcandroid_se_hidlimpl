@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2023 NXP
+ *  Copyright 2023, 2025 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -191,7 +191,7 @@ ScopedAStatus VirtualISO::openLogicalChannel(
 
   LOG(INFO) << "Acquired the lock in VISO openLogicalChannel";
 
-  resApduBuff.channelNumber = 0xff;
+  resApduBuff.channelNumber = -1;
   memset(&resApduBuff, 0x00, sizeof(resApduBuff));
   if (!mIsEseInitialized) {
     ESESTATUS status = seHalInit();
@@ -229,7 +229,7 @@ ScopedAStatus VirtualISO::openLogicalChannel(
   }
   status = phNxpEse_Transceive(&cmdApdu, &rspApdu);
   if (status != ESESTATUS_SUCCESS) {
-    resApduBuff.channelNumber = 0xff;
+    resApduBuff.channelNumber = -1;
     if (NULL != rspApdu.p_data && rspApdu.len > 0) {
       if ((rspApdu.p_data[0] == 0x64 && rspApdu.p_data[1] == 0xFF)) {
         sestatus = ISecureElement::IOERROR;
@@ -240,7 +240,7 @@ ScopedAStatus VirtualISO::openLogicalChannel(
     }
   } else if (rspApdu.p_data[rspApdu.len - 2] == 0x6A &&
              rspApdu.p_data[rspApdu.len - 1] == 0x81) {
-    resApduBuff.channelNumber = 0xff;
+    resApduBuff.channelNumber = -1;
     sestatus = ISecureElement::CHANNEL_NOT_AVAILABLE;
   } else if (rspApdu.p_data[rspApdu.len - 2] == 0x90 &&
              rspApdu.p_data[rspApdu.len - 1] == 0x00) {
@@ -294,7 +294,7 @@ ScopedAStatus VirtualISO::openLogicalChannel(
     cpdu.cla = resApduBuff.channelNumber; /* Class of instruction */
   } else {
     ALOGE("%s: Invalid Channel no: %02x", __func__, resApduBuff.channelNumber);
-    resApduBuff.channelNumber = 0xff;
+    resApduBuff.channelNumber = -1;
     *_aidl_return = resApduBuff;
     return ScopedAStatus::fromServiceSpecificError(IOERROR);
   }
@@ -347,7 +347,7 @@ ScopedAStatus VirtualISO::openLogicalChannel(
     if (closeChannelStatus != SESTATUS_SUCCESS) {
       LOG(ERROR) << "%s: closeChannel Failed" << __func__;
     } else {
-      resApduBuff.channelNumber = 0xff;
+      resApduBuff.channelNumber = -1;
     }
   }
   status = phNxpEse_ResetEndPoint_Cntxt(1);
