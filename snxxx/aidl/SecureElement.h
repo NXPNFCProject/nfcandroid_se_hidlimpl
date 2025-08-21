@@ -115,7 +115,6 @@ struct SecureElement : public BnSecureElement {
   uint8_t getMaxChannelCnt();
   bool isClientVts(uid_t clientUid);
   void handleClientCbCleanup();
-  void handleClientCbCloseChannel();
   bool handleClientCallback(
       const std::shared_ptr<ISecureElementCallback>& clientCallback);
 };
