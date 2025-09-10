@@ -1249,7 +1249,9 @@ static ESESTATUS phNxpEseProto7816_DecodeFrame(uint8_t* p_data,
         break;
       case RESYNCH_RSP:
         if (phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo
-                .errCode == OTHER_ERROR) {
+                .errCode == OTHER_ERROR ||
+            phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo
+                .errCode == PARITY_ERROR) {
           phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdSframeInfo
               .sFrameType = RESYNCH_RSP;
           phNxpEseProto7816_3_Var.phNxpEseRx_Cntx.lastRcvdRframeInfo.errCode =
