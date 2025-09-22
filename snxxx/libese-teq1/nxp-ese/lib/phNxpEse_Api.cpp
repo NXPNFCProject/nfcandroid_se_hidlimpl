@@ -30,6 +30,7 @@
 #define RECEIVE_PACKET_SOF 0xA5
 #define CHAINED_PACKET_WITHSEQN 0x60
 #define CHAINED_PACKET_WITHOUTSEQN 0x20
+#define ESCALATED_RESET_TYPE 0x02
 #define PH_PAL_ESE_PRINT_PACKET_TX(data, len) \
   ({ phPalEse_print_packet("SEND", data, len); })
 #define PH_PAL_ESE_PRINT_PACKET_RX(data, len) \
@@ -58,6 +59,7 @@ static __inline bool phNxpEse_isColdResetRequired(phNxpEse_initMode mode,
                                                   ESESTATUS status);
 static int poll_sof_chained_delay = 0;
 static phNxpEse_OsVersion_t sOsVersion = INVALID_OS_VERSION;
+static bool sIsEscalatedResetEnabled = false;
 /* To Overwrite the value of wtx_counter_limit from config file*/
 static unsigned long int app_wtx_cnt = RESET_APP_WTX_COUNT;
 
@@ -221,6 +223,11 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
   } else {
     protoInitParam.wtx_ntf_limit = PH_DEFAULT_WTX_NTF_LIMIT;
   }
+
+  if (EseConfig::hasKey(NAME_NXP_ESE_GPIO_RESET) &&
+      (EseConfig::getUnsigned(NAME_NXP_ESE_GPIO_RESET) == ESCALATED_RESET_TYPE)) {
+    sIsEscalatedResetEnabled = true;
+  }
   nxpese_ctxt.fPtr_WtxNtf = initParams.fPtr_WtxNtf;
   /* Sharing lib context for fetching secure timer values */
   protoInitParam.pSecureTimerParams =
@@ -236,7 +243,7 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
     /* T=1 Protocol layer open */
     wConfigStatus = phNxpEseProto7816_Open(protoInitParam);
     if (phNxpEse_isColdResetRequired(initParams.initMode, wConfigStatus))
-      phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
+      phNxpEse_coldReset();
   } while (phNxpEse_isColdResetRequired(initParams.initMode, wConfigStatus) &&
            retry++ < 1);
   if (ESESTATUS_TRANSCEIVE_FAILED == wConfigStatus ||
@@ -455,7 +462,10 @@ ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp) {
  *
  * Description      This function power cycles the ESE
  *                  (cold reset by prop. FW command) interface by
- *                  talking to NFC HAL
+ *                  talking to NFC HAL or via GPIO based on the configuration
+ *                  and platform type also if escalated reset is configured
+ *                  this function first tries the GPIO reset and
+ *                  if ese still not recovered it tries the cold reset via NFC
  *
  *                  Note:
  *                  After cold reset, phNxpEse_init need to be called to
@@ -467,8 +477,20 @@ ESESTATUS phNxpEse_Transceive(phNxpEse_data* pCmd, phNxpEse_data* pRsp) {
  ******************************************************************************/
 ESESTATUS phNxpEse_coldReset(void) {
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
-  NXP_LOG_ESE_D(" %s Enter \n", __FUNCTION__);
-  wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
+  NXP_LOG_ESE_D(" %s Enter %d \n", __FUNCTION__, GET_CHIP_OS_VERSION());
+  if (sIsEscalatedResetEnabled && (OS_VERSION_6_3 <= GET_CHIP_OS_VERSION())) {
+    ESESTATUS status = ESESTATUS_FAILED;
+    wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_GPIO_RESET);
+    if (ESESTATUS_SUCCESS !=
+        phNxpEseProto7816_IntfReset(
+            (phNxpEseProto7816SecureTimer_t*)&nxpese_ctxt.secureTimerParams)) {
+      NXP_LOG_ESE_I("%s GPIO reset failed Performing escalated cold reset",
+                    __FUNCTION__);
+      wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_COLD_RESET);
+    }
+  } else {
+    wSpmStatus = phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
+  }
   NXP_LOG_ESE_D(" %s Exit status 0x%x \n", __FUNCTION__, wSpmStatus);
   return wSpmStatus;
 }
@@ -540,7 +562,7 @@ ESESTATUS phNxpEse_resetJcopUpdate(void) {
   whether JCOP did a full power cycle or not. */
   do {
     status = phNxpEseProto7816_Reset();
-    if (status != ESESTATUS_SUCCESS) phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
+    if (status != ESESTATUS_SUCCESS) phNxpEse_coldReset();
   } while (status != ESESTATUS_SUCCESS && retry++ < 1);
 
   /* Retrieving the IFS-D value configured in the config file and applying to
@@ -651,7 +673,7 @@ ESESTATUS phNxpEse_deInit(void) {
     } else if ((GET_CHIP_OS_VERSION() > OS_VERSION_5_2_2) &&
                (status != ESESTATUS_RESPONSE_TIMEOUT)) {
       NXP_LOG_ESE_D("eSE not responding perform hard reset");
-      phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
+      phNxpEse_coldReset();
     }
   }
   return status;
@@ -690,14 +712,14 @@ ESESTATUS phNxpEse_close(ESESTATUS deInitStatus) {
       }
       if (ESESTATUS_SUCCESS != phNxpEseProto7816_CloseAllSessions()) {
         NXP_LOG_ESE_D("eSE not responding perform hard reset");
-        phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
+        phNxpEse_coldReset();
       }
     } else {
       if (nxpese_ctxt.EseLibStatus == ESE_STATUS_RECOVERY ||
           (deInitStatus == ESESTATUS_RESPONSE_TIMEOUT) ||
           ESESTATUS_SUCCESS != phNxpEseProto7816_CloseAllSessions()) {
         NXP_LOG_ESE_D("eSE not responding perform hard reset");
-        phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
+        phNxpEse_coldReset();
       }
     }
     NXP_LOG_ESE_D("Interface reset for DPD");
@@ -706,7 +728,7 @@ ESESTATUS phNxpEse_close(ESESTATUS deInitStatus) {
     if (status == ESESTATUS_TRANSCEIVE_FAILED || status == ESESTATUS_FAILED) {
       NXP_LOG_ESE_E("%s IntfReset Failed, perform hard reset", __FUNCTION__);
       // max wtx or no response of interface reset after protocol recovery
-      phNxpEse_SPM_ConfigPwr(SPM_RECOVERY_RESET);
+      phNxpEse_coldReset();
     }
   }
 

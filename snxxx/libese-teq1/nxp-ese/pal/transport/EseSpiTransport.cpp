@@ -349,6 +349,26 @@ ESESTATUS EseSpiTransport::Ioctl(phPalEse_ControlCode_t eControlCode,
                       retioctl);
       }
       break;
+    case phPalEse_e_GpioReset:
+      if (5 == level) {
+        retioctl = ioctl((intptr_t)pDevHandle, P61_SET_PWR, level);
+        if (0x00 <= retioctl) {
+          ret = ESESTATUS_SUCCESS;
+        }
+      } else {
+        NXP_LOG_ESE_E("phPalEse_e_GpioReset:  Invalid level");
+      }
+      break;
+    case phPalEse_e_ColdReset:
+      if (5 == level) {
+        retioctl = ioctl((intptr_t)pDevHandle, ESE_PERFORM_COLD_RESET, level);
+        if (0x00 <= retioctl) {
+          ret = ESESTATUS_SUCCESS;
+        }
+      } else {
+        NXP_LOG_ESE_E("phPalEse_e_ColdReset:  Invalid level");
+      }
+      break;
     default:
       ret = ESESTATUS_IOCTL_FAILED;
       break;

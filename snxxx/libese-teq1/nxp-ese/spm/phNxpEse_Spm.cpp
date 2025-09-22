@@ -84,27 +84,44 @@ ESESTATUS phNxpEse_SPM_DeInit(void) {
 /******************************************************************************
  * Function         phNxpEse_SPM_ConfigPwr
  *
- * Description      This function request to the nfc i2c driver
- *                  to enable/disable power to ese. This api should be called
- *before
- *                  sending any apdu to ese/once apdu exchange is done.
+ * Description      This function request to perform power resets based on
+ *                  enable/disable power to ese. This api should be called
+ *                  before sending any apdu to ese/once apdu exchange is done.
+ * Input            Input is power reset type SpmResetTypes_t to be perform
+ *
+ *                  SPM_RECOVERY_RESET : Performs ese power reset via nfc
+ *                                       cold reset or via GPIO based on
+ *                                       configuration.
+ *
+ *                  SPM_GPIO_RESET : Performs ese power reset via gpio
+ *
+ *                  SPM_COLD_RESET : Performs ese power reset via nfc cold
+ *                                   reset
  *
  * Returns          On Success ESESTATUS_SUCCESS else proper error code
  *
  ******************************************************************************/
-ESESTATUS phNxpEse_SPM_ConfigPwr(int arg) {
-  int32_t ret = -1;
+ESESTATUS phNxpEse_SPM_ConfigPwr(SpmResetTypes_t arg) {
+  int32_t ret = 0;
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
-  /*None of the IOCTLs valid except SPM_RECOVERY_RESET*/
-  if (arg != SPM_RECOVERY_RESET) {
-    return ESESTATUS_SUCCESS;
+  switch (arg) {
+    case SPM_RECOVERY_RESET:
+      ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle, SPM_RECOVERY_RESET_IOCTL_LEVEL);
+      break;
+    case SPM_GPIO_RESET:
+      ret = phPalEse_ioctl(phPalEse_e_GpioReset, pEseDeviceHandle, SPM_RECOVERY_RESET_IOCTL_LEVEL);
+      break;
+    case SPM_COLD_RESET:
+      ret =
+          phPalEse_ioctl(phPalEse_e_ColdReset, pEseDeviceHandle, SPM_RECOVERY_RESET_IOCTL_LEVEL);
+      break;
+    default:
+      wSpmStatus = ESESTATUS_SUCCESS;
   }
-  ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle, arg);
-  if(ret < 0) {
+  if (ret < 0) {
     NXP_LOG_ESE_E("%s : failed errno = 0x%x", __FUNCTION__, errno);
     wSpmStatus = ESESTATUS_FAILED;
   }
-
   return wSpmStatus;
 }
 

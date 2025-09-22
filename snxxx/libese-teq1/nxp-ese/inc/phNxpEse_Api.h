@@ -333,6 +333,11 @@ void phNxpEse_free(void* ptr);
  * \ingroup spi_libese
  * \brief This function power recycles the ESE
  *        (using prop. FW command) by talking to NFC HAL
+ *        or via GPIO based on the configuration and platform type
+ *        also if escalated reset is configured this function
+ *        first tries the GPIO reset and if ese still not
+ *        recovered it tries the cold reset via NFC
+ *
  *
  *        Note:
  *        After cold reset, phNxpEse_init need to be called to

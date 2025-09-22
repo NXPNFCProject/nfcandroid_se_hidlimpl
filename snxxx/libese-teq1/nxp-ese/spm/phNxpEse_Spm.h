@@ -27,7 +27,14 @@
 #include <phEseStatus.h>
 #include <phNxpEseFeatures.h>
 /*! SPI Power Manager (SPM) possible error codes */
-#define SPM_RECOVERY_RESET 5
+
+#define SPM_RECOVERY_RESET_IOCTL_LEVEL 5
+
+typedef enum SpmResetTypes {
+  SPM_RECOVERY_RESET = 0,   /* ese power reset legecy */
+  SPM_GPIO_RESET,           /* ese power reset via gpio */
+  SPM_COLD_RESET,          /* ese power reset via ese cold reset */
+} SpmResetTypes_t;
 
 /**
  * \ingroup SPI_Power_Management
@@ -51,15 +58,16 @@ ESESTATUS phNxpEse_SPM_DeInit(void);
 
 /**
  * \ingroup SPI_Power_Management
- * \brief This function request to the nfc i2c driver
- * to enable/disable power to ese. This api should be called
- *before sending any apdu to ese/once apdu exchange is done.
  *
- * \param[in]    arg       -input can be of  type int.
+ * \brief        This function request to perform power resets based on
+ *               enable/disable power to ese. This api should be called
+ *               before sending any apdu to ese/once apdu exchange is done.
+ *
+ * \param[in]    arg     -input is power reset type to be perform
  *
  * \retval       -On Success ESESTATUS_SUCCESS else proper error code
  */
-ESESTATUS phNxpEse_SPM_ConfigPwr(int arg);
+ESESTATUS phNxpEse_SPM_ConfigPwr(SpmResetTypes_t arg);
 
 /**
  * \ingroup SPI_Power_Management

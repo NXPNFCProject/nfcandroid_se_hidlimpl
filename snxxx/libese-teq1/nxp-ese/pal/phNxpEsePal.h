@@ -49,6 +49,8 @@ typedef enum {
   phPalEse_e_SetClientUpdateState, /*!< Set Jcop Download state */
   phPalEse_e_SetSecureMode,        /*!< Set the Trusted SE Mode */
   phPalEse_e_ResetProtection,
+  phPalEse_e_GpioReset,
+  phPalEse_e_ColdReset,
 } phPalEse_ControlCode_t; /*!< Control code for IOCTL call */
 
 /*!
