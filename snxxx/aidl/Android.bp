@@ -65,8 +65,8 @@ cc_binary {
         "hardware/nxp/secure_element/snxxx/libese-teq1/src/include",
         "hardware/nxp/secure_element/snxxx/OsuHal/inc",
         "hardware/nxp/secure_element/snxxx/ese-clients/inc",
-        "hardware/nxp/nfc/snxxx/halimpl/common",
-        "hardware/nxp/nfc/snxxx/halimpl/utils",
+        "hardware/nxp/nfc/snxxx/halimpl_v2/common",
+        "hardware/nxp/nfc/snxxx/halimpl_v2/utils",
     ],
 
     cflags: [
