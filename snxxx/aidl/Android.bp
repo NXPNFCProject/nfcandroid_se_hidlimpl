@@ -53,7 +53,7 @@ cc_binary {
     ],
 
     include_dirs: [
-        "hardware/nxp/secure_element_extns/inc",
+        "hardware/nxp/secure_element/libese_vendor_extn/inc",
         "hardware/nxp/secure_element/snxxx/extns/impl",
         "hardware/nxp/secure_element/snxxx/libese-teq1/common/include",
         "hardware/nxp/secure_element/snxxx/libese-teq1/nxp-ese/common",
