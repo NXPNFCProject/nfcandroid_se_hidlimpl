@@ -46,7 +46,7 @@ cc_binary {
         "libmemunreachable",
         "libutils",
         "ese_teq1_nxp_snxxx",
-        "se_extn_client",
+        "nfc_nci_nxp_snxxx_v2",
         "android.hardware.nfc@1.2",
         "android.hardware.nfc-V1-ndk",
         "vendor.nxp.nxpnfc_aidl-V1-ndk",
