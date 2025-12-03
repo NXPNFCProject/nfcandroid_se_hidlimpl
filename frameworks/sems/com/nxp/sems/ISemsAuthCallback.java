@@ -21,7 +21,7 @@ public interface ISemsAuthCallback {
    * Invoked before SEMS update, for user authentication(IAR).
    * <br/>
    *
-   * @return boolean TRUE if User Authetication success.
+   * @return boolean TRUE if User Authentication success.
    *         else returns FALSE.
    */
   boolean doAuthforSems();

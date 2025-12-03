@@ -407,7 +407,7 @@ public class SemsExecutor {
   /**
    * Forward response of SEMS command to eSE
    * <br/>
-   * The Input reponse received from SEMS applet,
+   * The Input response received from SEMS applet,
    * The STORE DATA APDU command is used by the SEMS Device
    * Agent to provide the SEMS Application with an identifier
    * of the caller (SP Device Application), e.g.
@@ -735,10 +735,10 @@ public class SemsExecutor {
             } else {
               mState = SEMS_STATE_SECURE_COMMAND_PROCESSING;
               Log.d(TAG, "Finished buffered script");
-              SemsStatus mstatus = SelectSems();
-              if (mstatus == SemsStatus.SEMS_STATUS_SUCCESS) {
+              SemsStatus mStatus = SelectSems();
+              if (mStatus == SemsStatus.SEMS_STATUS_SUCCESS) {
                 Log.d(TAG, "Successful selection of SEMS update");
-              } else if (mstatus == SemsStatus.SEMS_STATUS_FAILED) {
+              } else if (mStatus == SemsStatus.SEMS_STATUS_FAILED) {
                 Log.d(TAG, "Selection failed for SEMS update");
               }
               rapdu = rapduSelect;

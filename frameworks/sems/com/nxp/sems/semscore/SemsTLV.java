@@ -204,7 +204,7 @@ public class SemsTLV {
         tag = bb.get() & 0xFF;
         nextOffset++;
       } catch (BufferUnderflowException e) {
-        Log.e("SemsTLV", "BufferUnderFlowException occured");
+        Log.e("SemsTLV", "BufferUnderFlowException occurred");
         break;
       }
 

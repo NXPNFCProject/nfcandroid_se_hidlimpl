@@ -192,7 +192,7 @@ public class SemsFileOperation {
     try {
       Files.write(p, scriptBuffer.getBytes());
     } catch (IOException e) {
-      Log.e(TAG, "IOException during writeScriptInputfile: ");
+      Log.e(TAG, "IOException during writeScriptInputFile: ");
     }
     return scriptBuffer.getBytes();
   }

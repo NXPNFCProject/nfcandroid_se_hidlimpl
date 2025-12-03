@@ -153,7 +153,7 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
         throw new SemsException("Terminal not available");
       sSession = mReader.openSession();
       if (sSession == null)
-        throw new SemsException("Not available to intialize session");
+        throw new SemsException("Not available to initialize session");
     } catch (Exception e) {
       e.printStackTrace();
       throw new SemsException(e.getMessage());

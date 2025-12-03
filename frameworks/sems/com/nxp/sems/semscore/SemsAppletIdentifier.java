@@ -44,13 +44,13 @@ public class SemsAppletIdentifier {
    * And, set flag as true if pre-condition meet.
    * <br/>
    * Sems Agent shall introduce delay on Nth Command.
-   * @param TLV certifacte in ScriptTLV.
+   * @param TLV certificate in ScriptTLV.
    *
    * @return void.
    */
   protected static void validateTag73Support(SemsTLV tlvCertInScript)
       throws Exception {
-    Log.d(TAG, "***Initalize the variable to default values..**");
+    Log.d(TAG, "***Initialize the variable to default values..**");
     lineCounter = 0;
     isTAG73Supported = false;
     tlv5D = null;
