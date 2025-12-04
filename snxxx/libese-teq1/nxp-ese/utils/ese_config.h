@@ -47,6 +47,16 @@
 #define NAME_NXP_OSU_MAX_WTX_COUNT "NXP_OSU_MAX_WTX_COUNT"
 #define NAME_NXP_TRANSPORT "NXP_TRANSPORT"
 #define NAME_NXP_SE_PRIORITY_ACCESS "NXP_SE_PRIORITY_ACCESS"
+#define NAME_NFC_DEBUG_ENABLED "NFC_DEBUG_ENABLED"
+#define NAME_NXP_SPI_SE_TERMINAL_NUM "NXP_SPI_SE_TERMINAL_NUM"
+#define NAME_NXP_VISO_SE_TERMINAL_NUM "NXP_VISO_SE_TERMINAL_NUM"
+#define NAME_NXP_P61_JCOP_DEFAULT_INTERFACE "NXP_P61_JCOP_DEFAULT_INTERFACE"
+#define NAME_NXP_P61_LS_DEFAULT_INTERFACE "NXP_P61_LS_DEFAULT_INTERFACE"
+#define NAME_NXP_LS_FORCE_UPDATE_REQUIRED "NXP_LS_FORCE_UPDATE_REQUIRED"
+#define NAME_NXP_JCOP_FORCE_UPDATE_REQUIRED "NXP_JCOP_FORCE_UPDATE_REQUIRED"
+#define NAME_NXP_SE_SMB_TERMINAL_TYPE "NXP_SE_SMB_TERMINAL_TYPE"
+#define NAME_NXP_NFC_SE_TERMINAL_NUM "NXP_NFC_SE_TERMINAL_NUM"
+#define NAME_NXP_TRUSTED_SE_TERMINAL_NUM "NXP_TRUSTED_SE_TERMINAL_NUM"
 #endif
 
 class EseConfig {
@@ -57,6 +67,8 @@ class EseConfig {
                                std::string default_value);
   static unsigned getUnsigned(const std::string& key);
   static unsigned getUnsigned(const std::string& key, unsigned default_value);
+  static unsigned long getUnsignedLong(const std::string& key);
+  static unsigned long getUnsignedLong(const std::string& key, unsigned default_value);
 
  private:
   static EseConfig& getInstance();

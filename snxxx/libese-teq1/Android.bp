@@ -41,6 +41,7 @@ cc_library_shared {
         "nxp-ese/common",
         "nxp-ese/inc",
         "nxp-ese/pal",
+        "nxp-ese/utils",
         "src/include",
     ],
     include_dirs: [
