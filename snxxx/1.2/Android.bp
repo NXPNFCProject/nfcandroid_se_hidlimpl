@@ -51,7 +51,6 @@ cc_binary {
         "libhidlbase",
         "liblog",
         "libutils",
-        "libchrome",
         "vendor.nxp.nxpese@1.0",
         "vendor.nxp.nxpnfc@2.0",
         "vendor.nxp.nxpnfc_aidl-V1-ndk",
