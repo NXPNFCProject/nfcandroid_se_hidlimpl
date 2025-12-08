@@ -878,40 +878,40 @@ int SecureElement::seHalDeInit() {
 ScopedAStatus SecureElement::reset() {
   LOG(INFO) << __func__;
   ESESTATUS status = ESESTATUS_SUCCESS;
-  int sestatus = ISecureElement::FAILED;
   LOG(INFO) << __func__ << " Enter";
-  if (!mIsEseInitialized) {
-    ESESTATUS status = seHalInit();
-    if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << __func__ << " seHalInit Failed!!!";
+  {
+    AutoMutex guard(seHalLock);
+    LOG(DEBUG) << __func__ << " acquired seHalLock";
+    if (!mIsEseInitialized) {
+      status = seHalInit();
+      if (status != ESESTATUS_SUCCESS) {
+        LOG(ERROR) << __func__ << " seHalInit Failed!!!";
+      }
+    }
+    if (status == ESESTATUS_SUCCESS) {
+      mCb->onStateChange(false, "reset");
+      status = phNxpEse_reset();
+      if (status != ESESTATUS_SUCCESS) {
+        LOG(ERROR) << __func__ << " SecureElement reset failed!!";
+      } else {
+        mMaxChannelCount = getMaxChannelCnt();
+        mOpenedChannels.assign(mMaxChannelCount, false);
+        mOpenedchannelCount = 0;
+      }
     }
   }
   if (status == ESESTATUS_SUCCESS) {
-    mCb->onStateChange(false, "reset");
-    status = phNxpEse_reset();
-    if (status != ESESTATUS_SUCCESS) {
-      LOG(ERROR) << __func__ << " SecureElement reset failed!!";
-    } else {
-      sestatus = SESTATUS_SUCCESS;
-      if (mOpenedChannels.size() == 0x00) {
-        mMaxChannelCount = getMaxChannelCnt();
-        mOpenedChannels.resize(mMaxChannelCount, false);
-      }
-      for (uint8_t xx = 0; xx < mMaxChannelCount; xx++) {
-        mOpenedChannels[xx] = false;
-      }
-      mOpenedchannelCount = 0;
-      mCb->onStateChange(true, "reset");
-    }
+    LOG(INFO) << __func__ << ": state changed to true";
+    mCb->onStateChange(true, "reset");
   }
-  LOG(ERROR) << __func__ << ": Exit";
   if (!isOmapi) {
     // Ensure this is done only at the end of reset() function.
     handleClientCbCleanup();
   }
-  return sestatus == SESTATUS_SUCCESS
+  LOG(DEBUG) << __func__ << ": Exit";
+  return status == ESESTATUS_SUCCESS
              ? ndk::ScopedAStatus::ok()
-             : ndk::ScopedAStatus::fromServiceSpecificError(sestatus);
+             : ndk::ScopedAStatus::fromServiceSpecificError(ISecureElement::FAILED);
 }
 
 static int getResponseInternal(uint8_t cla, phNxpEse_7816_rpdu_t& rpdu,
