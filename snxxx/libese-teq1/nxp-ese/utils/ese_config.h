@@ -68,8 +68,7 @@ class EseConfig {
   static unsigned getUnsigned(const std::string& key);
   static unsigned getUnsigned(const std::string& key, unsigned default_value);
   static unsigned long getUnsignedLong(const std::string& key);
-  static unsigned long getUnsignedLong(const std::string& key,
-                                       unsigned long default_value);
+  static unsigned long getUnsignedLong(const std::string& key, unsigned default_value);
 
  private:
   static EseConfig& getInstance();
