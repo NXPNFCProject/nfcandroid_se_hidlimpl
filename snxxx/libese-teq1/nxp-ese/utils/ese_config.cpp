@@ -79,14 +79,3 @@ unsigned EseConfig::getUnsigned(const std::string& key,
   if (hasKey(key)) return getUnsigned(key);
   return default_value;
 }
-
-unsigned long EseConfig::getUnsignedLong(const std::string& key) {
-  std::string s = getString(key);
-  return std::stoul(s);
-}
-
-unsigned long EseConfig::getUnsignedLong(const std::string& key,
-                                unsigned long default_value) {
-  if (hasKey(key)) return getUnsignedLong(key);
-  return default_value;
-}
