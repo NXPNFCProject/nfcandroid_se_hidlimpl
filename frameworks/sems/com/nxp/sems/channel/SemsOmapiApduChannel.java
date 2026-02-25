@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021, 2024-2025 NXP
+ * Copyright 2019-2021, 2024-2026 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,9 +72,6 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
     }
 
     if (initRequired) {
-      if (sSession != null) {
-        sSession.close();
-      }
       if (seService != null) {
         seService.shutdown();
         seService = null;

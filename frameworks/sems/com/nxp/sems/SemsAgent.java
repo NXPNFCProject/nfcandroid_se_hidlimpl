@@ -41,7 +41,7 @@ public final class SemsAgent {
   public static final byte SEMS_STATUS_HASH_INVALID = 0x04;
   public String SEMS_HASH_TYPE_SHA1 = "SHA1";
   public String SEMS_HASH_TYPE_SHA256 = "SHA256";
-  public static final short major = 1;
+  public static final short major = 2;
   public static final short minor = 7;
 
   private static final byte DEFAULT_TERMINAL_ID = 1;
