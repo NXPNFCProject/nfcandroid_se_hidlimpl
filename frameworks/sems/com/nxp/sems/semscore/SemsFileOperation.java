@@ -1,5 +1,5 @@
 /*
- * Copyright 2022,2025 NXP
+ * Copyright 2022,2025-2026 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -139,7 +139,7 @@ public class SemsFileOperation {
         mEncryptedScriptDirectory = str;
         mOutDirectory = str;
         status = SemsStatus.SEMS_STATUS_SUCCESS;
-      } catch (Exception e) {
+      } catch (PackageManager.NameNotFoundException e) {
         e.printStackTrace();
       }
     }
@@ -152,9 +152,13 @@ public class SemsFileOperation {
    * @param String dir initial part of path string
    *        String file filename in the path
    *
-   * @return Path The resulting path.
+   * @return Path The resulting path or null if file handle is null.
    */
   public Path getPath(String dir, String file) {
+    if (file == null) {
+      Log.e(TAG, "getPath: file is null");
+      return null;
+    }
     return (dir != null) ? FileSystems.getDefault().getPath(dir, file)
                          : FileSystems.getDefault().getPath(file);
   }
@@ -165,9 +169,13 @@ public class SemsFileOperation {
    * Agent to provide the SEMS Application with an identifier
    * @param String scriptOut The file name to write response
    *
-   * @return byte[] Response byte array.
+   * @return byte[] Response byte array or null if invalid input.
    */
   public byte[] writeScriptOutFile(String scriptOut) {
+    if (scriptOut == null) {
+      Log.e(TAG, "writeScriptOutFile: scriptOut is null");
+      return null;
+    }
     Path p = getPath(mOutDirectory, scriptOut);
     // Update finish time stamp at end
     mRespOutlog = mRespOutlog + getCurrentTimeStamp();
@@ -185,9 +193,13 @@ public class SemsFileOperation {
    * @param String filename to which the buffer contents to be copied
    *        String scriptBuffer input buffer content
    *
-   * @return byte[] response buffer.
+   * @return byte[] response buffer or null if input is invalid.
    */
   public byte[] writeScriptInputFile(String filename, String scriptBuffer) {
+    if (scriptBuffer == null || filename == null) {
+      Log.e(TAG, "writeScriptInputFile: scriptBuffer or filename is null");
+      return null;
+    }
     Path p = getPath(mOutDirectory, filename);
     try {
       Files.write(p, scriptBuffer.getBytes());

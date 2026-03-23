@@ -1,5 +1,5 @@
 /*
- * Copyright 2019, 2021,2025 NXP
+ * Copyright 2019, 2021,2025-2026 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,10 @@ public class SemsTLV {
   }
 
   public static byte[] make(int tag, byte[] value) {
+    if (value == null) {
+      Log.e("SemsTLV", "make: value is null");
+      return null;
+    }
     return new SemsTLV(tag, value).getTLV();
   }
 
@@ -67,6 +71,10 @@ public class SemsTLV {
   }
 
   public static List<SemsTLV> parse(byte[] buffer, int[] asPrimitiveTags) {
+    if (buffer == null) {
+      Log.e("SemsTLV", "parse: buffer is null");
+      return null;
+    }
     return parse(ByteBuffer.wrap(buffer), asPrimitiveTags);
   }
 
@@ -138,6 +146,10 @@ public class SemsTLV {
   }
 
   public static SemsTLV find(List<SemsTLV> nodes, int tag) {
+    if (nodes == null) {
+      Log.e("SemsTLV", "find: nodes is null");
+      return null;
+    }
     for (SemsTLV tlv : nodes) {
       if (tlv.getTag() == tag) {
         return tlv;
@@ -180,6 +192,10 @@ public class SemsTLV {
   }
 
   public static byte[] make(List<SemsTLV> tlvs) {
+    if (tlvs == null) {
+      Log.e("SemsTLV", "make: tlvs is null");
+      return null;
+    }
     try {
       ByteArrayOutputStream out = new ByteArrayOutputStream();
 
@@ -194,6 +210,10 @@ public class SemsTLV {
   }
 
   public static int getTagOffset(byte[] buff, int tagReq) {
+    if (buff == null) {
+      Log.e("SemsTLV", "getTagOffset: buff is null");
+      return -1;
+    }
     int sOffset = 0;
     int nextOffset = 0;
     ByteBuffer bb = ByteBuffer.wrap(buff);

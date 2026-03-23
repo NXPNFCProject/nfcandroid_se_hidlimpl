@@ -1,5 +1,5 @@
 /*
- * Copyright 2019,2022, 2024 NXP
+ * Copyright 2019,2022,2024,2026 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +31,10 @@ public class SemsApduChannelFactory {
                                              byte terminalID)
       throws SemsException {
     synchronized (SemsApduChannelFactory.class) {
+      if (context == null) {
+        Log.e(TAG, "getInstance: context is null");
+        throw new SemsException("context is null");
+      }
       /* The singleton obj creation for OMAPI APDU channel is controlled by
          lower layer i.e. SemsOmapiApduChannel */
       if ((mChannelFactory == null && type == RAW_CHANNEL) ||

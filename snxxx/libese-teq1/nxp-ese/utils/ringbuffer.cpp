@@ -15,6 +15,25 @@
  *  limitations under the License.
  *
  ******************************************************************************/
+/******************************************************************************
+ *
+ *  The original Work has been changed by NXP.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  Copyright 2026 NXP
+ *
+ ******************************************************************************/
 
 #include <assert.h>
 #include <stdlib.h>
@@ -53,6 +72,7 @@ size_t ringbuffer_available(const ringbuffer_t* rb) {
 
 size_t ringbuffer_size(const ringbuffer_t* rb) {
   assert(rb);
+  if (rb->available > rb->total) return 0;
   return rb->total - rb->available;
 }
 
@@ -89,9 +109,11 @@ size_t ringbuffer_peek(const ringbuffer_t* rb, off_t offset, uint8_t* p,
   assert(p);
   assert(offset >= 0);
   assert((size_t)offset <= ringbuffer_size(rb));
+  if ((size_t)offset > ringbuffer_size(rb)) return 0;
 
-  uint8_t* b = ((rb->head - rb->base + offset) % rb->total) + rb->base;
-  const size_t bytes_to_copy = (offset + length > ringbuffer_size(rb))
+
+  uint8_t* b = (((size_t)(rb->head - rb->base) + (size_t)offset) % rb->total) + rb->base;
+  const size_t bytes_to_copy = (length > ringbuffer_size(rb) - offset)
                                    ? ringbuffer_size(rb) - offset
                                    : length;
 
@@ -108,9 +130,11 @@ size_t ringbuffer_pop(ringbuffer_t* rb, uint8_t* p, size_t length) {
   assert(p);
 
   const size_t copied = ringbuffer_peek(rb, 0, p, length);
-  rb->head += copied;
-  if (rb->head >= (rb->base + rb->total)) rb->head -= rb->total;
+  if (copied <= rb->total - rb->available) {
+    rb->head += copied;
+    if (rb->head >= (rb->base + rb->total)) rb->head -= rb->total;
 
-  rb->available += copied;
+    rb->available += copied;
+  }
   return copied;
 }

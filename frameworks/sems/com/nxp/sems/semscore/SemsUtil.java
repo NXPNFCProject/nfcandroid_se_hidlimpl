@@ -56,6 +56,10 @@ public class SemsUtil {
   }
 
   public static final String toHexString(byte[] a) {
+    if (a == null) {
+      Log.e("SemsUtil", "toHexString: a is null");
+      return null;
+    }
     StringBuffer sb = new StringBuffer(2 * a.length);
     for (byte b : a) {
       sb.append(HEXCHARS[(b >> 4) & 0xF]);
@@ -65,6 +69,9 @@ public class SemsUtil {
   }
 
   public static byte[] parseHexString(String s) {
+    if (s == null) {
+      return null;
+    }
     try {
       ByteArrayOutputStream out = new ByteArrayOutputStream();
 
@@ -74,16 +81,20 @@ public class SemsUtil {
       }
 
       return out.toByteArray();
-    } catch (Exception e) {
+    } catch (NumberFormatException | IndexOutOfBoundsException e) {
       return null;
     }
   }
 
   public static byte[] SHA1(byte[] in) {
+    if (in == null) {
+      Log.e("SemsUtil", "SHA1: in is null");
+      return null;
+    }
     MessageDigest sha1 = null;
     try {
       sha1 = MessageDigest.getInstance("SHA1");
-    } catch (Exception e) {
+    } catch (NoSuchAlgorithmException e) {
       System.err.println("SHA-1 not supported");
       System.exit(1);
     }
@@ -93,10 +104,14 @@ public class SemsUtil {
   }
 
   public static byte[] SHA256(byte[] in) {
+    if (in == null) {
+      Log.e("SemsUtil", "SHA256: in is null");
+      return null;
+    }
     MessageDigest sha256 = null;
     try {
       sha256 = MessageDigest.getInstance("SHA256");
-    } catch (Exception e) {
+    } catch (NoSuchAlgorithmException e) {
       System.err.println("SHA-256 not supported");
       System.exit(1);
     }
@@ -130,6 +145,10 @@ public class SemsUtil {
   }
 
   public static String toHexString(byte[] buffer, int offset, int length) {
+    if (buffer == null) {
+      Log.e("SemsUtil", "toHexString: buffer is null");
+      return null;
+    }
     if (length <= 0) {
       return new String("No Data : length < = 0");
     } else {
@@ -144,12 +163,20 @@ public class SemsUtil {
     }
   }
   public static String bytArrayToHex(byte[] a) {
+    if (a == null) {
+      Log.e("SemsUtil", "bytArrayToHex: a is null");
+      return null;
+    }
     StringBuilder sb = new StringBuilder();
     for (byte b : a)
       sb.append(String.format("%02X", b & 0xff));
     return sb.toString();
   }
   public static byte[] append(byte[] a, byte[] b) {
+    if (a == null || b == null) {
+      Log.e("SemsUtil", "append: a or b is null");
+      return null;
+    }
     byte[] result = new byte[a.length + b.length];
     System.arraycopy(a, 0, result, 0, a.length);
     System.arraycopy(b, 0, result, a.length, b.length);
@@ -157,6 +184,10 @@ public class SemsUtil {
   }
 
   public static byte[] extract(byte[] buffer, int offset, int length) {
+    if (buffer == null) {
+      Log.e("SemsUtil", "extract: buffer is null");
+      return null;
+    }
     byte[] result = new byte[length];
     System.arraycopy(buffer, offset, result, 0, length);
     return result;
@@ -191,12 +222,20 @@ public class SemsUtil {
   public static final short SW_FILE_NOT_FOUND = (short)0x6A82;
 
   public static short getSW(byte[] rapdu) {
+    if (rapdu == null) {
+      Log.e("SemsUtil", "getSW: rapdu is null");
+      return 0;
+    }
     byte sw1 = rapdu[rapdu.length - 2];
     byte sw2 = rapdu[rapdu.length - 1];
     return (short)((sw1 << 8) + (sw2 & 0xFF));
   }
 
   public static byte[] getRDATA(byte[] rapdu) {
+    if (rapdu == null) {
+      Log.e("SemsUtil", "getRDATA: rapdu is null");
+      return null;
+    }
     return extract(rapdu, 0, rapdu.length - 2);
   }
 }

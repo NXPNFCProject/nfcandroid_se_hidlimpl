@@ -60,6 +60,10 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
   public static SemsOmapiApduChannel getInstance(byte terminalID,
                                                  Context context)
       throws SemsException {
+    if (context == null) {
+      Log.e(TAG, "getInstance: context is null");
+      throw new SemsException("Context is null");
+    }
     ESE_TERMINAL_NAME = "eSE" + String.valueOf(terminalID);
     sContext = context;
     boolean initRequired = false;
@@ -111,6 +115,10 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
   class SynchronousExecutor implements Executor {
     public void execute(Runnable r) {
       Log.d(TAG, " From SynchronousExecutor");
+      if (r == null) {
+        Log.e(TAG, "execute: r is null");
+        return;
+      }
       r.run();
     }
   }
@@ -130,7 +138,7 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
       try {
         Log.d(TAG, "Retry on SeService connection failure");
         new Thread().sleep(SERVICE_CONNECTION_TIME_OUT / 6);
-      } catch (Exception e) {
+      } catch (InterruptedException e) {
         Log.d(TAG, "getSession Thread interruption exception received");
       }
     }
@@ -167,6 +175,10 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
    * @return {@code selectResponse}.
    */
   public byte[] open(byte[] aid) throws IOException {
+    if (aid == null) {
+      Log.e(TAG, "open: aid is null");
+      throw new IOException("AID is null");
+    }
     if (sSession != null) {
       try {
         sChannel = sSession.openLogicalChannel(aid);
@@ -175,7 +187,7 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
         return new byte[] {(byte)0x6A, (byte)0x82};
       } catch (SecurityException e) {
         throw new IOException("Security Exception");
-      } catch (Exception e) {
+      } catch (IOException e) {
         { throw new IOException("Open APDU channel failed"); }
       }
     } else {
@@ -196,6 +208,10 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
     byte[] resp = null;
     if (sChannel == null) {
       throw new IOException("Channel not initialized");
+    }
+    if (buffer == null) {
+      Log.e(TAG, "transmit: buffer is null");
+      throw new IOException("Buffer is null");
     }
     try {
       resp = sChannel.transmit(buffer);
@@ -261,7 +277,7 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
           try {
             new Thread().sleep(SERVICE_CONNECTION_TIME_OUT / 6);
             Log.d(TAG, "Bind to SE service fails" + max_retry);
-          } catch (Exception e) {
+          } catch (InterruptedException e) {
             Log.d(TAG,
                   "BindToSEService Thread interruption exception received");
           }

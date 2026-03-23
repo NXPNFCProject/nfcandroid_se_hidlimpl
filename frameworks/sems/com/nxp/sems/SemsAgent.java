@@ -333,7 +333,7 @@ public final class SemsAgent {
           SemsApduChannelFactory.OMAPI_CHANNEL, sContext, sTerminalID);
       mExecutor = SemsExecutor.getInstance(mSemsApduChannel, sContext);
       return mExecutor.getHashAlgorithm();
-    } catch (Exception e) {
+    } catch (SemsException e) {
       throw new SemsException("Unable to get Hash type");
     }
   }
@@ -359,7 +359,7 @@ public final class SemsAgent {
           SemsApduChannelFactory.OMAPI_CHANNEL, sContext, sTerminalID);
       mExecutor = SemsExecutor.getInstance(mSemsApduChannel, sContext);
       return mExecutor.setHashAlgorithm(semsHashAlgoType);
-    } catch (Exception e) {
+    } catch (SemsException e) {
       throw new SemsException("Unable to set Hash type");
     }
   }

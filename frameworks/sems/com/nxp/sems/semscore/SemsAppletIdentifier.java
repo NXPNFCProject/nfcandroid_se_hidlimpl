@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2022,2025 NXP
+ * Copyright 2021-2022,2025-2026 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,46 +57,50 @@ public class SemsAppletIdentifier {
     tlv5E = null;
     tag73Len = 0;
     SemsTLV tlv5C, tlv73;
+    if (tlvCertInScript == null) {
+      Log.e(TAG, "validateTag73Support: tlvCertInScript is null");
+      return;
+    }
     List<SemsTLV> tlvs = SemsTLV.parse(tlvCertInScript.getValue());
     if (tlvs == null) {
-      Log.d(TAG, "tlvCertInScript null");
+      Log.e(TAG, "tlvCertInScript null");
       return;
     }
     tlv73 = SemsTLV.find(tlvs, 0x73);
     if (tlv73 == null) {
-      Log.d(TAG, "tag73 is null");
+      Log.e(TAG, "tag73 is null");
       return;
     }
     // Parse outer T-L-V TAG73 for inner tags 5C, 5D and 5E
     tlvs = SemsTLV.parse(tlv73.getValue());
     tlv5C = SemsTLV.find(tlvs, 0x5C);
     if (tlv5C == null) {
-      Log.d(TAG, "tlv5C is null");
+      Log.e(TAG, "tlv5C is null");
       return;
     }
     if (!Arrays.equals(tlv5C.getValue(), SEMS_SB_APP_ID)) {
-      Log.d(TAG, "Is not SB Applet");
+      Log.e(TAG, "Is not SB Applet");
       return;
     }
     tlv5D = SemsTLV.find(tlvs, 0x5D);
     if (tlv5D == null) {
-      Log.d(TAG, "tlv5D is null");
+      Log.e(TAG, "tlv5D is null");
       return;
     }
     commandNumber = arrayToValue(tlv5D.getValue());
     tlv5E = SemsTLV.find(tlvs, 0x5E);
     if (tlv5E == null) {
-      Log.d(TAG, "tlv5E is null");
+      Log.e(TAG, "tlv5E is null");
       return;
     }
     delayInMillsec = arrayToValue(tlv5E.getValue());
     if (delayInMillsec != 0x00) {
-      Log.d(TAG, "***TAG 73 and sub-tag 5C,5D " + commandNumber + " 5E " +
+      Log.e(TAG, "***TAG 73 and sub-tag 5C,5D " + commandNumber + " 5E " +
                      delayInMillsec + " are supported.**");
       isTAG73Supported = true;
       return;
     } else {
-      Log.d(TAG, "Invalid delayInMillsec");
+      Log.e(TAG, "Invalid delayInMillsec");
     }
   }
 
@@ -140,6 +144,10 @@ public class SemsAppletIdentifier {
    */
   protected static int arrayToValue(byte[] arr) {
     int temp = 0;
+    if (arr == null) {
+      Log.e(TAG, "arrayToValue: arr is null");
+      return 0;
+    }
     int len = arr.length;
     /*Length cannot be more than 4 bytes*/
     if (len > 4)

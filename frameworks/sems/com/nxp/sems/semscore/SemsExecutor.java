@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023,2025 NXP
+ * Copyright 2019-2023,2025-2026 NXP
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -99,10 +99,14 @@ public class SemsExecutor {
    * The Input APDU channel information
    * @param void
    *
-   * @return {@code SemsExecutor}.
+   * @return {@code SemsExecutor} null if context or semschannel is null.
    */
   public static SemsExecutor getInstance(ISemsApduChannel semsChannel,
                                          Context context) {
+    if (context == null || semsChannel == null) {
+      Log.e(TAG, "getInstance: context or semsChannel is null");
+      return null;
+    }
     sChannel = semsChannel;
     sContext = context;
     if (sSemsExecutor == null) {
@@ -124,6 +128,10 @@ public class SemsExecutor {
    * @return {@code status} 0 in SUCCESS, otherwise -1 in failure
    */
   public synchronized int setHashAlgorithm(String shaType) {
+    if (shaType == null) {
+      Log.e(TAG, "setHashAlgorithm: shaType is null");
+      return -1;
+    }
     this.shatype = shaType;
     return 0;
   }
@@ -266,7 +274,9 @@ public class SemsExecutor {
         Log.d(TAG, "******* Processing LS Certificate 1/1 command");
 
         byte[] rapdu = sChannel.transmit(command);
-        mSemsFileOp.putIntoLog(rapdu, SemsCertResponse);
+        if (rapdu != null) {
+            mSemsFileOp.putIntoLog(rapdu, SemsCertResponse);
+        }
         return rapdu;
       } else { // Two/Three commands based on tag length
         byte[] rapdu;
@@ -487,6 +497,10 @@ public class SemsExecutor {
                                   ISemsCallback callback,
                                   ISemsAuthCallback semsAuthCallback) {
     SemsStatus status = SemsStatus.SEMS_STATUS_FAILED;
+    if (scriptOut == null || scriptIn == null) {
+      Log.e(TAG, "executeScript: scriptOut or scriptIn is null");
+      return status;
+    }
     inputScript = scriptIn;
     outputScript = scriptOut;
     this.mSemsCallback = callback;
@@ -701,6 +715,11 @@ public class SemsExecutor {
             mSemsFileOp.putIntoLog(rapdu, SEResponse);
             {
               rapdu = sendProcessSEResponse(channelNumber, rapdu);
+              if (rapdu == null) {
+                mSemsFileOp.putIntoLog(sw6987, ErrorResponse);
+                rapdu = sw6987;
+                break;
+              }
               mSemsFileOp.putIntoLog(rapdu, SemsResponse);
 
               while (SemsUtil.getSW(rapdu) == (short)0x6310) {
@@ -1040,6 +1059,11 @@ public class SemsExecutor {
       }
       mSemsFileOp.putIntoLog(rapdu, SEResponse);
       rapdu = sendProcessSEResponse(channelNumber, rapdu);
+      if (rapdu == null) {
+        mSemsFileOp.putIntoLog(sw6987, ErrorResponse);
+        response = sw6987;
+        return stat;
+      }
       mSemsFileOp.putIntoLog(rapdu, SemsResponse);
       while (SemsUtil.getSW(rapdu) == (short)0x6310) {
 
@@ -1145,7 +1169,7 @@ public class SemsExecutor {
       /******** Processing Authentication command ***********/
       getDataFrame[3] = GET_AUTH_SIGNATURE;
       rapdu = sChannel.transmit(getDataFrame);
-      if ((rapdu.length != 0) && SemsUtil.getSW(rapdu) == (short)0x9000) {
+      if ((rapdu != null) && (rapdu.length != 0) && SemsUtil.getSW(rapdu) == (short)0x9000) {
         tlvs = SemsTLV.parse(rapdu);
         if (tlvs.size() != 0) {
           tlvSC47 = SemsTLV.find(tlvs, GET_AUTH_SIGNATURE);
