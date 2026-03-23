@@ -13,3 +13,17 @@ service retry_se_update_agent /vendor/bin/hw/se_update_agent.nxp retry-check-upd
     user vendor_nxp_se_update_agent
     oneshot
     disabled
+
+service se_update_agent_execute /vendor/bin/hw/se_update_agent.nxp execute
+    class late_start
+    user vendor_nxp_se_update_agent
+    group system
+    oneshot
+    disabled
+
+on post-fs-data
+    restorecon_recursive /data/vendor/se_update_agent
+
+# Start when a trusted component sets the property (OEM daemon / test hook)
+on property:vendor.se_update_agent.run_execute=1
+    start se_update_agent_execute

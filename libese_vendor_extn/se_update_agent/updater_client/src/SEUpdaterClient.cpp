@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2020, 2023, 2025 NXP
+ *  Copyright 2018-2020, 2023, 2025-2026 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -30,7 +30,9 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <chrono>
 #include <iomanip>
+#include <ios>
 #include <iostream>
 #include <thread>
 #include <vector>
@@ -203,21 +205,69 @@ SESTATUS perform_eSEClientUpdate() {
 static SESTATUS ExecuteSemsScript(const char* script_path,
                                   std::streampos start_offset,
                                   ExecutionState exec_state) {
-  seteSEClientState(ESE_LS_UPDATE_REQUIRED);
-  SetScriptExecutionState(exec_state);
-  auto status = eSEUpdate_SeqHandler(script_path, start_offset);
-  if (status != SESTATUS_OK) {
-    ALOGE("Failed: SEMS execution for: %s, Retrying", script_path);
-    // re-try one time
+  if (script_path == nullptr || *script_path == '\0') {
+    ALOGE("ExecuteSemsScript: invalid script_path");
+    return SESTATUS_FAILED;
+  }
+
+  constexpr int kMaxAttempts = 2;  // 1 initial + 1 retry
+  constexpr int kRetryBackoffMs = 50;
+
+  SESTATUS last_status = SESTATUS_FAILED;
+
+  const char* curr_path = script_path;
+  std::streampos curr_offset = start_offset;
+
+  for (int attempt = 1; attempt <= kMaxAttempts; ++attempt) {
+    // Reset state before each attempt
     seteSEClientState(ESE_LS_UPDATE_REQUIRED);
     SetScriptExecutionState(exec_state);
-    std::string interrupted_script_path;
-    start_offset = 0;  // default start from beginning
-    // find the start_offset
-    GetInterruptedScriptPath(interrupted_script_path, start_offset, exec_state);
-    status = eSEUpdate_SeqHandler(script_path, start_offset);
+
+    const auto t_begin = std::chrono::steady_clock::now();
+    ALOGI("ExecuteSemsScript: attempt %d/%d: path=%s, offset=%lld", attempt,
+          kMaxAttempts, curr_path, static_cast<long long>(curr_offset));
+
+    last_status = eSEUpdate_SeqHandler(curr_path, curr_offset);
+
+    const auto t_end = std::chrono::steady_clock::now();
+    const long long attempt_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_begin)
+            .count();
+
+    if (last_status == SESTATUS_OK) {
+      ALOGI("ExecuteSemsScript: attempt %d succeeded (time taken=%lld ms)",
+            attempt, attempt_ms);
+      return last_status;
+    }
+
+    if (attempt == kMaxAttempts) {
+      ALOGE(
+          "ExecuteSemsScript: attempt %d failed (status=%d, time taken=%lld "
+          "ms). No more retries.",
+          attempt, static_cast<int>(last_status), attempt_ms);
+      break;
+    }
+
+    // Prepare retry inputs
+    std::string interrupted_path;
+    std::streampos resume_offset = 0;
+    GetInterruptedScriptPath(interrupted_path, resume_offset, exec_state);
+
+    const bool have_interrupted_path = !interrupted_path.empty();
+    curr_path = have_interrupted_path ? interrupted_path.c_str() : script_path;
+    curr_offset = have_interrupted_path ? resume_offset : std::streampos{0};
+
+    ALOGW(
+        "ExecuteSemsScript: attempt %d failed (status=%d, %lld ms). Retrying "
+        "with %s, offset=%lld",
+        attempt, static_cast<int>(last_status), attempt_ms,
+        have_interrupted_path ? "interrupted path" : "original path",
+        static_cast<long long>(curr_offset));
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(kRetryBackoffMs));
   }
-  return status;
+
+  return last_status;
 }
 
 // Fetch last SEMS script execution status
@@ -512,6 +562,60 @@ void RetryPrepareUpdate(const std::string& script_dir_path) {
     }
     android::base::SetProperty(kEseLoadRetryCountProp,
                                std::to_string(retry_cnt));
+  }
+}
+
+// Perform security-hardened check before using the file
+static bool ValidateScriptPathSecure(const char* path) {
+  int fd = open(path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+  if (fd < 0) {
+    ALOGE("Script doesn't exist or is not readable: %s (errno=%d: %s)", path,
+          errno, std::strerror(errno));
+    return false;
+  }
+
+  struct stat st{};
+  if (fstat(fd, &st) != 0 || !S_ISREG(st.st_mode)) {
+    ALOGE("Script %s is not a regular file:(errno=%d: %s)", path, errno,
+          std::strerror(errno));
+    close(fd);
+    return false;
+  }
+
+  close(fd);
+  return true;
+}
+
+/***************************************************************************
+**
+** Function:        RunSingleScriptNoVersionCheck
+**
+** Description:     Directly executes single script available at fixed
+**                  path without performing version check
+**
+** Returns:         void
+**
+*******************************************************************************/
+
+void RunSingleScriptNoVersionCheck() {
+  const char* kScriptPath =
+      "/data/vendor/se_update_agent/loaderservice_updater.txt";
+
+  if (!ValidateScriptPathSecure(kScriptPath)) {
+    return;
+  }
+
+  auto exec_status = ExecuteSemsScript(kScriptPath, 0, ExecutionState::LOAD);
+  if (exec_status == SESTATUS_OK) {
+    ALOGI("Execution completed successfully");
+
+    // remove the script to avoid re-execution
+    if (std::remove(kScriptPath) != 0) {
+      ALOGW("Post-exec cleanup: failed to remove script %s (errno=%d: %s)",
+            kScriptPath, errno, std::strerror(errno));
+    }
+  } else {
+    ALOGE("Execution failed (status=%d) for %s", exec_status, kScriptPath);
   }
 }
 

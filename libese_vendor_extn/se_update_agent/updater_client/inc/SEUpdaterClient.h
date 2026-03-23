@@ -1,6 +1,6 @@
 /*******************************************************************************
  *
- *  Copyright 2018-2020, 2023,2025 NXP
+ *  Copyright 2018-2020, 2023,2025, 2026 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -65,6 +65,11 @@ void LogVersionInfo(const std::string& script_dir_path);
  * Initializes connection to eSE
  */
 SESTATUS InitializeConnection();
+
+/**
+ * Executes single SEMS script without performing version check
+ */
+void RunSingleScriptNoVersionCheck();
 #ifdef NXP_BOOTTIME_UPDATE
 /**
  * Legacy method for checking if update is required
