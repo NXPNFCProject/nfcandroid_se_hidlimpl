@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- *  Copyright 2018-2019,2022-2023 NXP
+ *  Copyright 2018-2019,2022-2023, 2026 NXP
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -21,10 +21,10 @@
 #include <phNxpEseDataMgr.h>
 #include <phNxpEsePal.h>
 
-static phNxpEse_sCoreRecvBuff_List_t *head = NULL, *current = NULL;
+static phNxpEse_sCoreRecvBuff_List_t *head = NULL, *last = NULL;
 static uint32_t total_len = 0;
 
-static ESESTATUS phNxpEse_DeletList(phNxpEse_sCoreRecvBuff_List_t* head);
+static ESESTATUS phNxpEse_DeletList(void);
 static ESESTATUS phNxpEse_GetDataFromList(uint32_t* data_len, uint8_t* pbuff);
 /******************************************************************************
  * Function         phNxpEse_GetData
@@ -38,7 +38,9 @@ ESESTATUS phNxpEse_GetData(uint32_t* data_len, uint8_t** pbuffer) {
   uint32_t total_data_len = 0;
   uint8_t* pbuff = NULL;
   ESESTATUS status = ESESTATUS_FAILED;
-
+  if (!pbuffer || !data_len) {
+    return ESESTATUS_FAILED;
+  }
   if (total_len > 0) {
     pbuff = (uint8_t*)phNxpEse_memalloc(total_len);
     if (NULL != pbuff) {
@@ -48,31 +50,28 @@ ESESTATUS phNxpEse_GetData(uint32_t* data_len, uint8_t** pbuffer) {
           /***** Success Case *****/
           *pbuffer = pbuff;
           *data_len = total_data_len;
-          phNxpEse_DeletList(head);
-          head = NULL;
-          current = NULL;
-          total_len = 0;
           status = ESESTATUS_SUCCESS;
         } else {
           NXP_LOG_ESE_D("%s Mismatch of len total_data_len %d total_len %d",
                         __FUNCTION__, total_data_len, total_len);
-          phNxpEse_free(pbuff);
         }
       } else {
         NXP_LOG_ESE_E("%s phNxpEse_GetDataFromList failed", __FUNCTION__);
-        phNxpEse_free(pbuff);
       }
     } else {
       NXP_LOG_ESE_E("%s Error in malloc ", __FUNCTION__);
       status = ESESTATUS_NOT_ENOUGH_MEMORY;
     }
+    phNxpEse_DeletList();
   } else {
     NXP_LOG_ESE_D("%s total_len = %d", __FUNCTION__, total_len);
   }
-
   if (ESESTATUS_SUCCESS != status) {
     *pbuffer = NULL;
     *data_len = 0;
+    if(pbuff != NULL) {
+      phNxpEse_free(pbuff);
+    }
   }
   NXP_LOG_ESE_D("%s exit status = %d", __FUNCTION__, status);
   return status;
@@ -106,10 +105,10 @@ ESESTATUS phNxpEse_StoreDatainList(uint32_t data_len, uint8_t* pbuff) {
   total_len += data_len;
   if (head == NULL) {
     head = newNode;
-    current = newNode;
+    last = newNode;
   } else {
-    current->pNext = newNode;
-    current = newNode;
+    last->pNext = newNode;
+    last = newNode;
   }
   return ESESTATUS_SUCCESS;
 }
@@ -150,7 +149,7 @@ static ESESTATUS phNxpEse_GetDataFromList(uint32_t* data_len, uint8_t* pbuff) {
  * Returns          On Success ESESTATUS_SUCCESS else proper error code
  *
  ******************************************************************************/
-static ESESTATUS phNxpEse_DeletList(phNxpEse_sCoreRecvBuff_List_t* head) {
+static ESESTATUS phNxpEse_DeletList(void) {
   ESESTATUS status = ESESTATUS_SUCCESS;
   phNxpEse_sCoreRecvBuff_List_t *current, *next;
   current = head;
@@ -162,10 +161,11 @@ static ESESTATUS phNxpEse_DeletList(phNxpEse_sCoreRecvBuff_List_t* head) {
   while (current != NULL) {
     next = current->pNext;
     phNxpEse_free(current);
-    current = NULL;
     current = next;
   }
   head = NULL;
+  last = NULL;
+  total_len = 0;
   return status;
 }
 
