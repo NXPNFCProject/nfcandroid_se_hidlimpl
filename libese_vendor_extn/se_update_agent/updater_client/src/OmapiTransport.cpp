@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022-2023, 2025 NXP
+ ** Copyright 2022-2023, 2025-2026 NXP
  **
  *********************************************************************************/
 #define LOG_TAG "OmapiTransport"
@@ -69,6 +69,11 @@ void OmapiTransport::BinderDiedCallback(void* cookie) {
 bool OmapiTransport::initialize() {
   LOG(INFO) << "Initialize the secure element connection";
 
+  // reset readers, clear readers if already existing
+  if (mVSReaders.size() > 0) {
+    closeConnection();
+  }
+
   // Get OMAPI vendor stable service handler
   const ::ndk::SpAIBinder ks2Binder(
       AServiceManager_checkService(omapiServiceName));
@@ -81,11 +86,6 @@ bool OmapiTransport::initialize() {
   }
   AIBinder_linkToDeath(omapiSeService->asBinder().get(), mDeathRecipient.get(),
                        this);
-
-  // reset readers, clear readers if already existing
-  if (mVSReaders.size() > 0) {
-    closeConnection();
-  }
 
   std::vector<std::string> readers = {};
   // Get available readers
