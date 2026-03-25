@@ -120,7 +120,9 @@ ThreadMutex::ThreadMutex() {
   pthread_mutexattr_t mutexAttr;
 
   pthread_mutexattr_init(&mutexAttr);
-  pthread_mutex_init(&mMutex, &mutexAttr);
+  if (pthread_mutex_init(&mMutex, &mutexAttr) != 0) {
+    NXP_LOG_ESE_E("pthread_mutex_init failed");
+  }
   pthread_mutexattr_destroy(&mutexAttr);
 }
 /*******************************************************************************
