@@ -35,6 +35,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <algorithm>
 
 const std::vector<std::string> MANDATORY_METADATA_FIELDS_LOAD_UPDATE_SCRIPT = {
     "SEMSType", "AppletAID", "ELFAID", "ELFVersion", "PlatformID"};
