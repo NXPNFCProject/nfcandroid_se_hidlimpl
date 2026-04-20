@@ -57,12 +57,12 @@ public class SemsTLV {
     if (nodes == null) {
       throw new RuntimeException("Bad call");
     }
-    return this.nodes;
+    return new ArrayList<>(this.nodes);
   }
 
   public int getLength() { return getValue().length; }
 
-  public byte[] getValue() { return this.value; }
+  public byte[] getValue() { return this.value != null ? this.value.clone() : null; }
 
   public byte[] getTLV() { return createTLV(this.tag, this.value); }
 

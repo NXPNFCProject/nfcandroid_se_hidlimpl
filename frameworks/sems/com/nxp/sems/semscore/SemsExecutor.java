@@ -69,8 +69,8 @@ public class SemsExecutor {
   private boolean lsCommandSeen = false;
   private byte mState;
   private static SemsExecutor sSemsExecutor;
-  public String SEMS_HASH_TYPE_SHA1 = "SHA1";
-  public String SEMS_HASH_TYPE_SHA256 = "SHA256";
+  private String SEMS_HASH_TYPE_SHA1 = "SHA1";
+  private String SEMS_HASH_TYPE_SHA256 = "SHA256";
   /**
    * AID of the SEMS Application Instance.
    */
@@ -185,7 +185,7 @@ public class SemsExecutor {
       Log.d(TAG, "Select SEMS applet: ");
       return sChannel.open(AID_MEM);
     } catch (IOException e) {
-      e.printStackTrace();
+      Log.e(TAG, "IOException in selectSEMSApplet", e);
     }
     return null;
   }
@@ -361,7 +361,7 @@ public class SemsExecutor {
         return Arrays.copyOfRange(rapdu, rapdu.length - 2, rapdu.length);
       }
     } catch (IOException ie) {
-      ie.printStackTrace();
+      Log.e(TAG, "IOException in sendAPCertificate", ie);
     }
     return null;
   }
@@ -388,7 +388,7 @@ public class SemsExecutor {
     try {
       return sChannel.transmit(authFrameCommand);
     } catch (IOException e) {
-      e.printStackTrace();
+      Log.e(TAG, "IOException in sendAuthenticationFrame", e);
     }
     return null;
   }
@@ -409,7 +409,7 @@ public class SemsExecutor {
     try {
       return sChannel.transmit(data);
     } catch (IOException e) {
-      e.printStackTrace();
+      Log.e(TAG, "IOException in sendProcessScript", e);
     }
     return null;
   }
@@ -431,7 +431,7 @@ public class SemsExecutor {
     try {
       rapdu = sChannel.transmit(Arrays.copyOf(rapdu, rapdu.length - 2));
     } catch (IOException e) {
-      e.printStackTrace();
+      Log.e(TAG, "IOException in sendToSE", e);
     }
     mSemsFileOp.putIntoLog(rapdu, SEResponse);
     return rapdu;
@@ -460,7 +460,7 @@ public class SemsExecutor {
           SemsUtil.append(processSEResponseHeader, processSEResponseLen),
           rapdu));
     } catch (IOException e) {
-      e.printStackTrace();
+      Log.e(TAG, "IOException in sendProcessSEResponse", e);
     }
     return null;
   }
@@ -637,7 +637,7 @@ public class SemsExecutor {
          * STEP 9 of executeScript
          */
       } catch (Exception e) {
-        e.printStackTrace();
+        Log.e(TAG, "Exception during script execution", e);
         mSemsFileOp.putIntoLog(sw6F00, ErrorResponse);
         response = sw6F00;
         return;
@@ -1202,7 +1202,7 @@ public class SemsExecutor {
       closeLogicalChannel(channelNumber);
     } catch (IOException e) {
       closeLogicalChannel(channelNumber);
-      e.printStackTrace();
+      Log.e(TAG, "IOException in getLastSemsExecuteStatus", e);
     }
     return lastSemsExec;
   }

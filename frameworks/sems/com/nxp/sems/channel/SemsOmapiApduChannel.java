@@ -160,7 +160,7 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
       if (sSession == null)
         throw new SemsException("Not available to initialize session");
     } catch (Exception e) {
-      e.printStackTrace();
+      Log.e(TAG, "Exception in getSession: " + e.getMessage());
       throw new SemsException(e.getMessage());
     }
   }

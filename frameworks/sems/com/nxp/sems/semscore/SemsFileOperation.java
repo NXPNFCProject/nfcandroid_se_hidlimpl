@@ -38,7 +38,7 @@ public class SemsFileOperation {
   private String mRespOutlog;
   private String mEncryptedScriptDirectory = "";
   private String mOutDirectory = "";
-  public String mCallerPackageName;
+  String mCallerPackageName;
 
   private static final byte SEMS_RESPONSE = 0x01;
   // private static final byte SEResponse = 0x02;
@@ -140,7 +140,7 @@ public class SemsFileOperation {
         mOutDirectory = str;
         status = SemsStatus.SEMS_STATUS_SUCCESS;
       } catch (PackageManager.NameNotFoundException e) {
-        e.printStackTrace();
+        Log.e(TAG, "Exception in setDirectories: ", e);
       }
     }
     return status;

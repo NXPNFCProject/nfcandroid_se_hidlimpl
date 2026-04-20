@@ -121,7 +121,7 @@ public class SemsAppletIdentifier {
         }
       }
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      Log.e(TAG, "Sleep interrupted", e);
     }
   }
 

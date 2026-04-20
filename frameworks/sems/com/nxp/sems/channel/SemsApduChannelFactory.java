@@ -24,7 +24,7 @@ import com.nxp.sems.channel.SemsOmapiApduChannel;
 public class SemsApduChannelFactory {
   public static final byte OMAPI_CHANNEL = 0;
   public static final byte RAW_CHANNEL = 1;
-  public static ISemsApduChannel mChannelFactory = null;
+  private static ISemsApduChannel mChannelFactory = null;
   public static final String TAG = "SEMS-SemsApduChannelFactory";
 
   public static ISemsApduChannel getInstance(byte type, Context context,

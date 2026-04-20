@@ -108,6 +108,8 @@ size_t ringbuffer_peek(const ringbuffer_t* rb, off_t offset, uint8_t* p,
   assert(rb);
   assert(p);
   assert(offset >= 0);
+  if (offset < 0) return 0;
+
   assert((size_t)offset <= ringbuffer_size(rb));
   if ((size_t)offset > ringbuffer_size(rb)) return 0;
 
