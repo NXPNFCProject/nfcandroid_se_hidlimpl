@@ -79,53 +79,62 @@ void release_file_lock(int fd) {
 }
 
 int main(int argc, char* argv[]) {
-  LOG(INFO) << "se_update_agent starting up !!!";
+  try {
+    LOG(INFO) << "se_update_agent starting up !!!";
 
-  if (argc < 2 || argc > 3) {
-    printUsageAndExit();
+    if (argc < 2 || argc > 3) {
+      printUsageAndExit();
+    }
+
+    const std::string_view action{argv[1]};
+    const std::string script_dir_path =
+        (argc == 3) ? std::string{argv[2]} : std::string{};
+
+    // Serialize execution via file-based locking.
+    int lock_fd = acquire_file_lock();
+    if (lock_fd == -1) {
+      // This fails during early boot when /data is not yet mounted.
+      LOG(WARNING)
+          << "Lock acquisition failed; likely due to unmounted /data partition.";
+    }
+
+    if (!strcmp(argv[1], "check-update")) {
+      LOG(INFO) << "Performing action check-update";
+      PrepareUpdate(script_dir_path);
+
+    } else if (!strcmp(argv[1], "apply-update")) {
+      LOG(INFO) << "Performing action apply-update";
+      PerformUpdate(script_dir_path);
+
+    } else if (!strcmp(argv[1], "log-status")) {
+      LOG(INFO) << "Performing action log-status";
+      LogVersionInfo(script_dir_path);
+
+    } else if (!strcmp(argv[1], "retry-check-update")) {
+      LOG(INFO) << "Performing action retry-check-update";
+      RetryPrepareUpdate(script_dir_path);
+
+    } else if (!strcmp(argv[1], "execute")) {
+      LOG(INFO) << "Performing action execute";
+      RunSingleScriptNoVersionCheck();
+
+    } else {
+  #ifdef NXP_BOOTTIME_UPDATE
+      LOG(INFO) << "perform Legacy Boottime update";
+      checkEseClientUpdate();
+      perform_eSEClientUpdate();
+  #endif
+    }
+
+    release_file_lock(lock_fd);
+    LOG(INFO) << "se_update_agent exiting";
+    return 0;
+  } catch (const std::exception& e) {
+    LOG(ERROR) << "Fatal exception: " << e.what();
+  } catch (...) {
+    LOG(ERROR) << "Fatal unknown exception";
   }
 
-  const std::string_view action{argv[1]};
-  const std::string script_dir_path =
-      (argc == 3) ? std::string{argv[2]} : std::string{};
+  return EXIT_FAILURE;
 
-  // Serialize execution via file-based locking.
-  int lock_fd = acquire_file_lock();
-  if (lock_fd == -1) {
-    // This fails during early boot when /data is not yet mounted.
-    LOG(WARNING)
-        << "Lock acquisition failed; likely due to unmounted /data partition.";
-  }
-
-  if (!strcmp(argv[1], "check-update")) {
-    LOG(INFO) << "Performing action check-update";
-    PrepareUpdate(script_dir_path);
-
-  } else if (!strcmp(argv[1], "apply-update")) {
-    LOG(INFO) << "Performing action apply-update";
-    PerformUpdate(script_dir_path);
-
-  } else if (!strcmp(argv[1], "log-status")) {
-    LOG(INFO) << "Performing action log-status";
-    LogVersionInfo(script_dir_path);
-
-  } else if (!strcmp(argv[1], "retry-check-update")) {
-    LOG(INFO) << "Performing action retry-check-update";
-    RetryPrepareUpdate(script_dir_path);
-
-  } else if (!strcmp(argv[1], "execute")) {
-    LOG(INFO) << "Performing action execute";
-    RunSingleScriptNoVersionCheck();
-
-  } else {
-#ifdef NXP_BOOTTIME_UPDATE
-    LOG(INFO) << "perform Legacy Boottime update";
-    checkEseClientUpdate();
-    perform_eSEClientUpdate();
-#endif
-  }
-
-  release_file_lock(lock_fd);
-  LOG(INFO) << "se_update_agent exiting";
-  return 0;
 }

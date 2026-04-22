@@ -217,6 +217,9 @@ static SESTATUS ExecuteSemsScript(const char* script_path,
 
   const char* curr_path = script_path;
   std::streampos curr_offset = start_offset;
+  // Prepare retry inputs
+  std::string interrupted_path;
+  std::streampos resume_offset = 0;
 
   for (int attempt = 1; attempt <= kMaxAttempts; ++attempt) {
     // Reset state before each attempt
@@ -248,9 +251,6 @@ static SESTATUS ExecuteSemsScript(const char* script_path,
       break;
     }
 
-    // Prepare retry inputs
-    std::string interrupted_path;
-    std::streampos resume_offset = 0;
     GetInterruptedScriptPath(interrupted_path, resume_offset, exec_state);
 
     const bool have_interrupted_path = !interrupted_path.empty();
