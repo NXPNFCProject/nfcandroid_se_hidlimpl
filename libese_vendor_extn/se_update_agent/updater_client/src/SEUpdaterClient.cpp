@@ -272,7 +272,7 @@ static SESTATUS ExecuteSemsScript(const char* script_path,
 
 // Fetch last SEMS script execution status
 static SESTATUS getLastScriptExecutionState(
-    bool* is_interrupted, std::vector<uint8_t>& auth_frame_signature) {
+    bool &is_interrupted, std::vector<uint8_t>& auth_frame_signature) {
   uint8_t status = SESTATUS_FAILED;
   const uint8_t INS_GET_DATA = 0xCA;
 
@@ -287,7 +287,7 @@ static SESTATUS getLastScriptExecutionState(
   ALOGE("%s : select SEMS", __FUNCTION__);
   status = LsClient_SemsSelect(&Ch);
   if (status != SESTATUS_OK) {
-    *is_interrupted = false;
+    is_interrupted = false;
     return static_cast<SESTATUS>(status);
   }
   std::vector<uint8_t> resp_vec;
@@ -298,12 +298,15 @@ static SESTATUS getLastScriptExecutionState(
     if (resp_size >= 3 && resp_vec[resp_size - 2] == 0x90 &&
         resp_vec[resp_size - 1] == 0x00) {
       // third byte from starting is the response code
-      *is_interrupted = (resp_vec[2] == 0x01) ? true : false;
+      is_interrupted = (resp_vec[2] == 0x01) ? true : false;
     }
-    if (*is_interrupted) {
+    if (is_interrupted) {
       resp_vec.resize(0);
       status = LsClient_SemsSendGetDataCmd(INS_GET_DATA, P2_GET_AUTH_FRAME_SIGN,
                                            resp_vec);
+      if (resp_vec.size() <= 3){
+        status = SESTATUS_FAILED;
+      }
       if (status == SESTATUS_OK) {
         auth_frame_signature.assign(&resp_vec[4], &resp_vec[4] + resp_vec[3]);
       }
@@ -340,7 +343,7 @@ static SESTATUS GetInterruptedScriptPath(std::string& interrupted_script_path,
                                          ExecutionState exe_state) {
   bool sems_interrupted = false;
   std::vector<uint8_t> interrupted_sems_auth_frame_sign;
-  auto status = getLastScriptExecutionState(&sems_interrupted,
+  auto status = getLastScriptExecutionState(sems_interrupted,
                                             interrupted_sems_auth_frame_sign);
   const LoadUpdateScriptMetaInfo* interrupted_script = nullptr;
   if (sems_interrupted) {
