@@ -294,9 +294,8 @@ static SESTATUS getLastScriptExecutionState(
 
   status = LsClient_SemsSendGetDataCmd(INS_GET_DATA, P2_EXE_STATUS, resp_vec);
   if (status == SESTATUS_OK) {
-    const uint32_t resp_size = resp_vec.size();
-    if (resp_size >= 3 && resp_vec[resp_size - 2] == 0x90 &&
-        resp_vec[resp_size - 1] == 0x00) {
+    if (resp_vec.size() >= 3 && resp_vec[resp_vec.size() - 2] == 0x90 &&
+        resp_vec[resp_vec.size() - 1] == 0x00) {
       // third byte from starting is the response code
       is_interrupted = (resp_vec[2] == 0x01) ? true : false;
     }
