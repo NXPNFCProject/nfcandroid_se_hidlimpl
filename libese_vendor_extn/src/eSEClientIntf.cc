@@ -17,9 +17,10 @@
  ******************************************************************************/
 
 #include "eSEClientIntf.h"
+
 #include <IChannel.h>
-#include <android-base/properties.h>
 #include <android-base/logging.h>
+#include <android-base/properties.h>
 #include <android-base/stringprintf.h>
 #include <cutils/log.h>
 #include <dirent.h>
@@ -29,23 +30,23 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#define TERMINAL_LEN  5
+#define TERMINAL_LEN 5
 bool nfc_debug_enabled;
 void* performJCOS_Download_thread(void* data);
 static IChannel_t Ch;
-static const char *path[3] = {"/vendor/etc/JcopOs_Update1.apdu",
-                             "/vendor/etc/JcopOs_Update2.apdu",
-                             "/vendor/etc/JcopOs_Update3.apdu"};
+static const char* path[3] = {"/vendor/etc/JcopOs_Update1.apdu",
+                              "/vendor/etc/JcopOs_Update2.apdu",
+                              "/vendor/etc/JcopOs_Update3.apdu"};
 
-static const char *uai_path[2] = {"/vendor/etc/cci.apdu",
+static const char* uai_path[2] = {"/vendor/etc/cci.apdu",
                                   "/vendor/etc/jci.apdu"};
-static const char *isSystemImgInfo[2] = {"/data/vendor/nfc/jcop_info.txt",
-                                         "/data/vendor/secure_element/jcop_info.txt"};
-static const char *lsUpdateBackupPath =
-"/vendor/etc/loaderservice_updater.txt";
-static const char *isFirstTimeLsUpdate[2] =
-{"/data/vendor/nfc/LS_Status.txt",
- "/data/vendor/secure_element/LS_Status.txt"};
+static const char* isSystemImgInfo[2] = {
+    "/data/vendor/nfc/jcop_info.txt",
+    "/data/vendor/secure_element/jcop_info.txt"};
+static const char* lsUpdateBackupPath = "/vendor/etc/loaderservice_updater.txt";
+static const char* isFirstTimeLsUpdate[2] = {
+    "/data/vendor/nfc/LS_Status.txt",
+    "/data/vendor/secure_element/LS_Status.txt"};
 static se_extns_entry seExtn;
 
 static bool scriptUpdateRequired(ESE_CLIENT_INTF intf);
@@ -55,7 +56,8 @@ static bool jcopOsUpdateRequired(ESE_CLIENT_INTF intf);
 ** Function:        checkeSEClientUpdateRequired
 **
 ** Description:     HAL service entry criteria is verified
-**                  Read the interface and condition for ese Update(JCOP download/LS download)
+**                  Read the interface and condition for ese Update(JCOP
+* download/LS download)
 **                  from the config file and file path and validate.
 **
 ** Returns:         SUCCESS of ok
@@ -69,7 +71,7 @@ uint8_t checkeSEClientRequired(ESE_CLIENT_INTF intf) {
   bool isFirstLsUpdate = false;
   struct stat st;
 
-  LOG(ERROR) <<"Check_HalStart_Entry: enter:  ";
+  LOG(ERROR) << "Check_HalStart_Entry: enter:  ";
   /*Check APDU files are present*/
   for (int index = 0; index < 2; index++) {
     if (stat(uai_path[index], &st)) {
@@ -77,60 +79,52 @@ uint8_t checkeSEClientRequired(ESE_CLIENT_INTF intf) {
     }
   }
   /*If UAI specific files are present*/
-  if(isApduPresent == true)
-  {
+  if (isApduPresent == true) {
     for (int index = 0; index < 1; index++) {
       if (stat(path[index], &st)) {
         isApduPresent = false;
       }
     }
   }
-  /*Check if OS udpate required*/
+  /*Check if OS update required*/
   isSystemImgUpdated = jcopOsUpdateRequired(intf);
 
   /*Check if LS script present*/
-  if(stat(lsUpdateBackupPath, &st))
-  {
+  if (stat(lsUpdateBackupPath, &st)) {
     isLsScriptPresent = false;
   }
   /*Check if LS update required*/
   isFirstLsUpdate = scriptUpdateRequired(intf);
 
-  if(GetNxpNumValue(NAME_NXP_P61_JCOP_DEFAULT_INTERFACE, &num, sizeof(num))) {
+  if (GetNxpNumValue(NAME_NXP_P61_JCOP_DEFAULT_INTERFACE, &num, sizeof(num))) {
     seExtn.sJcopUpdateIntferface = num;
   }
-  if(GetNxpNumValue(NAME_NXP_P61_LS_DEFAULT_INTERFACE, &num, sizeof(num))) {
+  if (GetNxpNumValue(NAME_NXP_P61_LS_DEFAULT_INTERFACE, &num, sizeof(num))) {
     seExtn.sLsUpdateIntferface = num;
   }
-  if(GetNxpNumValue(NAME_NXP_LS_FORCE_UPDATE_REQUIRED, &num, sizeof(num))) {
+  if (GetNxpNumValue(NAME_NXP_LS_FORCE_UPDATE_REQUIRED, &num, sizeof(num))) {
     seExtn.isLSUpdateRequired = num;
   }
-  if(GetNxpNumValue(NAME_NXP_JCOP_FORCE_UPDATE_REQUIRED, &num, sizeof(num))) {
+  if (GetNxpNumValue(NAME_NXP_JCOP_FORCE_UPDATE_REQUIRED, &num, sizeof(num))) {
     seExtn.isJcopUpdateRequired = num;
   }
-  if(isApduPresent && seExtn.sJcopUpdateIntferface &&
-    ((isSystemImgUpdated && (intf == seExtn.sJcopUpdateIntferface))
-      || seExtn.isJcopUpdateRequired))
-  {
-    LOG(ERROR) <<" Jcop update required  ";
+  if (isApduPresent && seExtn.sJcopUpdateIntferface &&
+      ((isSystemImgUpdated && (intf == seExtn.sJcopUpdateIntferface)) ||
+       seExtn.isJcopUpdateRequired)) {
+    LOG(ERROR) << " Jcop update required  ";
     seExtn.isJcopUpdateRequired = true;
-  }
-  else
-  {
-    LOG(ERROR) <<"Jcop update not required  ";
+  } else {
+    LOG(ERROR) << "Jcop update not required  ";
     seExtn.isJcopUpdateRequired = false;
   }
 
-  if(isLsScriptPresent && seExtn.sLsUpdateIntferface &&
-    (seExtn.isLSUpdateRequired || (isFirstLsUpdate &&
-    (intf == seExtn.sLsUpdateIntferface))))
-  {
-    LOG(ERROR) <<" LS update required  ";
+  if (isLsScriptPresent && seExtn.sLsUpdateIntferface &&
+      (seExtn.isLSUpdateRequired ||
+       (isFirstLsUpdate && (intf == seExtn.sLsUpdateIntferface)))) {
+    LOG(ERROR) << " LS update required  ";
     seExtn.isLSUpdateRequired = true;
-  }
-  else
-  {
-    LOG(ERROR) <<" LS update not required  ";
+  } else {
+    LOG(ERROR) << " LS update not required  ";
     seExtn.isLSUpdateRequired = false;
   }
   return SESTATUS_SUCCESS;
@@ -145,17 +139,15 @@ uint8_t checkeSEClientRequired(ESE_CLIENT_INTF intf) {
 ** Returns:         TRUE/FALSE
 **
 *******************************************************************************/
-bool scriptUpdateRequired(ESE_CLIENT_INTF intf)
-{
+bool scriptUpdateRequired(ESE_CLIENT_INTF intf) {
   bool mScriptUpdateRequired = false;
   uint8_t status[2] = {SEMS_STATUS_FAILED_SW1, SEMS_STATUS_FAILED_SW2};
-  FILE* fLS_STATUS = fopen(isFirstTimeLsUpdate[intf-1], "r");
+  FILE* fLS_STATUS = fopen(isFirstTimeLsUpdate[intf - 1], "r");
 
   if (fLS_STATUS == NULL) {
-    LOG(ERROR) <<"Error opening status file";
+    LOG(ERROR) << "Error opening status file";
     mScriptUpdateRequired = true;
-  }
-  else {
+  } else {
     char buf[10];
     if (fgets(buf, sizeof(buf), fLS_STATUS)) {
       char *endptr1, *endptr2;
@@ -170,14 +162,13 @@ bool scriptUpdateRequired(ESE_CLIENT_INTF intf)
         status[1] = static_cast<uint8_t>(val2);
       }
     }
-    if(status[0] == SEMS_STATUS_SUCCESS_SW1 &&
-                  status[1] == SEMS_STATUS_SUCCESS_SW2) {
+    if (status[0] == SEMS_STATUS_SUCCESS_SW1 &&
+        status[1] == SEMS_STATUS_SUCCESS_SW2) {
       mScriptUpdateRequired = false;
-      LOG(ERROR) <<"Last script execution success";
-    }
-    else {
+      LOG(ERROR) << "Last script execution success";
+    } else {
       mScriptUpdateRequired = true;
-      LOG(ERROR) <<"Last script execution failed ";
+      LOG(ERROR) << "Last script execution failed ";
     }
     fclose(fLS_STATUS);
   }
@@ -192,17 +183,15 @@ bool scriptUpdateRequired(ESE_CLIENT_INTF intf)
 ** Returns:         TRUE/FALSE
 **
 *******************************************************************************/
-bool jcopOsUpdateRequired(ESE_CLIENT_INTF intf)
-{
+bool jcopOsUpdateRequired(ESE_CLIENT_INTF intf) {
   bool isUpdateRequired = false;
   uint32_t status = 0;
-  FILE* fp = fopen(isSystemImgInfo[intf-1], "r");
+  FILE* fp = fopen(isSystemImgInfo[intf - 1], "r");
 
   if (fp == NULL) {
-    LOG(ERROR) <<"jcopOsUpdateRequired : file not exits for reading";
+    LOG(ERROR) << "jcopOsUpdateRequired : file not exits for reading";
     isUpdateRequired = true;
-  }
-  else {
+  } else {
     char buf[32];
     if (fgets(buf, sizeof(buf), fp)) {
       char* endptr;
@@ -229,40 +218,22 @@ bool jcopOsUpdateRequired(ESE_CLIENT_INTF intf)
   return isUpdateRequired;
 }
 
-uint8_t getJcopUpdateRequired()
-{
-  return seExtn.isJcopUpdateRequired;
-}
-uint8_t getLsUpdateRequired()
-{
-  return seExtn.isLSUpdateRequired;
-}
-uint8_t getJcopUpdateIntf()
-{
-  return seExtn.sJcopUpdateIntferface;
-}
-uint8_t getLsUpdateIntf()
-{
-  return seExtn.sLsUpdateIntferface;
-}
+uint8_t getJcopUpdateRequired() { return seExtn.isJcopUpdateRequired; }
+uint8_t getLsUpdateRequired() { return seExtn.isLSUpdateRequired; }
+uint8_t getJcopUpdateIntf() { return seExtn.sJcopUpdateIntferface; }
+uint8_t getLsUpdateIntf() { return seExtn.sLsUpdateIntferface; }
 
-void setJcopUpdateRequired(uint8_t state)
-{
+void setJcopUpdateRequired(uint8_t state) {
   seExtn.isJcopUpdateRequired = state;
 }
 
-void setLsUpdateRequired(uint8_t  state)
-{
-  seExtn.isLSUpdateRequired = state;
-}
+void setLsUpdateRequired(uint8_t state) { seExtn.isLSUpdateRequired = state; }
 
-bool geteSETerminalId(char* val)
-{
+bool geteSETerminalId(char* val) {
   bool ret = false;
 
-  if(GetNxpStrValue(NAME_NXP_SPI_SE_TERMINAL_NUM, val, TERMINAL_LEN))
-  {
-    LOG(ERROR) <<"eSETerminalId found";
+  if (GetNxpStrValue(NAME_NXP_SPI_SE_TERMINAL_NUM, val, TERMINAL_LEN)) {
+    LOG(ERROR) << "eSETerminalId found";
     ALOGE("eSETerminalId found val = %s ", val);
 
     ret = true;
@@ -270,25 +241,21 @@ bool geteSETerminalId(char* val)
   return ret;
 }
 
-bool geteUICCTerminalId(char* val)
-{
+bool geteUICCTerminalId(char* val) {
   bool ret = false;
 
-  if(GetNxpStrValue(NAME_NXP_VISO_SE_TERMINAL_NUM, val, TERMINAL_LEN))
-  {
+  if (GetNxpStrValue(NAME_NXP_VISO_SE_TERMINAL_NUM, val, TERMINAL_LEN)) {
     ALOGE("eUICCTerminalId found val = %s ", val);
     ret = true;
   }
   return ret;
 }
 
-bool getTruestedSETerminalId(char* val)
-{
+bool getTruestedSETerminalId(char* val) {
   bool ret = false;
 
-  if(GetNxpStrValue(NAME_NXP_TRUSTED_SE_TERMINAL_NUM, val, TERMINAL_LEN))
-  {
-    LOG(INFO) <<"TrustedSE TerminalId found";
+  if (GetNxpStrValue(NAME_NXP_TRUSTED_SE_TERMINAL_NUM, val, TERMINAL_LEN)) {
+    LOG(INFO) << "TrustedSE TerminalId found";
     ALOGD("TrustedSE TerminalId found val = %s ", val);
 
     ret = true;
@@ -296,18 +263,16 @@ bool getTruestedSETerminalId(char* val)
   return ret;
 }
 
-bool getNfcSeTerminalId(char* val)
-{
+bool getNfcSeTerminalId(char* val) {
   bool ret = false;
   unsigned long int num = 0;
 
-  if(GetNxpStrValue(NAME_NXP_NFC_SE_TERMINAL_NUM, val, TERMINAL_LEN))
-  {
+  if (GetNxpStrValue(NAME_NXP_NFC_SE_TERMINAL_NUM, val, TERMINAL_LEN)) {
     ALOGE("NfcSeTerminalId found val = %s ", val);
-    if(!GetNxpNumValue(NAME_NXP_SE_SMB_TERMINAL_TYPE, &num, sizeof(num))) {
+    if (!GetNxpNumValue(NAME_NXP_SE_SMB_TERMINAL_TYPE, &num, sizeof(num))) {
       ret = true;
     }
-    if(num != 0) {
+    if (num != 0) {
       ret = true;
     }
   }
@@ -319,7 +284,8 @@ void initialize_debug_enabled_flag() {
   if (GetNxpNumValue(NAME_NFC_DEBUG_ENABLED, &num, sizeof(num))) {
     nfc_debug_enabled = (num == 0) ? false : true;
   } else {
-    nfc_debug_enabled = ::android::base::GetBoolProperty("nfc.debug_enabled", false);
+    nfc_debug_enabled =
+        ::android::base::GetBoolProperty("nfc.debug_enabled", false);
   }
   ALOGI("nfc_debug_enabled : %d", nfc_debug_enabled);
 }

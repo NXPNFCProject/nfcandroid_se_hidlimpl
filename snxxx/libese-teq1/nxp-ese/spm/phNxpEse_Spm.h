@@ -31,9 +31,9 @@
 #define SPM_RECOVERY_RESET_IOCTL_LEVEL 5
 
 typedef enum SpmResetTypes {
-  SPM_RECOVERY_RESET = 0,   /* ese power reset legecy */
-  SPM_GPIO_RESET,           /* ese power reset via gpio */
-  SPM_COLD_RESET,          /* ese power reset via ese cold reset */
+  SPM_RECOVERY_RESET = 0, /* ese power reset legecy */
+  SPM_GPIO_RESET,         /* ese power reset via gpio */
+  SPM_COLD_RESET,         /* ese power reset via ese cold reset */
 } SpmResetTypes_t;
 
 /**

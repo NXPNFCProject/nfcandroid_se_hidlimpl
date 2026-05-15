@@ -16,12 +16,11 @@
  *
  ******************************************************************************/
 
-#include <android-base/logging.h>
-
 #include <HalToHalTransport.h>
 #include <ITransport.h>
 #include <OmapiTransport.h>
 #include <SEConnection.h>
+#include <android-base/logging.h>
 
 using se_update_agent::HalToHalTransport;
 using se_update_agent::OmapiTransport;

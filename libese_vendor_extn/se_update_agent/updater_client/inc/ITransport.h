@@ -50,7 +50,7 @@ class ITransport {
  public:
   virtual ~ITransport() {}
 
-  ITransport(){};
+  ITransport() {};
 
   /**
    * Opens connection.

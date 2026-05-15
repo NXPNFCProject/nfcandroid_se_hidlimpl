@@ -106,14 +106,16 @@ ESESTATUS phNxpEse_SPM_ConfigPwr(SpmResetTypes_t arg) {
   ESESTATUS wSpmStatus = ESESTATUS_SUCCESS;
   switch (arg) {
     case SPM_RECOVERY_RESET:
-      ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle, SPM_RECOVERY_RESET_IOCTL_LEVEL);
+      ret = phPalEse_ioctl(phPalEse_e_ChipRst, pEseDeviceHandle,
+                           SPM_RECOVERY_RESET_IOCTL_LEVEL);
       break;
     case SPM_GPIO_RESET:
-      ret = phPalEse_ioctl(phPalEse_e_GpioReset, pEseDeviceHandle, SPM_RECOVERY_RESET_IOCTL_LEVEL);
+      ret = phPalEse_ioctl(phPalEse_e_GpioReset, pEseDeviceHandle,
+                           SPM_RECOVERY_RESET_IOCTL_LEVEL);
       break;
     case SPM_COLD_RESET:
-      ret =
-          phPalEse_ioctl(phPalEse_e_ColdReset, pEseDeviceHandle, SPM_RECOVERY_RESET_IOCTL_LEVEL);
+      ret = phPalEse_ioctl(phPalEse_e_ColdReset, pEseDeviceHandle,
+                           SPM_RECOVERY_RESET_IOCTL_LEVEL);
       break;
     default:
       wSpmStatus = ESESTATUS_SUCCESS;

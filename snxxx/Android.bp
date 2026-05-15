@@ -29,6 +29,7 @@ filegroup {
     name: "OsuHalCommonFile",
     srcs: ["OsuHal/src/OsuHalExtn.cpp"],
 }
+
 filegroup {
     name: "ExtnsFile",
      srcs: [

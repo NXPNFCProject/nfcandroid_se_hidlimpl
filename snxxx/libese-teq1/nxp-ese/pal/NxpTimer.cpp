@@ -15,12 +15,14 @@
  */
 
 #include "NxpTimer.h"
-#include "ese_logs.h"
-#include <log/log.h>
+
 #include <android-base/logging.h>
+#include <log/log.h>
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+
+#include "ese_logs.h"
 
 NxpTimer::NxpTimer(std::string tag) {
   logtag = std::move(tag);

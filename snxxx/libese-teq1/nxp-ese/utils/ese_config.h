@@ -18,10 +18,10 @@
 
 #pragma once
 
+#include <config.h>
+
 #include <string>
 #include <vector>
-
-#include <config.h>
 
 #ifndef __CONFIG_H
 #define __CONFIG_H

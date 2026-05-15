@@ -40,11 +40,10 @@
 
 #include "Mutex.h"
 
-#include <errno.h>
-#include <string.h>
-
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
+#include <errno.h>
+#include <string.h>
 
 using android::base::StringPrintf;
 

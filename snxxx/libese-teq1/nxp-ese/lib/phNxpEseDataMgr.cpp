@@ -66,10 +66,11 @@ ESESTATUS phNxpEse_GetData(uint32_t* data_len, uint8_t** pbuffer) {
   } else {
     NXP_LOG_ESE_D("%s total_len = %d", __FUNCTION__, total_len);
   }
+
   if (ESESTATUS_SUCCESS != status) {
     *pbuffer = NULL;
     *data_len = 0;
-    if(pbuff != NULL) {
+    if (pbuff != NULL) {
       phNxpEse_free(pbuff);
     }
   }

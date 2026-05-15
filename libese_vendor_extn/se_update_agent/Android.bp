@@ -30,13 +30,13 @@ license {
 
 filegroup {
     name: "UpdaterClientFile",
-     srcs: [
-         "updater_client/src/SEUpdaterClient.cpp",
-         "updater_client/src/SEConnection.cpp",
-         "updater_client/src/ScriptMetadataParser.cpp",
-         "updater_client/src/HalToHalTransport.cpp",
-         "updater_client/src/OmapiTransport.cpp",
-         "updater_client/src/Utils.cpp",
+    srcs: [
+        "updater_client/src/SEUpdaterClient.cpp",
+        "updater_client/src/SEConnection.cpp",
+        "updater_client/src/ScriptMetadataParser.cpp",
+        "updater_client/src/HalToHalTransport.cpp",
+        "updater_client/src/OmapiTransport.cpp",
+        "updater_client/src/Utils.cpp",
     ],
 }
 

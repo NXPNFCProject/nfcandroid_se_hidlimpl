@@ -23,5 +23,7 @@ public final class SemsException extends Exception {
     reasonCode = reason;
   }
 
-  public String getReason() { return reasonCode; }
+  public String getReason() {
+    return reasonCode;
+  }
 }

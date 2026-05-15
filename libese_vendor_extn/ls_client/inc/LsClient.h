@@ -94,7 +94,7 @@ tLSC_STATUS LsClient_SemsDeSelect();
 void* phLS_memset(void* buff, int val, size_t len);
 void* phLS_memcpy(void* dest, const void* src, size_t len);
 void* phLS_memalloc(uint32_t size);
-void  phLS_free(void* ptr);
+void phLS_free(void* ptr);
 void* phLS_calloc(size_t datatype, size_t size);
 
 #endif /* LSCLIENT_H_ */

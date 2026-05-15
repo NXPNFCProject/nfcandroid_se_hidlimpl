@@ -20,7 +20,7 @@ prebuilt_etc {
     name: "com.nxp.sems.xml",
     product_specific: true,
     sub_dir: "permissions",
-    src:"com.nxp.sems.xml",
+    src: "com.nxp.sems.xml",
 }
 
 java_library {

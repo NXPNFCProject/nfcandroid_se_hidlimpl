@@ -32,8 +32,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class SemsExecutor {
-
-  private static final byte[] clientVersion = {(byte)0x01, (byte)0x00};
+  private static final byte[] clientVersion = {(byte) 0x01, (byte) 0x00};
   public static final String TAG = "SEMS-SemsExecutor";
 
   public static final byte SEMS_STATE_SELECT = 0;
@@ -74,16 +73,15 @@ public class SemsExecutor {
   /**
    * AID of the SEMS Application Instance.
    */
-  private static final byte[] SEMS_APP_AID =
-      SemsUtil.parseHexString("A00000015153454D5300000001");
+  private static final byte[] SEMS_APP_AID = SemsUtil.parseHexString("A00000015153454D5300000001");
   private static final byte[] SEMS_UPD_APP_AID =
       SemsUtil.parseHexString("A00000015153454D53FFFFFF01");
 
-  private static final byte[] sw9000 = {(byte)0x90, (byte)0x00};
-  private static final byte[] sw6F00 = {(byte)0x6F, (byte)0x00};
-  private static final byte[] sw6985 = {(byte)0x69, (byte)0x85};
-  private static final byte[] sw6987 = {(byte)0x69, (byte)0x87};
-  private static final byte[] sw6A82 = {(byte)0x6A, (byte)0x82};
+  private static final byte[] sw9000 = {(byte) 0x90, (byte) 0x00};
+  private static final byte[] sw6F00 = {(byte) 0x6F, (byte) 0x00};
+  private static final byte[] sw6985 = {(byte) 0x69, (byte) 0x85};
+  private static final byte[] sw6987 = {(byte) 0x69, (byte) 0x87};
+  private static final byte[] sw6A82 = {(byte) 0x6A, (byte) 0x82};
 
   private static final byte SemsResponse = 0x01;
   private static final byte SEResponse = 0x02;
@@ -101,8 +99,7 @@ public class SemsExecutor {
    *
    * @return {@code SemsExecutor} null if context or semschannel is null.
    */
-  public static SemsExecutor getInstance(ISemsApduChannel semsChannel,
-                                         Context context) {
+  public static SemsExecutor getInstance(ISemsApduChannel semsChannel, Context context) {
     if (context == null || semsChannel == null) {
       Log.e(TAG, "getInstance: context or semsChannel is null");
       return null;
@@ -145,7 +142,9 @@ public class SemsExecutor {
    * @return SHAType use for Hash
    * script.
    */
-  public synchronized String getHashAlgorithm() { return shatype; }
+  public synchronized String getHashAlgorithm() {
+    return shatype;
+  }
 
   /**
    * Check Hash type of the algorithm execution.
@@ -168,7 +167,9 @@ public class SemsExecutor {
    *
    * @return {@code true} if the SW returned is 9000, {@code false} otherwise.
    */
-  protected void closeLogicalChannel(byte channel) { sChannel.close(); }
+  protected void closeLogicalChannel(byte channel) {
+    sChannel.close();
+  }
 
   /**
    * Select SEMS Application
@@ -217,12 +218,11 @@ public class SemsExecutor {
    *
    * @return {@code true} if the SW returned is 9000, {@code false} otherwise.
    */
-  private byte[] sendSHA1OfCallerPackage(byte channel, byte[] callerPackage)
-      throws Exception {
+  private byte[] sendSHA1OfCallerPackage(byte channel, byte[] callerPackage) throws Exception {
     byte[] SHA1ofCallerPackage = SemsUtil.SHA1(callerPackage);
 
-    final byte[] header = {(byte)0x80, (byte)0xE2, (byte)0x00, 0x00,
-                           (byte)0x16, (byte)0x4F, (byte)0x14};
+    final byte[] header = {
+        (byte) 0x80, (byte) 0xE2, (byte) 0x00, 0x00, (byte) 0x16, (byte) 0x4F, (byte) 0x14};
     Log.d(TAG, "Register Caller for SHA1: " + SHA1ofCallerPackage.length);
     return sChannel.transmit(SemsUtil.append(header, SHA1ofCallerPackage));
   }
@@ -239,11 +239,10 @@ public class SemsExecutor {
    *
    * @return {@code true} if the SW returned is 9000, {@code false} otherwise.
    */
-  private byte[] sendSHA256OfCallerPackage(byte channel, byte[] callerPackage)
-      throws Exception {
+  private byte[] sendSHA256OfCallerPackage(byte channel, byte[] callerPackage) throws Exception {
     byte[] SHA256ofCallerPackage = SemsUtil.SHA256(callerPackage);
-    final byte[] header = {(byte)0x80, (byte)0xE2, (byte)0x00, 0x00,
-                           (byte)0x22, (byte)0x4F, (byte)0x20};
+    final byte[] header = {
+        (byte) 0x80, (byte) 0xE2, (byte) 0x00, 0x00, (byte) 0x22, (byte) 0x4F, (byte) 0x20};
     Log.d(TAG, "Register Caller for SHA256: " + SHA256ofCallerPackage.length);
     return sChannel.transmit(SemsUtil.append(header, SHA256ofCallerPackage));
   }
@@ -265,9 +264,9 @@ public class SemsExecutor {
       SemsAppletIdentifier.delayNthCommand();
       if (APCert.length < MAX_FRAME_SIZE) {
         // One command
-        byte[] header = {(byte)0x80, (byte)0xA0, (byte)0x01, (byte)0x00};
+        byte[] header = {(byte) 0x80, (byte) 0xA0, (byte) 0x01, (byte) 0x00};
         byte[] len = new byte[1];
-        len[0] = (byte)APCert.length;
+        len[0] = (byte) APCert.length;
 
         byte[] command = SemsUtil.append(SemsUtil.append(header, len), APCert);
 
@@ -275,22 +274,22 @@ public class SemsExecutor {
 
         byte[] rapdu = sChannel.transmit(command);
         if (rapdu != null) {
-            mSemsFileOp.putIntoLog(rapdu, SemsCertResponse);
+          mSemsFileOp.putIntoLog(rapdu, SemsCertResponse);
         }
         return rapdu;
       } else { // Two/Three commands based on tag length
         byte[] rapdu;
-        byte[] commandHeader = {(byte)0x80, (byte)0xA0, (byte)0x01, (byte)0x00};
+        byte[] commandHeader = {(byte) 0x80, (byte) 0xA0, (byte) 0x01, (byte) 0x00};
         byte[] cmdLen = new byte[1];
         int tag73Offset = 0, tag5F37Offset = 0;
 
         int signAndPubKeyLen;
 
-        /*If TAG73 does not exists*/
+        /*If TAG73 does not exist*/
         if (SemsAppletIdentifier.getTag73Len() == 0) {
           /* static length because of Brainpool curve*/
-          signAndPubKeyLen = (SEMS_CERTIFICATE_SIGNATURE_5F37_LEN +
-                              SEMS_CERTIFICATE_SIGNATURE_7F49_86_LEN + 6);
+          signAndPubKeyLen =
+              (SEMS_CERTIFICATE_SIGNATURE_5F37_LEN + SEMS_CERTIFICATE_SIGNATURE_7F49_86_LEN + 6);
         } else {
           tag73Offset = SemsTLV.getTagOffset(APCert, TAG73);
           tag5F37Offset = SemsTLV.getTagOffset(APCert, TAG5F37);
@@ -299,59 +298,53 @@ public class SemsExecutor {
         }
 
         /*First frame till either start of (TAG73 or TAG5F37)*/
-        byte[] commandData =
-            Arrays.copyOfRange(APCert, 0, APCert.length - signAndPubKeyLen);
-        cmdLen[0] = (byte)commandData.length;
+        byte[] commandData = Arrays.copyOfRange(APCert, 0, APCert.length - signAndPubKeyLen);
+        cmdLen[0] = (byte) commandData.length;
 
-        byte[] firstCommand = SemsUtil.append(
-            SemsUtil.append(commandHeader, cmdLen), commandData);
+        byte[] firstCommand = SemsUtil.append(SemsUtil.append(commandHeader, cmdLen), commandData);
 
-        Log.d(TAG, "******* Processing LS Certificate 1st Frame APCert " +
-                       APCert.length + " signAndPubKeyLen " + signAndPubKeyLen +
-                       " tag73Offset " + tag73Offset + " tag5F37Offset " +
-                       tag5F37Offset);
+        Log.d(TAG,
+            "******* Processing LS Certificate 1st Frame APCert " + APCert.length
+                + " signAndPubKeyLen " + signAndPubKeyLen + " tag73Offset " + tag73Offset
+                + " tag5F37Offset " + tag5F37Offset);
         rapdu = sChannel.transmit(firstCommand);
         mSemsFileOp.putIntoLog(rapdu, SemsCertResponse);
-        if (SemsUtil.getSW(rapdu) != (short)0x9000) {
+        if (SemsUtil.getSW(rapdu) != (short) 0x9000) {
           return Arrays.copyOfRange(rapdu, rapdu.length - 2, rapdu.length);
         }
 
         /*If the second frame is greater than 255*/
         if (signAndPubKeyLen > MAX_FRAME_SIZE) {
           /*2nd Frame shall be only TAG73*/
-          commandData =
-              Arrays.copyOfRange(APCert, (tag73Offset), (tag5F37Offset));
-          cmdLen[0] = (byte)(commandData.length);
+          commandData = Arrays.copyOfRange(APCert, (tag73Offset), (tag5F37Offset));
+          cmdLen[0] = (byte) (commandData.length);
           commandHeader[2] = 0x00;
-          byte[] secondCommand = SemsUtil.append(
-              SemsUtil.append(commandHeader, cmdLen), commandData);
-          Log.d(TAG, "******* Processing LS Certificate 2nd/3 Frame cmdLen " +
-                         commandData.length);
+          byte[] secondCommand =
+              SemsUtil.append(SemsUtil.append(commandHeader, cmdLen), commandData);
+          Log.d(TAG, "******* Processing LS Certificate 2nd/3 Frame cmdLen " + commandData.length);
           rapdu = sChannel.transmit(secondCommand);
           mSemsFileOp.putIntoLog(rapdu, SemsCertResponse);
-          if (SemsUtil.getSW(rapdu) != (short)0x9000) {
+          if (SemsUtil.getSW(rapdu) != (short) 0x9000) {
             return Arrays.copyOfRange(rapdu, rapdu.length - 2, rapdu.length);
           }
 
           /*3rd Frame shall be remaining from TAG5F37 onwards till end*/
-          commandData =
-              Arrays.copyOfRange(APCert, tag5F37Offset, APCert.length);
-          cmdLen[0] = (byte)(commandData.length);
+          commandData = Arrays.copyOfRange(APCert, tag5F37Offset, APCert.length);
+          cmdLen[0] = (byte) (commandData.length);
 
-          byte[] thirdCommand = SemsUtil.append(
-              SemsUtil.append(commandHeader, cmdLen), commandData);
+          byte[] thirdCommand =
+              SemsUtil.append(SemsUtil.append(commandHeader, cmdLen), commandData);
 
           Log.d(TAG, "******* Processing LS Certificate 3rd/3 Frame");
           rapdu = sChannel.transmit(thirdCommand);
           mSemsFileOp.putIntoLog(rapdu, SemsCertResponse);
         } else {
           /*2nd Frame shall be remaining (TAG73  or TAG5F37) onwards*/
-          commandData = Arrays.copyOfRange(
-              APCert, APCert.length - signAndPubKeyLen, APCert.length);
-          cmdLen[0] = (byte)commandData.length;
+          commandData = Arrays.copyOfRange(APCert, APCert.length - signAndPubKeyLen, APCert.length);
+          cmdLen[0] = (byte) commandData.length;
           commandHeader[2] = 0x00;
-          byte[] secondCommand = SemsUtil.append(
-              SemsUtil.append(commandHeader, cmdLen), commandData);
+          byte[] secondCommand =
+              SemsUtil.append(SemsUtil.append(commandHeader, cmdLen), commandData);
 
           Log.d(TAG, "******* Processing LS Certificate 2nd Frame");
           rapdu = sChannel.transmit(secondCommand);
@@ -379,11 +372,11 @@ public class SemsExecutor {
    * @return {@code true} if the SW returned is 9000, {@code false} otherwise.
    */
   private byte[] sendAuthenticationFrame(byte channel, byte[] authFrame) {
-    byte[] authFrameHeader = {(byte)0x80, (byte)0xA0, (byte)0x00, (byte)0x00};
+    byte[] authFrameHeader = {(byte) 0x80, (byte) 0xA0, (byte) 0x00, (byte) 0x00};
     byte[] authFrameLen = new byte[1];
-    authFrameLen[0] = (byte)authFrame.length;
-    byte[] authFrameCommand = SemsUtil.append(
-        SemsUtil.append(authFrameHeader, authFrameLen), authFrame);
+    authFrameLen[0] = (byte) authFrame.length;
+    byte[] authFrameCommand =
+        SemsUtil.append(SemsUtil.append(authFrameHeader, authFrameLen), authFrame);
     Log.d(TAG, "******* Processing Authentication Frame command");
     try {
       return sChannel.transmit(authFrameCommand);
@@ -450,15 +443,13 @@ public class SemsExecutor {
    * @return {@code true} if the SW returned is 9000, {@code false} otherwise.
    */
   private byte[] sendProcessSEResponse(byte channel, byte[] rapdu) {
-    byte[] processSEResponseHeader = {(byte)0x80, (byte)0xA2, (byte)0x80,
-                                      (byte)0x00};
+    byte[] processSEResponseHeader = {(byte) 0x80, (byte) 0xA2, (byte) 0x80, (byte) 0x00};
     byte[] processSEResponseLen = new byte[1];
 
-    processSEResponseLen[0] = (byte)(rapdu.length);
+    processSEResponseLen[0] = (byte) (rapdu.length);
     try {
-      return sChannel.transmit(SemsUtil.append(
-          SemsUtil.append(processSEResponseHeader, processSEResponseLen),
-          rapdu));
+      return sChannel.transmit(
+          SemsUtil.append(SemsUtil.append(processSEResponseHeader, processSEResponseLen), rapdu));
     } catch (IOException e) {
       Log.e(TAG, "IOException in sendProcessSEResponse", e);
     }
@@ -493,9 +484,8 @@ public class SemsExecutor {
    *
    * @return {@code true} if the SW returned is 9000, {@code false} otherwise.
    */
-  public SemsStatus executeScript(String scriptIn, String scriptOut,
-                                  ISemsCallback callback,
-                                  ISemsAuthCallback semsAuthCallback) {
+  public SemsStatus executeScript(String scriptIn, String scriptOut, ISemsCallback callback,
+      ISemsAuthCallback semsAuthCallback) {
     SemsStatus status = SemsStatus.SEMS_STATUS_FAILED;
     if (scriptOut == null || scriptIn == null) {
       Log.e(TAG, "executeScript: scriptOut or scriptIn is null");
@@ -563,74 +553,73 @@ public class SemsExecutor {
            * STEP 2A of executeScript - Select SEMS applet
            */
           switch (mState) {
-          case SEMS_STATE_SELECT: {
-            status = SelectSems();
-            if (status != SemsStatus.SEMS_STATUS_SUCCESS) {
-              response = sw6987;
-              return;
-            }
-            if (mSemsAuthCallback != null) {
-              if (!mSemsAuthCallback.doAuthforSems()) {
-                Log.e(TAG, "User Authentication for SEMS failed. Exiting...");
+            case SEMS_STATE_SELECT: {
+              status = SelectSems();
+              if (status != SemsStatus.SEMS_STATUS_SUCCESS) {
                 response = sw6987;
                 return;
               }
-            }
-          }
-          // fall-through
-          case SEMS_STATE_STORE_DATA: {
-            /*
-             * STEP 3 of executeScript - Sending SHA1 of Caller package
-             */
-            synchronized (SemsExecutor.this) {
-              if (shatype == "SHA256") {
-                synchronized (SemsFileOperation.class) {
-                  rapdu = sendSHA256OfCallerPackage(
-                      channelNumber, mSemsFileOp.mCallerPackageName.getBytes());
-                }
-              } else {
-                synchronized (SemsFileOperation.class) {
-                  rapdu = sendSHA1OfCallerPackage(
-                      channelNumber, mSemsFileOp.mCallerPackageName.getBytes());
+              if (mSemsAuthCallback != null) {
+                if (!mSemsAuthCallback.doAuthforSems()) {
+                  Log.e(TAG, "User Authentication for SEMS failed. Exiting...");
+                  response = sw6987;
+                  return;
                 }
               }
             }
-            if (rapdu == null) {
-              Log.e(TAG, "sendSHA1OfCallerPackage received incorrect rapdu");
-              response = rapdu;
-              return;
+            // fall-through
+            case SEMS_STATE_STORE_DATA: {
+              /*
+               * STEP 3 of executeScript - Sending SHA1 of Caller package
+               */
+              synchronized (SemsExecutor.this) {
+                if (shatype == "SHA256") {
+                  synchronized (SemsFileOperation.class) {
+                    rapdu = sendSHA256OfCallerPackage(
+                        channelNumber, mSemsFileOp.mCallerPackageName.getBytes());
+                  }
+                } else {
+                  synchronized (SemsFileOperation.class) {
+                    rapdu = sendSHA1OfCallerPackage(
+                        channelNumber, mSemsFileOp.mCallerPackageName.getBytes());
+                  }
+                }
+              }
+              if (rapdu == null) {
+                Log.e(TAG, "sendSHA1OfCallerPackage received incorrect rapdu");
+                response = rapdu;
+                return;
+              }
+              if (SemsUtil.getSW(rapdu) != (short) 0x9000) {
+                response = rapdu;
+                return;
+              }
             }
-            if (SemsUtil.getSW(rapdu) != (short)0x9000) {
-              response = rapdu;
-              return;
+            // fall-through
+            case SEMS_STATE_CHECK_CERTIFICATE: {
+              /*
+               * STEP 4 of executeScript - Searching for Certificate in Script
+               * and Sending of Certificate
+               */
+              if (ProcessCertificateFrame(scriptTlvs) != SemsStatus.SEMS_STATUS_SUCCESS) {
+                return;
+              }
             }
-          }
-          // fall-through
-          case SEMS_STATE_CHECK_CERTIFICATE: {
-            /*
-             * STEP 4 of executeScript - Searching for Certificate in Script
-             * and Sending of Certificate
-             */
-            if (ProcessCertificateFrame(scriptTlvs) !=
-                SemsStatus.SEMS_STATUS_SUCCESS) {
-              return;
+            // fall-through
+            case SEMS_STATE_VERIFY_SIGNATURE: {
+              /*
+               * STEP 5 of executeScript - Authentication frame command
+               */
+              if (verifySignature(scriptTlvs) != SemsStatus.SEMS_STATUS_SUCCESS) {
+                return;
+              }
             }
-          }
-          // fall-through
-          case SEMS_STATE_VERIFY_SIGNATURE: {
-            /*
-             * STEP 5 of executeScript - Authentication frame command
-             */
-            if (verifySignature(scriptTlvs) != SemsStatus.SEMS_STATUS_SUCCESS) {
-              return;
+            // fall-through
+            case SEMS_STATE_SECURE_COMMAND_PROCESSING: {
+              /*  STEP 6 of executeScript -Secure script commands*/
+              status = SemsSecureCommandProcess(scriptTlvs);
+              break;
             }
-          }
-          // fall-through
-          case SEMS_STATE_SECURE_COMMAND_PROCESSING: {
-            /*  STEP 6 of executeScript -Secure script commands*/
-            status = SemsSecureCommandProcess(scriptTlvs);
-            break;
-          }
           }
         } /* End of restart_execute_script*/
         /*
@@ -669,8 +658,7 @@ public class SemsExecutor {
    * @return {@code SEMS_STATE_SUCCESS} if processing is success, {@code false}
    * otherwise.
    */
-  private SemsStatus SemsSecureCommandProcess(List<SemsTLV> scriptTlvs)
-      throws Exception {
+  private SemsStatus SemsSecureCommandProcess(List<SemsTLV> scriptTlvs) throws Exception {
     SemsStatus stat = SemsStatus.SEMS_STATUS_FAILED;
     byte rapdu[] = sw6987;
     SemsTLV secureCommand;
@@ -684,7 +672,7 @@ public class SemsExecutor {
        */
       secureCommand = scriptTlvs.get(linePointer);
       linePointer++;
-      if (secureCommand.getTLV()[0] == (byte)0x40) {
+      if (secureCommand.getTLV()[0] == (byte) 0x40) {
         /*
          * STEP 7 of executeScript - Secure Script Command Found
          */
@@ -701,7 +689,7 @@ public class SemsExecutor {
             break;
           }
           sw = SemsUtil.getSW(rapdu);
-          if (sw == (short)0x6310) {
+          if (sw == (short) 0x6310) {
             /*
              * STEP 8 of executeScript - Process SE Response
              */
@@ -722,8 +710,7 @@ public class SemsExecutor {
               }
               mSemsFileOp.putIntoLog(rapdu, SemsResponse);
 
-              while (SemsUtil.getSW(rapdu) == (short)0x6310) {
-
+              while (SemsUtil.getSW(rapdu) == (short) 0x6310) {
                 if ((rapdu = sendToSE(rapdu)) == null) {
                   mSemsFileOp.putIntoLog(sw6987, ErrorResponse);
                   rapdu = sw6987;
@@ -734,12 +721,12 @@ public class SemsExecutor {
                 mSemsFileOp.putIntoLog(rapdu, SemsResponse);
               }
             }
-            if ((SemsUtil.getSW(rapdu) != (short)0x9000) &&
-                (SemsUtil.getSW(rapdu) != (short)0x6300)) {
+            if ((SemsUtil.getSW(rapdu) != (short) 0x9000)
+                && (SemsUtil.getSW(rapdu) != (short) 0x6300)) {
               mSemsFileOp.putIntoLog(rapdu, ErrorResponse);
               break;
             }
-          } else if (sw == (short)0x6320) {
+          } else if (sw == (short) 0x6320) {
             mSemsFileOp.putIntoLog(rapdu, SemsResponse);
             closeLogicalChannel(channelNumber);
             AID_MEM = SemsUtil.getRDATA(rapdu);
@@ -764,7 +751,7 @@ public class SemsExecutor {
             }
             /*continue restart_execute_script;*/
             break;
-          } else if ((sw != (short)0x9000) && (sw != (short)0x6300)) {
+          } else if ((sw != (short) 0x9000) && (sw != (short) 0x6300)) {
             mSemsFileOp.putIntoLog(rapdu, SemsResponse);
             break;
           } else {
@@ -776,9 +763,9 @@ public class SemsExecutor {
           rapdu = sw6987;
           break;
         }
-      } else if (secureCommand.getTLV()[0] != (byte)0x60 &&
-                 !(secureCommand.getTLV()[0] == (byte)0x7F &&
-                   secureCommand.getTLV()[1] == (byte)0x21)) {
+      } else if (secureCommand.getTLV()[0] != (byte) 0x60
+          && !(secureCommand.getTLV()[0] == (byte) 0x7F
+              && secureCommand.getTLV()[1] == (byte) 0x21)) {
         Log.e(TAG, "Invalid tag found secure script");
         mSemsFileOp.putIntoLog(sw6987, ErrorResponse);
         rapdu = sw6987;
@@ -807,7 +794,7 @@ public class SemsExecutor {
     }
     sw = SemsUtil.getSW(rapdu);
     response = rapdu;
-    if (sw == (short)0x9000 && mState == SEMS_STATE_SECURE_COMMAND_PROCESSING) {
+    if (sw == (short) 0x9000 && mState == SEMS_STATE_SECURE_COMMAND_PROCESSING) {
       stat = SemsStatus.SEMS_STATUS_SUCCESS;
       mState = SEMS_STATE_PROCESSING_COMPLETED;
       Log.d(TAG, "Reached end of script processing");
@@ -834,7 +821,6 @@ public class SemsExecutor {
    */
 
   private SemsStatus ProcessCertificateFrame(List<SemsTLV> scriptTlvs) {
-
     List<SemsTLV> tlvs;
     byte channelNumber = 0;
     SemsTLV tlvSC42;
@@ -845,7 +831,6 @@ public class SemsExecutor {
     byte rapdu[];
     Log.d(TAG, "Check Mandatory fields in Certificate ");
     for (int i = 0; i < scriptTlvs.size(); i++) {
-
       if (scriptTlvs.get(i).getTag() == 0x7F21) {
         certIndex = i;
         tlvCertInScript = scriptTlvs.get(i);
@@ -885,8 +870,8 @@ public class SemsExecutor {
         }
         if (isCertOK) {
           SemsTLV tlvSC7F49 = SemsTLV.find(tlvs, 0x7F49);
-          isCertOK = tlvSC7F49 != null && tlvSC7F49.isConstructed() &&
-                     SemsTLV.find(tlvSC7F49.getNodes(), 0x86) != null;
+          isCertOK = tlvSC7F49 != null && tlvSC7F49.isConstructed()
+              && SemsTLV.find(tlvSC7F49.getNodes(), 0x86) != null;
         }
 
         if (!isCertOK) {
@@ -897,8 +882,8 @@ public class SemsExecutor {
           continue;
         }
 
-        if (Arrays.equals(tlvRE42.getValue(), tlvSC42.getValue()) &&
-            Arrays.equals(tlvRE45.getValue(), tlvSC45.getValue())) {
+        if (Arrays.equals(tlvRE42.getValue(), tlvSC42.getValue())
+            && Arrays.equals(tlvRE45.getValue(), tlvSC45.getValue())) {
           /* Correct certificate found*/
           APCert = cert;
           stat = SemsStatus.SEMS_STATUS_SUCCESS;
@@ -920,7 +905,7 @@ public class SemsExecutor {
         response = rapdu;
         return SemsStatus.SEMS_STATUS_FAILED;
       }
-      if (SemsUtil.getSW(rapdu) != (short)0x9000) {
+      if (SemsUtil.getSW(rapdu) != (short) 0x9000) {
         Log.e(TAG, "certificate frame command failed");
         mSemsFileOp.putIntoLog(rapdu, ErrorResponse);
         response = rapdu;
@@ -957,22 +942,22 @@ public class SemsExecutor {
       Log.e(TAG, "SEMS-select failed");
       return stat;
     }
-    if (SemsUtil.getSW(rapduSelect) != (short)0x9000) {
-      if ((SemsUtil.getSW(rapduSelect) == (short)0x6999) ||
-          (SemsUtil.getSW(rapduSelect) == (short)0x6A82)) {
+    if (SemsUtil.getSW(rapduSelect) != (short) 0x9000) {
+      if ((SemsUtil.getSW(rapduSelect) == (short) 0x6999)
+          || (SemsUtil.getSW(rapduSelect) == (short) 0x6A82)) {
         rapduSelect = selectApplication(channelNumber, SEMS_APP_AID);
         if (rapduSelect == null) {
           Log.e(TAG, "SEMS-select failed");
           return stat;
         }
-        if ((SemsUtil.getSW(rapduSelect) == (short)0x6999) ||
-            (SemsUtil.getSW(rapduSelect) == (short)0x6A82)) {
+        if ((SemsUtil.getSW(rapduSelect) == (short) 0x6999)
+            || (SemsUtil.getSW(rapduSelect) == (short) 0x6A82)) {
           rapduSelect = selectApplication(channelNumber, SEMS_UPD_APP_AID);
           if (rapduSelect == null) {
             Log.e(TAG, "SEMS-select failed");
             return stat;
           }
-          if (SemsUtil.getSW(rapduSelect) == (short)0x9000) {
+          if (SemsUtil.getSW(rapduSelect) == (short) 0x9000) {
             AID_MEM = SEMS_UPD_APP_AID;
             stat = SemsStatus.SEMS_STATUS_SUCCESS;
           } else {
@@ -980,7 +965,7 @@ public class SemsExecutor {
             return stat;
           }
         } else {
-          if (SemsUtil.getSW(rapduSelect) == (short)0x9000) {
+          if (SemsUtil.getSW(rapduSelect) == (short) 0x9000) {
             AID_MEM = SEMS_APP_AID;
             stat = SemsStatus.SEMS_STATUS_SUCCESS;
           } else {
@@ -1049,7 +1034,7 @@ public class SemsExecutor {
     }
     mSemsFileOp.putIntoLog(rapdu, SemsAuthResponse);
 
-    if (SemsUtil.getSW(rapdu) == (short)0x6310) { // begin_perso cleanup
+    if (SemsUtil.getSW(rapdu) == (short) 0x6310) { // begin_perso cleanup
       int i = 0;
 
       if ((rapdu = sendToSE(rapdu)) == null) {
@@ -1065,8 +1050,7 @@ public class SemsExecutor {
         return stat;
       }
       mSemsFileOp.putIntoLog(rapdu, SemsResponse);
-      while (SemsUtil.getSW(rapdu) == (short)0x6310) {
-
+      while (SemsUtil.getSW(rapdu) == (short) 0x6310) {
         if ((rapdu = sendToSE(rapdu)) == null) {
           mSemsFileOp.putIntoLog(sw6987, ErrorResponse);
           response = sw6987;
@@ -1078,10 +1062,10 @@ public class SemsExecutor {
 
         i++;
       }
-    } else if (SemsUtil.getSW(rapdu) != (short)0x9000) {
+    } else if (SemsUtil.getSW(rapdu) != (short) 0x9000) {
       Log.e(TAG, "Processing Authentication frame failed");
       mSemsFileOp.putIntoLog(rapdu, SemsResponse);
-    } else if (SemsUtil.getSW(rapdu) == (short)0x9000) {
+    } else if (SemsUtil.getSW(rapdu) == (short) 0x9000) {
       stat = SemsStatus.SEMS_STATUS_SUCCESS;
     }
     response = rapdu;
@@ -1089,7 +1073,9 @@ public class SemsExecutor {
   }
 
   class SemsAsyncExecutor extends Thread {
-    public void run() { executeScript(); }
+    public void run() {
+      executeScript();
+    }
   }
 
   /**
@@ -1108,17 +1094,13 @@ public class SemsExecutor {
     if (status != null) {
       respLen = status.length;
       if (respLen >= 2) {
-        if (status[respLen - 2] == (byte)0x90 && status[respLen - 1] == 0) {
+        if (status[respLen - 2] == (byte) 0x90 && status[respLen - 1] == 0) {
           updateStatus = 0;
           Log.d(TAG, "Exit SEMS script execution success");
-        } else if (status[respLen - 2] == (byte)0x69 &&
-                   status[respLen - 1] == (byte)0x87) {
+        } else if (status[respLen - 2] == (byte) 0x69 && status[respLen - 1] == (byte) 0x87) {
           updateStatus = 1;
-          Log.d(
-              TAG,
-              "Exit SEMS script execution failed due to script processing error");
-        } else if (status[respLen - 2] == (byte)0x6F &&
-                   status[respLen - 1] == (byte)0x00) {
+          Log.d(TAG, "Exit SEMS script execution failed due to script processing error");
+        } else if (status[respLen - 2] == (byte) 0x6F && status[respLen - 1] == (byte) 0x00) {
           updateStatus = 2;
           Log.d(TAG, "Exit SEMS script execution failed due to IO exception");
         } else {
@@ -1129,8 +1111,7 @@ public class SemsExecutor {
     }
     if (this.mSemsCallback != null) {
       this.mSemsCallback.onSemsComplete(updateStatus);
-      this.mSemsCallback.onSemsComplete(updateStatus,
-                                        mSemsFileOp.getRespOutLog());
+      this.mSemsCallback.onSemsComplete(updateStatus, mSemsFileOp.getRespOutLog());
     }
   }
   /**
@@ -1158,8 +1139,7 @@ public class SemsExecutor {
     lastSemsExec.outScriptSignature = null;
 
     /* Frame packet to get status and authentication */
-    byte[] getDataFrame = {(byte)0x80, (byte)0xCA, (byte)0x00, (byte)0x00,
-                           (byte)0x00};
+    byte[] getDataFrame = {(byte) 0x80, (byte) 0xCA, (byte) 0x00, (byte) 0x00, (byte) 0x00};
 
     try {
       if (SelectSems() != SemsStatus.SEMS_STATUS_SUCCESS) {
@@ -1169,36 +1149,34 @@ public class SemsExecutor {
       /******** Processing Authentication command ***********/
       getDataFrame[3] = GET_AUTH_SIGNATURE;
       rapdu = sChannel.transmit(getDataFrame);
-      if ((rapdu != null) && (rapdu.length != 0) && SemsUtil.getSW(rapdu) == (short)0x9000) {
+      if ((rapdu != null) && (rapdu.length != 0) && SemsUtil.getSW(rapdu) == (short) 0x9000) {
         tlvs = SemsTLV.parse(rapdu);
         if (tlvs.size() != 0) {
           tlvSC47 = SemsTLV.find(tlvs, GET_AUTH_SIGNATURE);
           if (tlvSC47 != null)
-            lastSemsExec.outScriptSignature =
-                Arrays.toString(tlvSC47.getValue());
+            lastSemsExec.outScriptSignature = Arrays.toString(tlvSC47.getValue());
         }
       }
 
       /******** Processing Status command ***********/
       getDataFrame[3] = GET_SEMS_STATUS;
       rapdu = sChannel.transmit(getDataFrame);
-      if ((rapdu.length != 0) && SemsUtil.getSW(rapdu) == (short)0x9000) {
+      if ((rapdu.length != 0) && SemsUtil.getSW(rapdu) == (short) 0x9000) {
         tlvs = SemsTLV.parse(rapdu);
         if (tlvs.size() != 0) {
           int statusByte = 0;
           tlvSC46 = SemsTLV.find(tlvs, GET_SEMS_STATUS);
-          if ((tlvSC46 != null) && (tlvSC46.getValue()[statusByte] ==
-                                    SemsAgent.SEMS_STATUS_SUCCESS)) {
+          if ((tlvSC46 != null)
+              && (tlvSC46.getValue()[statusByte] == SemsAgent.SEMS_STATUS_SUCCESS)) {
             lastSemsExec.status = SemsAgent.SEMS_STATUS_SUCCESS;
           }
         }
       }
 
-      Log.d(TAG, "******* Sems authentication signature : " +
-                     lastSemsExec.outScriptSignature);
+      Log.d(TAG, "******* Sems authentication signature : " + lastSemsExec.outScriptSignature);
       Log.d(TAG, "******* Sems status : " + lastSemsExec.status);
 
-      /*Close the logical chanel*/
+      /*Close the logical channel*/
       closeLogicalChannel(channelNumber);
     } catch (IOException e) {
       closeLogicalChannel(channelNumber);

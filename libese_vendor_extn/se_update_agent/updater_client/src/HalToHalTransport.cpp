@@ -35,14 +35,14 @@
  *********************************************************************************/
 #define LOG_TAG "HalToHalTransport"
 
+#include <HalToHalTransport.h>
 #include <android-base/logging.h>
 #include <android-base/stringprintf.h>
 #include <android/binder_manager.h>
 #include <signal.h>
+
 #include <iomanip>
 #include <vector>
-
-#include <HalToHalTransport.h>
 
 #define LOGICAL_CH_NOT_SUPPORTED_SW1 0x68
 #define LOGICAL_CH_NOT_SUPPORTED_SW2 0x81

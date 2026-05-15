@@ -47,8 +47,7 @@ public class SemsFileOperation {
   private static final byte SEMS_CERT_RESPONSE = 0x05;
   private static final byte SEMS_AUTH_RESPONSE = 0x06;
   private static final byte SEMS_RESPONSE_LOG_TAG = 0x61;
-  private static final byte SEMS_FRAME_TYPE_TAG =
-      0x44; // (CERT/AUTH/SECURE_CMD frame)
+  private static final byte SEMS_FRAME_TYPE_TAG = 0x44; // (CERT/AUTH/SECURE_CMD frame)
   private static final byte SEMS_RESPONSE_DATA_TAG = 0x43;
 
   /**
@@ -96,25 +95,24 @@ public class SemsFileOperation {
     }
 
     switch (type) {
-    case ERROR_RESPONSE:
-      return;
-    default:
-      return;
-    case SEMS_CERT_RESPONSE:
-      data = new byte[] {0x7F, 0x21};
-      break;
-    case SEMS_AUTH_RESPONSE:
-      data = new byte[] {0x60};
-      break;
-    case SEMS_RESPONSE:
-      data = new byte[] {0x40};
-      break;
+      case ERROR_RESPONSE:
+        return;
+      default:
+        return;
+      case SEMS_CERT_RESPONSE:
+        data = new byte[] {0x7F, 0x21};
+        break;
+      case SEMS_AUTH_RESPONSE:
+        data = new byte[] {0x60};
+        break;
+      case SEMS_RESPONSE:
+        data = new byte[] {0x40};
+        break;
     }
 
-    data = SemsTLV.make(
-        SEMS_RESPONSE_LOG_TAG,
+    data = SemsTLV.make(SEMS_RESPONSE_LOG_TAG,
         SemsUtil.append(SemsTLV.make(SEMS_RESPONSE_DATA_TAG, data),
-                        SemsTLV.make(SEMS_RESPONSE_DATA_TAG, what)));
+            SemsTLV.make(SEMS_RESPONSE_DATA_TAG, what)));
     mRespOutlog = mRespOutlog + SemsUtil.toHexString(data) + "\r\n";
   }
 
@@ -245,5 +243,7 @@ public class SemsFileOperation {
    *
    * @return String response log buffer.
    */
-  public String getRespOutLog() { return mRespOutlog; }
+  public String getRespOutLog() {
+    return mRespOutlog;
+  }
 }

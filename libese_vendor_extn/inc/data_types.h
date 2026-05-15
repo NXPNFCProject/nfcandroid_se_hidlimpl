@@ -15,10 +15,10 @@
  */
 #ifndef DATA_TYPES_H
 #define DATA_TYPES_H
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #ifndef NULL
-#define NULL     0
+#define NULL 0
 #endif
 
 /*
@@ -28,10 +28,10 @@
 */
 
 #ifndef FALSE
-#define FALSE  0
+#define FALSE 0
 #endif
 
-typedef uint32_t        TIME_STAMP;
+typedef uint32_t TIME_STAMP;
 
 /*
 #ifndef true
@@ -40,17 +40,17 @@ typedef uint32_t        TIME_STAMP;
 */
 
 #ifndef TRUE
-#define TRUE   (!FALSE)
+#define TRUE (!FALSE)
 #endif
 
-typedef unsigned char   UBYTE;
+typedef unsigned char UBYTE;
 
-#define STATUS_SUCCESS     0x00
-#define STATUS_OKAY          0x00
-#define STATUS_UPTO_DATE   0x01
-#define STATUS_FAILED      0x03
-#define STATUS_INUSE       0x04
-#define STATUS_FILE_NOT_FOUND  0x05
+#define STATUS_SUCCESS 0x00
+#define STATUS_OKAY 0x00
+#define STATUS_UPTO_DATE 0x01
+#define STATUS_FAILED 0x03
+#define STATUS_INUSE 0x04
+#define STATUS_FILE_NOT_FOUND 0x05
 
 #define EE_ERROR_OPEN_FAIL (-1)
 

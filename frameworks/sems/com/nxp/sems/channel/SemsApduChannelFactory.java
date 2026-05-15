@@ -27,8 +27,7 @@ public class SemsApduChannelFactory {
   private static ISemsApduChannel mChannelFactory = null;
   public static final String TAG = "SEMS-SemsApduChannelFactory";
 
-  public static ISemsApduChannel getInstance(byte type, Context context,
-                                             byte terminalID)
+  public static ISemsApduChannel getInstance(byte type, Context context, byte terminalID)
       throws SemsException {
     synchronized (SemsApduChannelFactory.class) {
       if (context == null) {
@@ -37,12 +36,10 @@ public class SemsApduChannelFactory {
       }
       /* The singleton obj creation for OMAPI APDU channel is controlled by
          lower layer i.e. SemsOmapiApduChannel */
-      if ((mChannelFactory == null && type == RAW_CHANNEL) ||
-          (type == OMAPI_CHANNEL)) {
+      if ((mChannelFactory == null && type == RAW_CHANNEL) || (type == OMAPI_CHANNEL)) {
         Log.d(TAG, "SemsApduChannelFactory Initialization");
         mChannelFactory =
-            (ISemsApduChannel)SemsApduChannelFactory.createApduChannel(
-                type, context, terminalID);
+            (ISemsApduChannel) SemsApduChannelFactory.createApduChannel(type, context, terminalID);
       }
       return mChannelFactory;
     }
@@ -50,8 +47,7 @@ public class SemsApduChannelFactory {
 
   private SemsApduChannelFactory() {}
 
-  private static ISemsApduChannel createApduChannel(byte type, Context context,
-                                                    byte terminalID)
+  private static ISemsApduChannel createApduChannel(byte type, Context context, byte terminalID)
       throws SemsException {
     ISemsApduChannel mSemsApduChannel = null;
     if (type == OMAPI_CHANNEL) {

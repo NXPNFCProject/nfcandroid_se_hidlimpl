@@ -36,8 +36,7 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
   private Object serviceMutex = new Object();
   private boolean mFlagServiceMutex = false;
   private Timer connectionTimer;
-  private ServiceConnectionTimerTask mTimerTask =
-      new ServiceConnectionTimerTask();
+  private ServiceConnectionTimerTask mTimerTask = new ServiceConnectionTimerTask();
   private SynchronousExecutor mExecutor = new SynchronousExecutor();
   private boolean mbIsConnected = false;
   private static SEService seService = null;
@@ -57,8 +56,7 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
    *
    * @return {@code SemsAgent}.
    */
-  public static SemsOmapiApduChannel getInstance(byte terminalID,
-                                                 Context context)
+  public static SemsOmapiApduChannel getInstance(byte terminalID, Context context)
       throws SemsException {
     if (context == null) {
       Log.e(TAG, "getInstance: context is null");
@@ -67,11 +65,10 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
     ESE_TERMINAL_NAME = "eSE" + String.valueOf(terminalID);
     sContext = context;
     boolean initRequired = false;
-    if (sOmapiChannel == null || seService == null || sSession == null ||
-        sChannel == null || mTerminalID != terminalID) {
+    if (sOmapiChannel == null || seService == null || sSession == null || sChannel == null
+        || mTerminalID != terminalID) {
       initRequired = true;
-    } else if (!seService.isConnected() || sSession.isClosed() ||
-               !sChannel.isOpen()) {
+    } else if (!seService.isConnected() || sSession.isClosed() || !sChannel.isOpen()) {
       initRequired = true;
     }
 
@@ -131,10 +128,8 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
   }
 
   private void getSession() throws SemsException {
-
     waitForConnection();
-    while (seService == null &&
-           (bindService != null && bindService.isAlive())) {
+    while (seService == null && (bindService != null && bindService.isAlive())) {
       try {
         Log.d(TAG, "Retry on SeService connection failure");
         new Thread().sleep(SERVICE_CONNECTION_TIME_OUT / 6);
@@ -184,11 +179,13 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
         sChannel = sSession.openLogicalChannel(aid);
         return sChannel.getSelectResponse();
       } catch (NoSuchElementException e) {
-        return new byte[] {(byte)0x6A, (byte)0x82};
+        return new byte[] {(byte) 0x6A, (byte) 0x82};
       } catch (SecurityException e) {
         throw new IOException("Security Exception");
       } catch (IOException e) {
-        { throw new IOException("Open APDU channel failed"); }
+        {
+          throw new IOException("Open APDU channel failed");
+        }
       }
     } else {
       throw new IOException("Session not initialized");
@@ -234,7 +231,9 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
       sChannel.close();
     }
   }
-  public boolean isOpen() { return sSession.isClosed() == true ? false : true; }
+  public boolean isOpen() {
+    return sSession.isClosed() == true ? false : true;
+  }
   class ServiceConnectionTimerTask extends TimerTask {
     @Override
     public void run() {
@@ -258,8 +257,8 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
         mFlagServiceMutex = false;
       }
       if (!mbIsConnected) {
-        throw new SemsException("Service could not be connected after " +
-                                SERVICE_CONNECTION_TIME_OUT + " ms");
+        throw new SemsException(
+            "Service could not be connected after " + SERVICE_CONNECTION_TIME_OUT + " ms");
       }
       if (connectionTimer != null) {
         connectionTimer.cancel();
@@ -278,8 +277,7 @@ public class SemsOmapiApduChannel implements ISemsApduChannel {
             new Thread().sleep(SERVICE_CONNECTION_TIME_OUT / 6);
             Log.d(TAG, "Bind to SE service fails" + max_retry);
           } catch (InterruptedException e) {
-            Log.d(TAG,
-                  "BindToSEService Thread interruption exception received");
+            Log.d(TAG, "BindToSEService Thread interruption exception received");
           }
         }
       } while (seService == null && (max_retry++ < 3));

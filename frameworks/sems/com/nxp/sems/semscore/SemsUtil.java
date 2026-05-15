@@ -25,8 +25,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
 public class SemsUtil {
-  private static char HEXCHARS[] = {'0', '1', '2', '3', '4', '5', '6', '7',
-                                    '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+  private static char HEXCHARS[] = {
+      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
   public static final String toHexString(byte b) {
     StringBuffer sb = new StringBuffer(2);
@@ -168,8 +168,7 @@ public class SemsUtil {
       return null;
     }
     StringBuilder sb = new StringBuilder();
-    for (byte b : a)
-      sb.append(String.format("%02X", b & 0xff));
+    for (byte b : a) sb.append(String.format("%02X", b & 0xff));
     return sb.toString();
   }
   public static byte[] append(byte[] a, byte[] b) {
@@ -207,19 +206,17 @@ public class SemsUtil {
     return true;
   }
 
-  public static byte[] makeCAPDU(int cla, int ins, int p1, int p2,
-                                 byte[] cdata) {
+  public static byte[] makeCAPDU(int cla, int ins, int p1, int p2, byte[] cdata) {
     if (cdata == null) {
-      return new byte[] {(byte)cla, (byte)ins, (byte)p1, (byte)p2, 0};
+      return new byte[] {(byte) cla, (byte) ins, (byte) p1, (byte) p2, 0};
     } else {
-      return append(new byte[] {(byte)cla, (byte)ins, (byte)p1, (byte)p2,
-                                (byte)cdata.length},
-                    cdata);
+      return append(
+          new byte[] {(byte) cla, (byte) ins, (byte) p1, (byte) p2, (byte) cdata.length}, cdata);
     }
   }
 
-  public static final short SW_NO_ERROR = (short)0x9000;
-  public static final short SW_FILE_NOT_FOUND = (short)0x6A82;
+  public static final short SW_NO_ERROR = (short) 0x9000;
+  public static final short SW_FILE_NOT_FOUND = (short) 0x6A82;
 
   public static short getSW(byte[] rapdu) {
     if (rapdu == null) {
@@ -228,7 +225,7 @@ public class SemsUtil {
     }
     byte sw1 = rapdu[rapdu.length - 2];
     byte sw2 = rapdu[rapdu.length - 1];
-    return (short)((sw1 << 8) + (sw2 & 0xFF));
+    return (short) ((sw1 << 8) + (sw2 & 0xFF));
   }
 
   public static byte[] getRDATA(byte[] rapdu) {

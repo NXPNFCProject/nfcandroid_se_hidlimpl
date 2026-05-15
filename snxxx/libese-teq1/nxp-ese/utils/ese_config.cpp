@@ -22,7 +22,6 @@
 #include <android-base/logging.h>
 #include <android-base/parseint.h>
 #include <android-base/strings.h>
-
 #include <config.h>
 
 using namespace ::std;

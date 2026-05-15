@@ -36,7 +36,9 @@
 #pragma once
 #include <aidl/android/hardware/secure_element/BnSecureElementCallback.h>
 #include <aidl/android/hardware/secure_element/ISecureElement.h>
+
 #include <vector>
+
 #include "ITransport.h"
 
 namespace se_update_agent {

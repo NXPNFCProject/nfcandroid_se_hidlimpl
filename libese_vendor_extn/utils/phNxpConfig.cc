@@ -36,15 +36,16 @@
  *
  ******************************************************************************/
 
+#include <log/log.h>
+#include <phNxpConfig.h>
+#include <phNxpLog.h>
 #include <stdio.h>
 #include <sys/stat.h>
+
 #include <list>
 #include <string>
 #include <vector>
-#include <log/log.h>
 
-#include <phNxpConfig.h>
-#include <phNxpLog.h>
 #include "sparse_crc32.h"
 #if GENERIC_TARGET
 const char alternative_config_path[] = "/data/vendor/nfc/";
@@ -71,8 +72,7 @@ const char config_timestamp_path[] =
     "/data/vendor/nfc/libnfc-nxpConfigState.bin";
 /*const char default_nxp_config_path[] =
         "/vendor/etc/libnfc-nxp.conf";*/
-const char nxp_rf_config_path[] =
-        "/system/vendor/libnfc-nxp_RF.conf";
+const char nxp_rf_config_path[] = "/system/vendor/libnfc-nxp_RF.conf";
 const char transit_config_path[] = "/data/vendor/nfc/libnfc-nxpTransit.conf";
 void readOptionalConfig(const char* optional);
 #endif
@@ -462,7 +462,8 @@ CNfcConfig::CNfcConfig()
       m_timeStampRF(0),
       m_timeStampTransit(0),
 #endif
-      state(0) {}
+      state(0) {
+}
 
 /*******************************************************************************
 **
@@ -847,7 +848,7 @@ int CNfcConfig::checkTimestamp(const char* fileName, const char* fileNameTime) {
       ALOGE("%s Cannot open file %s\n", __func__, fileName);
       return 1;
     }
-    if(fread(&value, sizeof(unsigned long), 1, fd) != 1) {
+    if (fread(&value, sizeof(unsigned long), 1, fd) != 1) {
       ALOGE("%s: Failed to read file", __func__);
     }
     ret = (value != timeStamp) ? 1 : 0;
@@ -889,7 +890,7 @@ int CNfcConfig::updateTimestamp() {
       return 1;
     }
 
-    if(fread(&value, sizeof(unsigned long), 1, fd) != 1) {
+    if (fread(&value, sizeof(unsigned long), 1, fd) != 1) {
       ALOGE("%s: Failed to read file", __func__);
     }
     ret = (value != m_timeStamp);
@@ -911,7 +912,7 @@ bool CNfcConfig::isModified() {
   }
 
   uint32_t stored_crc32 = 0;
-  if(fread(&stored_crc32, sizeof(uint32_t), 1, fd) != 1) {
+  if (fread(&stored_crc32, sizeof(uint32_t), 1, fd) != 1) {
     ALOGE("%s: Failed to read file", __func__);
   }
   fclose(fd);

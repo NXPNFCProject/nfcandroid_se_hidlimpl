@@ -38,7 +38,6 @@ namespace secure_element {
 #define NUM_OF_CH5 0x05
 #define AID_SECURE_ELEMENT 1068
 #define AID_ROOT 0
-#define AID_SE_UPDATE_AGENT 2904
 
 typedef struct gsTransceiveBuffer {
   phNxpEse_data cmdData;
@@ -103,7 +102,7 @@ ScopedAStatus SecureElement::init(
     return ScopedAStatus::fromExceptionCode(EX_NULL_POINTER);
   }
   uid_t clientUid = AIBinder_getCallingUid();
-  LOG(INFO)  << "clientUid: " << clientUid;
+  LOG(INFO) << "clientUid: " << clientUid;
   // Allow VTS tests even if omapi acquires the lock.
   if (!isClientVts(clientUid) && !handleClientCallback(clientCallback)) {
     LOG(INFO) << __func__ << " client not allowed";
@@ -876,7 +875,6 @@ int SecureElement::seHalDeInit() {
 }
 
 ScopedAStatus SecureElement::reset() {
-  LOG(INFO) << __func__;
   ESESTATUS status = ESESTATUS_SUCCESS;
   LOG(INFO) << __func__ << " Enter";
   {
@@ -911,7 +909,8 @@ ScopedAStatus SecureElement::reset() {
   LOG(DEBUG) << __func__ << ": Exit";
   return status == ESESTATUS_SUCCESS
              ? ndk::ScopedAStatus::ok()
-             : ndk::ScopedAStatus::fromServiceSpecificError(ISecureElement::FAILED);
+             : ndk::ScopedAStatus::fromServiceSpecificError(
+                   ISecureElement::FAILED);
 }
 
 static int getResponseInternal(uint8_t cla, phNxpEse_7816_rpdu_t& rpdu,
@@ -1006,9 +1005,7 @@ uint8_t SecureElement::getMaxChannelCnt() {
   return cnt;
 }
 
-void SecureElement::handleStateOnDeath() {
-    handleClientCbCleanup();
-}
+void SecureElement::handleStateOnDeath() { handleClientCbCleanup(); }
 
 void SecureElement::handleClientCbCleanup() {
   if (!isClientVts(mCbClientUid)) {
@@ -1020,10 +1017,10 @@ void SecureElement::handleClientCbCleanup() {
 bool SecureElement::handleClientCallback(
     const std::shared_ptr<ISecureElementCallback>& clientCallback) {
   AutoMutex guard(initLock);
-  LOG(INFO)  << "isOmapi : " << isOmapi;
+  LOG(INFO) << "isOmapi : " << isOmapi;
   uid_t currentClientUid = AIBinder_getCallingUid();
   // To support private space UIDs of Omapi service
-  if (isOmapi && ((currentClientUid%100000) != AID_SECURE_ELEMENT)) {
+  if (isOmapi && ((currentClientUid % 100000) != AID_SECURE_ELEMENT)) {
     return false;
   }
   // Lock the mutex until the acquired client either closes the channel or
@@ -1038,7 +1035,7 @@ bool SecureElement::handleClientCallback(
     seHalClientLock.unlock();
     return false;
   }
-  isOmapi = ((currentClientUid%100000) == AID_SECURE_ELEMENT);
+  isOmapi = ((currentClientUid % 100000) == AID_SECURE_ELEMENT);
 
   return true;
 }

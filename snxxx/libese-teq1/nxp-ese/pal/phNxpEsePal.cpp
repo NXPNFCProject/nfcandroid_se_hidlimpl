@@ -229,6 +229,8 @@ void phPalEse_BusyWait(long total_time /* usecs*/) {
 *******************************************************************************/
 void phPalEse_print_packet(const char* pString, const uint8_t* p_data,
                            uint16_t len) {
+  if (ese_log_level < NXPESE_LOGLEVEL_DEBUG) return;  // debug logs disabled
+
   uint32_t i;
   char print_buffer[len * 3 + 1];
 

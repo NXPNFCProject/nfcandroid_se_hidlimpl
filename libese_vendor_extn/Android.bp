@@ -24,11 +24,11 @@ cc_library_shared {
         "utils/phNxpConfig.cc",
         "utils/sparse_crc32.cc",
         "src/eSEClientIntf.cc",
-        "src/phNxpLog.cc"
+        "src/phNxpLog.cc",
     ],
     export_include_dirs: [
-     "inc",
-     "utils",
+        "inc",
+        "utils",
     ],
     local_include_dirs: [
         "inc",

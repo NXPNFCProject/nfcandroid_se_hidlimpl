@@ -16,8 +16,4 @@
 
 package com.nxp.sems;
 
-public enum SemsStatus {
-  SEMS_STATUS_SUCCESS,
-  SEMS_STATUS_FAILED,
-  SEMS_STATUS_UNKNOWN
-}
+public enum SemsStatus { SEMS_STATUS_SUCCESS, SEMS_STATUS_FAILED, SEMS_STATUS_UNKNOWN }

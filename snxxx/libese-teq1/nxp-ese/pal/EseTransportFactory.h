@@ -18,6 +18,7 @@
 
 #pragma once
 #include <EseTransport.h>
+
 #include <memory>
 
 #define transportFactory (EseTransportFactory::getInstance())

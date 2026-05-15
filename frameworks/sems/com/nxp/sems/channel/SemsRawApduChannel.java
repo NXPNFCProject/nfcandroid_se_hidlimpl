@@ -17,7 +17,6 @@
 package com.nxp.sems.channel;
 
 public class SemsRawApduChannel implements ISemsApduChannel {
-
   @Override
   public byte[] open(byte[] aid) {
     // TODO Auto-generated method stub

@@ -113,8 +113,8 @@ size_t ringbuffer_peek(const ringbuffer_t* rb, off_t offset, uint8_t* p,
   assert((size_t)offset <= ringbuffer_size(rb));
   if ((size_t)offset > ringbuffer_size(rb)) return 0;
 
-
-  uint8_t* b = (((size_t)(rb->head - rb->base) + (size_t)offset) % rb->total) + rb->base;
+  uint8_t* b =
+      (((size_t)(rb->head - rb->base) + (size_t)offset) % rb->total) + rb->base;
   const size_t bytes_to_copy = (length > ringbuffer_size(rb) - offset)
                                    ? ringbuffer_size(rb) - offset
                                    : length;

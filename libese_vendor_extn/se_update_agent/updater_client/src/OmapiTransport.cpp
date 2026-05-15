@@ -36,17 +36,17 @@
 #define LOG_TAG "OmapiTransport"
 #include "OmapiTransport.h"
 
+#include <android-base/logging.h>
+#include <android-base/stringprintf.h>
 #include <arpa/inet.h>
+#include <hardware_legacy/power.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
 #include <iomanip>
 #include <vector>
-
-#include <android-base/logging.h>
-#include <android-base/stringprintf.h>
-#include <hardware_legacy/power.h>
 
 #define UNUSED_V(a) a = a
 #define RESP_CHANNEL_NOT_AVAILABLE 0x6881
@@ -311,7 +311,7 @@ bool OmapiTransport::openChannel(const std::vector<uint8_t>& aid,
       LOG(ERROR) << "Failed to select the Applet.";
       return false;
     }
-    // opened channel succesfully
+    // opened channel successfully
     channel_num = 0;  // fixed channel number
   }
   return true;

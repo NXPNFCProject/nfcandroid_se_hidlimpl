@@ -47,11 +47,17 @@ public class SemsTLV {
     return new SemsTLV(tag, value).getTLV();
   }
 
-  public boolean isConstructed() { return this.nodes != null; }
+  public boolean isConstructed() {
+    return this.nodes != null;
+  }
 
-  public boolean isPrimitive() { return this.nodes != null; }
+  public boolean isPrimitive() {
+    return this.nodes != null;
+  }
 
-  public int getTag() { return this.tag; }
+  public int getTag() {
+    return this.tag;
+  }
 
   public List<SemsTLV> getNodes() {
     if (nodes == null) {
@@ -60,11 +66,17 @@ public class SemsTLV {
     return new ArrayList<>(this.nodes);
   }
 
-  public int getLength() { return getValue().length; }
+  public int getLength() {
+    return getValue().length;
+  }
 
-  public byte[] getValue() { return this.value != null ? this.value.clone() : null; }
+  public byte[] getValue() {
+    return this.value != null ? this.value.clone() : null;
+  }
 
-  public byte[] getTLV() { return createTLV(this.tag, this.value); }
+  public byte[] getTLV() {
+    return createTLV(this.tag, this.value);
+  }
 
   public static List<SemsTLV> parse(byte[] buffer) {
     return parse(ByteBuffer.wrap(buffer));
@@ -78,7 +90,9 @@ public class SemsTLV {
     return parse(ByteBuffer.wrap(buffer), asPrimitiveTags);
   }
 
-  private static List<SemsTLV> parse(ByteBuffer bb) { return parse(bb, null); }
+  private static List<SemsTLV> parse(ByteBuffer bb) {
+    return parse(bb, null);
+  }
 
   private static List<SemsTLV> parse(ByteBuffer bb, int[] asPrimitiveTags) {
     List<SemsTLV> list = new ArrayList<SemsTLV>();
@@ -166,25 +180,23 @@ public class SemsTLV {
       byte[] t, l;
 
       if ((tag & 0xFF00) == 0x0000) {
-        t = new byte[] {(byte)tag};
+        t = new byte[] {(byte) tag};
       } else {
-        t = new byte[] {(byte)(tag >> 8), (byte)tag};
+        t = new byte[] {(byte) (tag >> 8), (byte) tag};
       }
 
       if (value.length < 128) {
-        l = new byte[] {(byte)value.length};
+        l = new byte[] {(byte) value.length};
       } else if (value.length < 256) {
-        l = new byte[] {(byte)(0x81), (byte)value.length};
+        l = new byte[] {(byte) (0x81), (byte) value.length};
       } else if (value.length < 65536) {
-        l = new byte[] {(byte)(0x82), (byte)(value.length >> 8),
-                        (byte)value.length};
+        l = new byte[] {(byte) (0x82), (byte) (value.length >> 8), (byte) value.length};
       } else if (value.length < (256 * 65536)) {
-        l = new byte[] {(byte)(0x83), (byte)(value.length >> 16),
-                        (byte)(value.length >> 8), (byte)value.length};
+        l = new byte[] {(byte) (0x83), (byte) (value.length >> 16), (byte) (value.length >> 8),
+            (byte) value.length};
       } else {
-        l = new byte[] {(byte)(0x84), (byte)(value.length >> 24),
-                        (byte)(value.length >> 16), (byte)(value.length >> 8),
-                        (byte)value.length};
+        l = new byte[] {(byte) (0x84), (byte) (value.length >> 24), (byte) (value.length >> 16),
+            (byte) (value.length >> 8), (byte) value.length};
       }
 
       return SemsUtil.append(SemsUtil.append(t, l), value);

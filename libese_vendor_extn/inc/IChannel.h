@@ -19,6 +19,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+
 #include "data_types.h"
 typedef enum InterfaceInfo : uint8_t {
   INTF_NFC = 0,

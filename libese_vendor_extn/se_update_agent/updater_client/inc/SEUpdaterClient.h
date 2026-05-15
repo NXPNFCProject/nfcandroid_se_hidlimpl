@@ -19,6 +19,7 @@
 #define ESE_UPDATE_2_H_
 
 #include <stdint.h>
+
 #include <string>
 #ifdef NXP_BOOTTIME_UPDATE
 #include "eSEClientIntf.h"

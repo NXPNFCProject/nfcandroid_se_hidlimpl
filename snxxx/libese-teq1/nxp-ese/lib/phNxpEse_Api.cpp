@@ -225,7 +225,8 @@ ESESTATUS phNxpEse_init(phNxpEse_initParams initParams) {
   }
 
   if (EseConfig::hasKey(NAME_NXP_ESE_GPIO_RESET) &&
-      (EseConfig::getUnsigned(NAME_NXP_ESE_GPIO_RESET) == ESCALATED_RESET_TYPE)) {
+      (EseConfig::getUnsigned(NAME_NXP_ESE_GPIO_RESET) ==
+       ESCALATED_RESET_TYPE)) {
     sIsEscalatedResetEnabled = true;
   }
   nxpese_ctxt.fPtr_WtxNtf = initParams.fPtr_WtxNtf;

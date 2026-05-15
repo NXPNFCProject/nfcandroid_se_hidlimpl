@@ -20,9 +20,9 @@
 #include <SEUpdaterClient.h>
 #include <ScriptMetadataParser.h>
 #include <Utils.h>
-
 #include <android-base/logging.h>
 #include <unistd.h>
+
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -128,7 +128,7 @@ std::vector<uint8_t> getAvailableMemoryFromSE() {
       auto status = SEConnection::getInstance().getTransport()->sendData(
           get_avl_memory_cmd, get_avl_memory_resp);
       if (status) {
-        // cmd transmitted succesfully
+        // cmd transmitted successfully
         LOG(DEBUG) << "GetAvailableMemory RAPDU:"
                    << toString(get_avl_memory_resp);
       } else {

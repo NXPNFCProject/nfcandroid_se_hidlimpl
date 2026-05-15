@@ -20,6 +20,7 @@
 #include <fcntl.h>
 #include <sys/file.h>
 #include <unistd.h>
+
 #include <cerrno>
 #include <string>
 #include <string_view>
@@ -94,8 +95,8 @@ int main(int argc, char* argv[]) {
     int lock_fd = acquire_file_lock();
     if (lock_fd == -1) {
       // This fails during early boot when /data is not yet mounted.
-      LOG(WARNING)
-          << "Lock acquisition failed; likely due to unmounted /data partition.";
+      LOG(WARNING) << "Lock acquisition failed; likely due to unmounted /data "
+                      "partition.";
     }
 
     if (!strcmp(argv[1], "check-update")) {
@@ -119,11 +120,11 @@ int main(int argc, char* argv[]) {
       RunSingleScriptNoVersionCheck();
 
     } else {
-  #ifdef NXP_BOOTTIME_UPDATE
+#ifdef NXP_BOOTTIME_UPDATE
       LOG(INFO) << "perform Legacy Boottime update";
       checkEseClientUpdate();
       perform_eSEClientUpdate();
-  #endif
+#endif
     }
 
     release_file_lock(lock_fd);
@@ -136,5 +137,4 @@ int main(int argc, char* argv[]) {
   }
 
   return EXIT_FAILURE;
-
 }

@@ -20,6 +20,7 @@
 #define __METADATA_PARSER__
 #include <SEUpdaterClient.h>
 #include <stdint.h>
+
 #include <iomanip>
 #include <string>
 #include <vector>
@@ -152,7 +153,7 @@ ParseMetadataError FilterScripts(const std::vector<uint8_t>& chip_type);
 bool ParseResponse(uint8_t* recvBuffer, int32_t recvBuffersize);
 
 /**
- * Iterates over recevied GETSTATUS response and LOAD/UPDATE scripts
+ * Iterates over received GETSTATUS response and LOAD/UPDATE scripts
  * enumerated metadata info to determine LOAD or UPDATE type script
  * execution
  */

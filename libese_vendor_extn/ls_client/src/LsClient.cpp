@@ -16,14 +16,16 @@
  *
  ******************************************************************************/
 
-#include "LsLib.h"
 #include "LsClient.h"
+
 #include <cutils/log.h>
 #include <dirent.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include <string.h>
 #include <errno.h>
+#include <pthread.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "LsLib.h"
 
 #undef LOG_TAG
 #define LOG_TAG "LsLib"
@@ -87,11 +89,11 @@ tLSC_STATUS performLSDownload(IChannel_t* data, const char* script_path,
                               std::streampos start_offset) {
   tLSC_STATUS status = STATUS_FAILED;
 #ifdef NXP_BOOTTIME_UPDATE
-  const char* lsUpdateBackupPath =
-      "/vendor/etc/loaderservice_updater.txt";
-  const char* lsUpdateBackupOutPath[2] =
-  {"/data/vendor/nfc/loaderservice_updater_out.txt",
-   "/data/vendor/secure_element/loaderservice_updater_out.txt",};
+  const char* lsUpdateBackupPath = "/vendor/etc/loaderservice_updater.txt";
+  const char* lsUpdateBackupOutPath[2] = {
+      "/data/vendor/nfc/loaderservice_updater_out.txt",
+      "/data/vendor/secure_element/loaderservice_updater_out.txt",
+  };
 #endif
 
   /*generated SHA-1 for secureElementLS
@@ -105,8 +107,7 @@ tLSC_STATUS performLSDownload(IChannel_t* data, const char* script_path,
   /*Check and update if any new LS AID is available*/
   updateLsAid(mchannel->getInterfaceInfo());
 
-  if(!initialize ((IChannel_t*) data))
-    return status;
+  if (!initialize((IChannel_t*)data)) return status;
 
   FILE* fIn;
   if ((fIn = fopen(lsUpdateBackupPath, "rb")) == NULL) {
@@ -116,14 +117,15 @@ tLSC_STATUS performLSDownload(IChannel_t* data, const char* script_path,
   } else {
     FILE* fOut = NULL;
     ALOGD("%s File opened %s\n", __func__, lsUpdateBackupPath);
-    if ((fOut = fopen(lsUpdateBackupOutPath[mchannel->getInterfaceInfo()], "wb")) == NULL) {
+    if ((fOut = fopen(lsUpdateBackupOutPath[mchannel->getInterfaceInfo()],
+                      "wb")) == NULL) {
       ALOGE("%s Failed to open file %s\n", __func__,
-        lsUpdateBackupOutPath[mchannel->getInterfaceInfo()]);
+            lsUpdateBackupOutPath[mchannel->getInterfaceInfo()]);
       fclose(fIn);
       return status;
     } else {
       ALOGD("%s File opened %s\n", __func__,
-        lsUpdateBackupOutPath[mchannel->getInterfaceInfo()]);
+            lsUpdateBackupOutPath[mchannel->getInterfaceInfo()]);
       fclose(fIn);
       fclose(fOut);
     }
@@ -197,13 +199,13 @@ uint8_t datahex(char c) {
 **
 *******************************************************************************/
 void updateLsAid(uint8_t intfInfo) {
-  ALOGD_IF( "%s Enter\n", __func__);
+  ALOGD_IF("%s Enter\n", __func__);
 
   FILE* fAID_MEM = NULL;
   fAID_MEM = fopen(AID_MEM_PATH[intfInfo], "r");
 
   if (fAID_MEM == NULL) {
-    ALOGE("%s: AID data file does not exists", __func__);
+    ALOGE("%s: AID data file does not exist", __func__);
     return;
   }
 

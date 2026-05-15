@@ -17,12 +17,10 @@
  ******************************************************************************/
 
 #include "SEUpdaterClient.h"
-#include <Utils.h>
-#include "SEConnection.h"
-#include "ScriptMetadataParser.h"
 
 #include <IChannel.h>
 #include <LsClient.h>
+#include <Utils.h>
 #include <android-base/properties.h>
 #include <log/log.h>
 #include <pthread.h>
@@ -30,12 +28,16 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
 #include <chrono>
 #include <iomanip>
 #include <ios>
 #include <iostream>
 #include <thread>
 #include <vector>
+
+#include "SEConnection.h"
+#include "ScriptMetadataParser.h"
 
 #define MAX_RETRY_LOAD 3
 const std::string SEMS_SELF_UPDATE_DIR_NAME = "sems_self_update";
@@ -72,7 +74,7 @@ static void SE_Reset() { /* phNxpEse_coldReset(); */ }
 
 static int16_t SE_Open() {
   // connect to eSEHAL or OMAPI based on transport type
-  ALOGD("SE_Open: initiliaze connection to eSEHAL");
+  ALOGD("SE_Open: initialize connection to eSEHAL");
   SEConnection::getInstance(current_transport);
   return SESTATUS_OK;
 }
@@ -82,7 +84,7 @@ SESTATUS InitializeConnection() {
   const uint32_t MAX_RETRY_COUNT = 60;  // 60 secs
   while (retry++ < MAX_RETRY_COUNT) {
     if (!SEConnection::getInstance(current_transport).initialize()) {
-      ALOGD("Failed to initailize eSEHAL. Retrying(%d/%d) after 1 sec", retry,
+      ALOGD("Failed to initialize eSEHAL. Retrying(%d/%d) after 1 sec", retry,
             MAX_RETRY_COUNT);
       std::this_thread::sleep_for(
           std::chrono::milliseconds(1000));  // re-try every 1 sec
@@ -272,7 +274,7 @@ static SESTATUS ExecuteSemsScript(const char* script_path,
 
 // Fetch last SEMS script execution status
 static SESTATUS getLastScriptExecutionState(
-    bool &is_interrupted, std::vector<uint8_t>& auth_frame_signature) {
+    bool& is_interrupted, std::vector<uint8_t>& auth_frame_signature) {
   uint8_t status = SESTATUS_FAILED;
   const uint8_t INS_GET_DATA = 0xCA;
 
@@ -304,7 +306,7 @@ static SESTATUS getLastScriptExecutionState(
       resp_vec.resize(0);
       status = LsClient_SemsSendGetDataCmd(INS_GET_DATA, P2_GET_AUTH_FRAME_SIGN,
                                            resp_vec);
-      if (resp_vec.size() <= 3){
+      if (resp_vec.size() <= 3) {
         status = SESTATUS_FAILED;
       }
       if (status == SESTATUS_OK) {
@@ -486,7 +488,7 @@ SESTATUS PrepareUpdate(const std::string& script_dir_path, bool retry_load) {
 **  function: PerformUpdate
 **  description: Executes Sems script of type UPDATE
 **  @arg1: dir path containing Sems scripts
-**  @returns void
+**  @return void
 *******************************************************************************/
 
 /***************************************************************************
@@ -538,7 +540,7 @@ void CheckAndApplyUpdate(const std::string& script_dir_path) {
   if (update_req) {
     ApplyUpdate(ExecutionState::UPDATE);
   } else {
-    ALOGI("ESE componenet(s) are up-to-date with scripts under %s",
+    ALOGI("ESE component(s) are up-to-date with scripts under %s",
           script_dir_path.c_str());
   }
 }
@@ -633,7 +635,7 @@ SESTATUS ApplyUpdate(ExecutionState exe_state) {
   bool preload_pending = false;
   ALOGI("exe_state is %d", exe_state);
   for (const auto& current_script : all_scripts_info) {
-    std::streampos start_offset = 0;  // default from begining
+    std::streampos start_offset = 0;  // default from beginning
     std::string script_path;
     switch (exe_state) {
       case ExecutionState::UPDATE:
@@ -699,7 +701,7 @@ SESTATUS ESE_ChannelInit(IChannel* ch) {
 **
 ** Function:        eSEClientUpdate_Thread
 **
-** Description:    Wrapper funtion to start Updater thread
+** Description:    Wrapper function to start Updater thread
 **
 ** Returns:         void
 **

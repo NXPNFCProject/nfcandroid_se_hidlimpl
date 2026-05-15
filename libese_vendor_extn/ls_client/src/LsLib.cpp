@@ -67,47 +67,38 @@ static tLSC_STATUS (*Applet_load_seqhandler[])(Lsc_ImageInfo_t* pContext,
 ** Returns:         True if ok.
 **
 *******************************************************************************/
-bool initialize (IChannel_t* channel)
-{
-    static const char fn [] = "Ala_initialize";
+bool initialize(IChannel_t* channel) {
+  static const char fn[] = "Ala_initialize";
 #ifdef NXP_BOOTTIME_UPDATE
-    ALOGI("%s: Legacy Boottime Update- lib version: %s ", fn, LibSWVersion);
+  ALOGI("%s: Legacy Boottime Update- lib version: %s ", fn, LibSWVersion);
 #else
-    ALOGI("%s: SE_UPDATE_AGENT- lib version: %s ", fn, LibSWVersion);
+  ALOGI("%s: SE_UPDATE_AGENT- lib version: %s ", fn, LibSWVersion);
 #endif
-    updaterCfg = {
-        .updater_kind = SemsUpdaterKind::SEMS_MAIN,
-    };
-    gpLsc_Dwnld_Context =
-        static_cast<pLsc_Dwnld_Context_t>(malloc(sizeof(Lsc_Dwnld_Context_t)));
-    if(gpLsc_Dwnld_Context != NULL)
-    {
-      memset(static_cast<void*>(gpLsc_Dwnld_Context), 0,
-             static_cast<uint32_t>(sizeof(Lsc_Dwnld_Context_t)));
-    }
-    else
-    {
-        ALOGD("%s: Memory allocation failed", fn);
-        return (false);
-    }
-    gpLsc_Dwnld_Context->mchannel = channel;
-    if((channel != NULL) &&
-       (channel->open) != NULL)
-    {
-      if(channel->open() == STATUS_FAILED)
-      {
-        ALOGD ("%s: exit : channle open failed", fn);
-        return false;
-      }
-    }
-    else
-    {
-      ALOGD ("%s: exit : channel null", fn);
+  updaterCfg = {
+      .updater_kind = SemsUpdaterKind::SEMS_MAIN,
+  };
+  gpLsc_Dwnld_Context =
+      static_cast<pLsc_Dwnld_Context_t>(malloc(sizeof(Lsc_Dwnld_Context_t)));
+  if (gpLsc_Dwnld_Context != NULL) {
+    memset(static_cast<void*>(gpLsc_Dwnld_Context), 0,
+           static_cast<uint32_t>(sizeof(Lsc_Dwnld_Context_t)));
+  } else {
+    ALOGD("%s: Memory allocation failed", fn);
+    return (false);
+  }
+  gpLsc_Dwnld_Context->mchannel = channel;
+  if ((channel != NULL) && (channel->open) != NULL) {
+    if (channel->open() == STATUS_FAILED) {
+      ALOGD("%s: exit : channel open failed", fn);
       return false;
     }
-    mIsLSLibInitialised = true;
-    ALOGD ("%s: exit : success", fn);
-    return (true);
+  } else {
+    ALOGD("%s: exit : channel null", fn);
+    return false;
+  }
+  mIsLSLibInitialised = true;
+  ALOGD("%s: exit : success", fn);
+  return (true);
 }
 
 /*******************************************************************************
@@ -336,8 +327,7 @@ tLSC_STATUS LSC_OpenChannel(Lsc_ImageInfo_t* Os_info, tLSC_STATUS status,
   ALOGD("%s: enter", fn);
   if (Os_info == NULL || pTranscv_Info == NULL) {
     ALOGD("%s: Invalid parameter", fn);
-  }
-  else {
+  } else {
     Os_info->channel_cnt = 0x00;
     phLS_memset(&cmdApdu, 0x00, sizeof(phNxpLs_data));
     phLS_memset(&rspApdu, 0x00, sizeof(phNxpLs_data));
@@ -463,7 +453,7 @@ tLSC_STATUS LSC_SelectLsc(Lsc_ImageInfo_t* Os_info, tLSC_STATUS status,
           "%d",
           fn, rspApdu.p_data[0], rspApdu.p_data[1], rspApdu.len);
       if (status != STATUS_OKAY) {
-        ALOGE("%s: Select Lsc Rsp doesnt have a valid key; status = 0x%X", fn,
+        ALOGE("%s: Select Lsc Rsp doesn't have a valid key; status = 0x%X", fn,
               status);
       }
     } else if (rspApdu.len > 2 && ((rspApdu.p_data[rspApdu.len - 2] != 0x90))) {
@@ -474,8 +464,7 @@ tLSC_STATUS LSC_SelectLsc(Lsc_ImageInfo_t* Os_info, tLSC_STATUS status,
     } else {
       status = STATUS_FAILED;
     }
-    if(status == STATUS_FAILED && semsPresent)
-    {
+    if (status == STATUS_FAILED && semsPresent) {
       phLS_free(cmdApdu.p_data);
       ALOGE("Main SEMS AID Selection failed. Try with SEMSUpdater AID: %s",
             ARR_AS_STRING(SelectSEMSUpdater).c_str());
@@ -483,7 +472,8 @@ tLSC_STATUS LSC_SelectLsc(Lsc_ImageInfo_t* Os_info, tLSC_STATUS status,
       cmdApdu.p_data =
           static_cast<uint8_t*>(phLS_memalloc(cmdApdu.len * sizeof(uint8_t)));
       cmdApdu.p_data[0] = Os_info->Channel_Info[0].channel_id;
-      memcpy(&(cmdApdu.p_data[1]), SelectSEMSUpdater, sizeof(SelectSEMSUpdater));
+      memcpy(&(cmdApdu.p_data[1]), SelectSEMSUpdater,
+             sizeof(SelectSEMSUpdater));
       transStat = LSC_Transceive(&cmdApdu, &rspApdu);
 
       if (transStat != STATUS_SUCCESS && (rspApdu.len == 0x00)) {
@@ -504,8 +494,8 @@ tLSC_STATUS LSC_SelectLsc(Lsc_ImageInfo_t* Os_info, tLSC_STATUS status,
         ALOGI("Updater Type changed to SEMSUpdater");
         updaterCfg.updater_kind = SemsUpdaterKind::SEMS_UPDATER;
         if (status != STATUS_OKAY) {
-          ALOGE("%s: Select Lsc Rsp doesnt have a valid key; status = 0x%X", fn,
-                status);
+          ALOGE("%s: Select Lsc Rsp doesn't have a valid key; status = 0x%X",
+                fn, status);
         }
       } else if ((rspApdu.len >= 2 &&
                   (rspApdu.p_data[rspApdu.len - 2] != 0x90))) {
@@ -909,26 +899,19 @@ tLSC_STATUS LSC_ReadScript(Lsc_ImageInfo_t* Os_info, uint8_t* read_buf) {
     wResult = FSCANF_BYTE(Os_info->fp, "%2X",
                           static_cast<uint8_t*>(&read_buf[wIndex]));
 
-    if(wResult == 0)
-    {
+    if (wResult == 0) {
       char metaString[MAX_META_STRING_SIZE];
-      char *ptr = fgets(metaString, sizeof(metaString), Os_info->fp);
-      if(ptr != NULL)
-      {
+      char* ptr = fgets(metaString, sizeof(metaString), Os_info->fp);
+      if (ptr != NULL) {
         isMetaDatapresent = true;
-        ALOGD("MetaData = %s",ptr);
+        ALOGD("MetaData = %s", ptr);
         wCount = 0;
         wIndex = 0;
+      } else {
+        break;
       }
-      else
-      {
-         break;
-      }
-    }
-    else
-    {
-      if(isMetaDatapresent)
-      {
+    } else {
+      if (isMetaDatapresent) {
         isMetaDatapresent = false;
         wCount = 0;
         wIndex = 0;
@@ -1007,7 +990,7 @@ tLSC_STATUS LSC_ReadScript(Lsc_ImageInfo_t* Os_info, uint8_t* read_buf) {
       ALOGD("%s: Length of Read Script in len_byte= 0x03 is 0x%x ", fn, wLen);
     } else {
       /*Need to provide the support if length is more than 2 bytes*/
-      ALOGE("Length recived is greater than 3");
+      ALOGE("Length received is greater than 3");
       return STATUS_FAILED;
     }
   } else {
@@ -1069,36 +1052,35 @@ tLSC_STATUS LSC_SendtoEse(Lsc_ImageInfo_t* Os_info, tLSC_STATUS status,
       }
     }
   }
-    phLS_memset(&cmdApdu, 0x00, sizeof(phNxpLs_data));
-    phLS_memset(&rspApdu, 0x00, sizeof(phNxpLs_data));
+  phLS_memset(&cmdApdu, 0x00, sizeof(phNxpLs_data));
+  phLS_memset(&rspApdu, 0x00, sizeof(phNxpLs_data));
 
-    cmdApdu.len = static_cast<int32_t>(pTranscv_Info->sSendlength);
-    cmdApdu.p_data =
-        static_cast<uint8_t*>(phLS_memalloc(cmdApdu.len * sizeof(uint8_t)));
-    memcpy(cmdApdu.p_data, pTranscv_Info->sSendData, cmdApdu.len);
+  cmdApdu.len = static_cast<int32_t>(pTranscv_Info->sSendlength);
+  cmdApdu.p_data =
+      static_cast<uint8_t*>(phLS_memalloc(cmdApdu.len * sizeof(uint8_t)));
+  memcpy(cmdApdu.p_data, pTranscv_Info->sSendData, cmdApdu.len);
 
-    transStat = LSC_Transceive(&cmdApdu, &rspApdu);
-    phLS_free(cmdApdu.p_data);
-    if (transStat != STATUS_SUCCESS) {
-      ALOGE("%s: Transceive failed; status=0x%X", fn, transStat);
-    } else {
-      if (chanl_open_cmd == true) {
-        if ((rspApdu.len == 0x03) &&
-            ((rspApdu.p_data[rspApdu.len - 2] == 0x90) &&
-             (rspApdu.p_data[rspApdu.len - 1] == 0x00))) {
-          ALOGE("open channel success");
-          const uint8_t cnt = Os_info->channel_cnt;
-          Os_info->Channel_Info[cnt].channel_id =
-              rspApdu.p_data[rspApdu.len - 3];
-          Os_info->Channel_Info[cnt].isOpend = true;
-          Os_info->channel_cnt++;
-        } else {
-          ALOGE("channel open faield");
-        }
+  transStat = LSC_Transceive(&cmdApdu, &rspApdu);
+  phLS_free(cmdApdu.p_data);
+  if (transStat != STATUS_SUCCESS) {
+    ALOGE("%s: Transceive failed; status=0x%X", fn, transStat);
+  } else {
+    if (chanl_open_cmd == true) {
+      if ((rspApdu.len == 0x03) &&
+          ((rspApdu.p_data[rspApdu.len - 2] == 0x90) &&
+           (rspApdu.p_data[rspApdu.len - 1] == 0x00))) {
+        ALOGE("open channel success");
+        const uint8_t cnt = Os_info->channel_cnt;
+        Os_info->Channel_Info[cnt].channel_id = rspApdu.p_data[rspApdu.len - 3];
+        Os_info->Channel_Info[cnt].isOpend = true;
+        Os_info->channel_cnt++;
+      } else {
+        ALOGE("channel open failed");
       }
-      memcpy(pTranscv_Info->sRecvData, rspApdu.p_data, rspApdu.len);
-      status = Process_EseResponse(pTranscv_Info, rspApdu.len, Os_info);
     }
+    memcpy(pTranscv_Info->sRecvData, rspApdu.p_data, rspApdu.len);
+    status = Process_EseResponse(pTranscv_Info, rspApdu.len, Os_info);
+  }
   ALOGD("%s: exit: status=0x%x", fn, status);
   return status;
 }
@@ -1261,7 +1243,7 @@ tLSC_STATUS LSC_ProcessResp(Lsc_ImageInfo_t* image_info, int32_t recvlen,
     if (wStatus != STATUS_FAILED) status = STATUS_OKAY;
   } else if ((recvlen > 0x02) && (sw[0] == 0x90) && (sw[1] == 0x00)) {
     tLSC_STATUS wStatus = STATUS_FAILED;
-    ALOGE("%s: Recieved success response", fn);
+    ALOGE("%s: Received success response", fn);
     gpLsc_Dwnld_Context->mchannel->parse_response(RecvData, recvlen);
     ALOGE("%s: Write Response to outfile", fn);
     wStatus = Write_Response_To_OutFile(image_info, RecvData, recvlen, tType);
@@ -1296,8 +1278,8 @@ tLSC_STATUS LSC_ProcessResp(Lsc_ImageInfo_t* image_info, int32_t recvlen,
 #ifdef NXP_BOOTTIME_UPDATE
     uint8_t respLen = 0;
     int32_t wStatus = 0;
-    fAID_MEM = fopen(AID_MEM_PATH[gpLsc_Dwnld_Context->
-      mchannel->getInterfaceInfo()], "w");
+    fAID_MEM = fopen(
+        AID_MEM_PATH[gpLsc_Dwnld_Context->mchannel->getInterfaceInfo()], "w");
 
     if (fAID_MEM == NULL) {
       ALOGE("Error opening AID data for writing: %s", strerror(errno));
@@ -1753,8 +1735,9 @@ tLSC_STATUS Check_LSRootID_Tag(uint8_t* read_buf, uint16_t* offset1) {
     if (tag42Arr[0] == read_buf[offset + 1]) {
       const uint8_t tag42Len = read_buf[offset + 1];
       offset = offset + 2;
-      if(!memcmp(&read_buf[offset], &tag42Arr[1], tag42Arr[0])) {
-        ALOGD("LSC_Check_KeyIdentifier : TAG 42 verified,"
+      if (!memcmp(&read_buf[offset], &tag42Arr[1], tag42Arr[0])) {
+        ALOGD(
+            "LSC_Check_KeyIdentifier : TAG 42 verified,"
             "Loader service root entity,"
             "ID is matched");
         offset = offset + tag42Len;
@@ -1854,7 +1837,7 @@ tLSC_STATUS Check_45_Tag(uint8_t* read_buf, uint16_t* offset1,
     *tag45Len = read_buf[offset + 1];
     offset = offset + 2;
     if (tag45Arr[0] == *tag45Len) {
-      if(!memcmp(&read_buf[offset], &tag45Arr[1], tag45Arr[0])) {
+      if (!memcmp(&read_buf[offset], &tag45Arr[1], tag45Arr[0])) {
         ALOGD("LSC_Check_KeyIdentifier : TAG 45 verified");
         *offset1 = offset;
         return STATUS_OKAY;
@@ -2037,9 +2020,9 @@ tLSC_STATUS Check_Complete_7F21_Tag(Lsc_ImageInfo_t* Os_info,
           if (STATUS_OKAY == Check_Date_Tag(read_buf, offset)) {
             uint8_t tag45Len = 0;
             if (STATUS_OKAY == Check_45_Tag(read_buf, offset, &tag45Len)) {
-              if (STATUS_OKAY == Certificate_Verification(Os_info, pTranscv_Info,
-                                                        read_buf, offset,
-                                                        &tag45Len)) {
+              if (STATUS_OKAY ==
+                  Certificate_Verification(Os_info, pTranscv_Info, read_buf,
+                                           offset, &tag45Len)) {
                 return STATUS_OKAY;
               }
             } else {
@@ -2108,8 +2091,8 @@ tLSC_STATUS Get_LsStatus(uint8_t* pStatus) {
   tLSC_STATUS status = STATUS_FAILED;
   uint8_t lsStatus[2] = {0x63, 0x40};
   uint8_t loopcnt = 0;
-  fLS_STATUS = fopen(LS_STATUS_PATH[gpLsc_Dwnld_Context
-    ->mchannel->getInterfaceInfo()], "r");
+  fLS_STATUS = fopen(
+      LS_STATUS_PATH[gpLsc_Dwnld_Context->mchannel->getInterfaceInfo()], "r");
 
   if (fLS_STATUS == NULL) {
     ALOGE("Error opening LS Status file for backup: %s", strerror(errno));
@@ -2128,17 +2111,16 @@ tLSC_STATUS Get_LsStatus(uint8_t* pStatus) {
   return STATUS_OKAY;
 }
 #endif
-static tLSC_STATUS LSC_Transceive(phNxpLs_data* pCmd, phNxpLs_data* pRsp)
-{
+static tLSC_STATUS LSC_Transceive(phNxpLs_data* pCmd, phNxpLs_data* pRsp) {
   bool stat = false;
   tLSC_STATUS status = STATUS_FAILED;
   int32_t recvBufferActualSize = 0;
-  IChannel_t *mchannel = gpLsc_Dwnld_Context->mchannel;
+  IChannel_t* mchannel = gpLsc_Dwnld_Context->mchannel;
   Lsc_TranscieveInfo_t* pTranscv_Info = &gpLsc_Dwnld_Context->Transcv_Info;
 
   pTranscv_Info->timeout = gTransceiveTimeout;
   pTranscv_Info->sSendlength = static_cast<int32_t>(pCmd->len);
-  pTranscv_Info->sRecvlength = 1024;//(int32_t)sizeof(int32_t);
+  pTranscv_Info->sRecvlength = 1024;  //(int32_t)sizeof(int32_t);
 
   memcpy(pTranscv_Info->sSendData, pCmd->p_data, pTranscv_Info->sSendlength);
   stat =
@@ -2146,10 +2128,9 @@ static tLSC_STATUS LSC_Transceive(phNxpLs_data* pCmd, phNxpLs_data* pRsp)
                            static_cast<int32_t>(pTranscv_Info->sSendlength),
                            pTranscv_Info->sRecvData, pTranscv_Info->sRecvlength,
                            recvBufferActualSize, pTranscv_Info->timeout);
-  if(stat == true)
-  {
+  if (stat == true) {
     pRsp->len = recvBufferActualSize;
-    //memcpy(pRsp->p_data, pTranscv_Info->sRecvData, recvBufferActualSize);
+    // memcpy(pRsp->p_data, pTranscv_Info->sRecvData, recvBufferActualSize);
     pRsp->p_data = pTranscv_Info->sRecvData;
     status = STATUS_OKAY;
   }

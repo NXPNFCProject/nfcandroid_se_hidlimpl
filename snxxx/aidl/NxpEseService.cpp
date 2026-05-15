@@ -88,7 +88,8 @@ int main() {
         ndk::SharedRefBase::make<SecureElement>();
     std::shared_ptr<VirtualISO> virtual_iso_service = nullptr;
 
-    if (GetNxpStrValue(NAME_NXP_SPI_SE_TERMINAL_NUM, terminalID, TERMINAL_LEN)) {
+    if (GetNxpStrValue(NAME_NXP_SPI_SE_TERMINAL_NUM, terminalID,
+                       TERMINAL_LEN)) {
       LOG(ERROR) << "eSETerminalId found";
       ALOGE("eSETerminalId found val = %s ", terminalID);
 
@@ -113,7 +114,8 @@ int main() {
     virtual_iso_service = ndk::SharedRefBase::make<VirtualISO>();
 
     ret = false;
-    if (GetNxpStrValue(NAME_NXP_VISO_SE_TERMINAL_NUM, terminalID, TERMINAL_LEN)) {
+    if (GetNxpStrValue(NAME_NXP_VISO_SE_TERMINAL_NUM, terminalID,
+                       TERMINAL_LEN)) {
       ALOGE("eUICCTerminalId found val = %s ", terminalID);
       ret = true;
     }

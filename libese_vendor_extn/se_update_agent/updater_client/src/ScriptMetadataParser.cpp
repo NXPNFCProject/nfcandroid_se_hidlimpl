@@ -17,11 +17,13 @@
  ******************************************************************************/
 
 #include "ScriptMetadataParser.h"
-#include <Utils.h>
 
+#include <Utils.h>
 #include <android-base/logging.h>
 #include <dirent.h>
 #include <sys/stat.h>
+
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -35,7 +37,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <algorithm>
 
 const std::vector<std::string> MANDATORY_METADATA_FIELDS_LOAD_UPDATE_SCRIPT = {
     "SEMSType", "AppletAID", "ELFAID", "ELFVersion", "PlatformID"};
@@ -493,7 +494,7 @@ ParseMetadataError FilterScripts(const std::vector<uint8_t>& chip_type) {
 void DisplayAllScriptsInfo() {
   LOG(INFO) << "Printing All scripts info";
   for (int i = 0; i < all_scripts_info.size(); i++) {
-    LOG(INFO) << i << "." << "Parital AID:"
+    LOG(INFO) << i << "." << "Partial AID:"
               << toString(all_scripts_info[i].applet_aid_partial);
     LOG(INFO) << "  preload_required : "
               << all_scripts_info[i].pre_load_required;
@@ -613,7 +614,7 @@ void CheckLoad_Or_UpdateRequired(bool* load_req, bool* update_req) {
       }
     }
     if (update_required) {
-      // if update_required is true for atleast one applet
+      // if update_required is true for at least one applet
       *update_req = true;
     }
     if (load_required) {
