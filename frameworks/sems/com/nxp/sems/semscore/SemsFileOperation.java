@@ -20,35 +20,44 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.util.Log;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Vector;
 
 public class SemsFileOperation {
   public static final String TAG = "SEMS-SemsFileOperation";
-
-  private String mRespOutlog;
+  // Use StringBuilder instead of String for log accumulation
+  private StringBuilder mRespOutlogBuilder;
   private String mEncryptedScriptDirectory = "";
   private String mOutDirectory = "";
   String mCallerPackageName;
 
   private static final byte SEMS_RESPONSE = 0x01;
-  // private static final byte SEResponse = 0x02;
   private static final byte ERROR_RESPONSE = 0x03;
-  // private static final byte SWResponse = 0x04;
   private static final byte SEMS_CERT_RESPONSE = 0x05;
   private static final byte SEMS_AUTH_RESPONSE = 0x06;
-  private static final byte SEMS_RESPONSE_LOG_TAG = 0x61;
-  private static final byte SEMS_FRAME_TYPE_TAG = 0x44; // (CERT/AUTH/SECURE_CMD frame)
   private static final byte SEMS_RESPONSE_DATA_TAG = 0x43;
+  private static final byte SEMS_FRAME_TYPE_TAG = 0x44;
+  private static final byte SEMS_RESPONSE_LOG_TAG = 0x61;
+
+  // Pre-allocated static byte arrays to avoid repeated allocations
+  private static final byte[] CERT_RESPONSE_DATA = {0x7F, 0x21};
+  private static final byte[] AUTH_RESPONSE_DATA = {0x60};
+  private static final byte[] RESPONSE_DATA = {0x40};
+  // Reusable DateTimeFormatter
+  private static final DateTimeFormatter DATE_TIME_FORMATTER =
+      DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+  // Constants for string literals
+  private static final String TIMESTAMP_PREFIX = "#######";
+  private static final String TIMESTAMP_SUFFIX = "#######\r\n";
+  private static final String LINE_SEPARATOR = "\r\n";
+  private static final String METADATA_PREFIX = "%%%";
 
   /**
    * SemsFileOperation Constructor
@@ -58,8 +67,10 @@ public class SemsFileOperation {
    * @return void.
    */
   SemsFileOperation() {
+    // Pre-allocate StringBuilder with reasonable initial capacity
+    mRespOutlogBuilder = new StringBuilder(8192);
     // Update start time stamp at beginning
-    mRespOutlog = getCurrentTimeStamp();
+    appendCurrentTimeStamp();
   }
 
   /**
@@ -71,10 +82,23 @@ public class SemsFileOperation {
    * @return String current data and time stamp.
    */
   private String getCurrentTimeStamp() {
-    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
     LocalDateTime now = LocalDateTime.now();
-    return "#######" + dtf.format(now) + "#######"
-        + "\r\n";
+    return TIMESTAMP_PREFIX + DATE_TIME_FORMATTER.format(now) + TIMESTAMP_SUFFIX;
+  }
+
+  /**
+   * Append current timestamp to log builder
+   * <br/>
+   * Used in response log for debug purpose
+   * @param void
+   *
+   * @return void
+   */
+  private void appendCurrentTimeStamp() {
+    LocalDateTime now = LocalDateTime.now();
+    mRespOutlogBuilder.append(TIMESTAMP_PREFIX)
+                      .append(DATE_TIME_FORMATTER.format(now))
+                      .append(TIMESTAMP_SUFFIX);
   }
 
   /**
@@ -87,33 +111,39 @@ public class SemsFileOperation {
    * @return void.
    */
   public void putIntoLog(byte[] what, byte type) {
-    byte[] data;
-
-    /*Skip SW "6310" as this is not relevant for debug */
-    if ((what[what.length - 2] == 0x63) && (what[what.length - 1] == 0x10)) {
+     // Early return optimization - check type first (cheaper than array access)
+    if (type == ERROR_RESPONSE) {
       return;
     }
-
+    // Early return for SW "6310" check
+    int len = what.length;
+    if (len >= 2 && what[len - 2] == 0x63 && what[len - 1] == 0x10) {
+      return;
+    }
+    // Use pre-allocated static byte arrays
+    byte[] data;
     switch (type) {
-      case ERROR_RESPONSE:
-        return;
-      default:
-        return;
       case SEMS_CERT_RESPONSE:
-        data = new byte[] {0x7F, 0x21};
+        data = CERT_RESPONSE_DATA;
         break;
       case SEMS_AUTH_RESPONSE:
-        data = new byte[] {0x60};
+        data = AUTH_RESPONSE_DATA;
         break;
       case SEMS_RESPONSE:
-        data = new byte[] {0x40};
+        data = RESPONSE_DATA;
         break;
+      default:
+        return;
     }
-
-    data = SemsTLV.make(SEMS_RESPONSE_LOG_TAG,
-        SemsUtil.append(SemsTLV.make(SEMS_RESPONSE_DATA_TAG, data),
-            SemsTLV.make(SEMS_RESPONSE_DATA_TAG, what)));
-    mRespOutlog = mRespOutlog + SemsUtil.toHexString(data) + "\r\n";
+    // Build TLV structure
+    byte[] innerTLV = SemsUtil.append(
+        SemsTLV.make(SEMS_RESPONSE_DATA_TAG, data),
+        SemsTLV.make(SEMS_RESPONSE_DATA_TAG, what)
+    );
+    byte[] outerTLV = SemsTLV.make(SEMS_RESPONSE_LOG_TAG, innerTLV);
+    // Append to StringBuilder instead of string concatenation
+    mRespOutlogBuilder.append(SemsUtil.toHexString(outerTLV))
+                      .append(LINE_SEPARATOR);
   }
 
   /**
@@ -125,20 +155,19 @@ public class SemsFileOperation {
    * otherwise SEMS_STATUS_FAILED.
    */
   public SemsStatus setDirectories(Context context) {
-    SemsStatus status = SemsStatus.SEMS_STATUS_FAILED;
-    PackageInfo pInfo;
+   SemsStatus status = SemsStatus.SEMS_STATUS_FAILED;
     PackageManager pm = context.getPackageManager();
-    String str = context.getPackageName();
+    String packageName = context.getPackageName();
+
     synchronized (SemsFileOperation.class) {
       try {
-        pInfo = pm.getPackageInfo(str, 0);
-        str = pInfo.applicationInfo.dataDir;
+        PackageInfo pInfo = pm.getPackageInfo(packageName, 0);
+        mEncryptedScriptDirectory = pInfo.applicationInfo.dataDir;
+        mOutDirectory = pInfo.applicationInfo.dataDir;
         mCallerPackageName = pInfo.packageName;
-        mEncryptedScriptDirectory = str;
-        mOutDirectory = str;
         status = SemsStatus.SEMS_STATUS_SUCCESS;
       } catch (PackageManager.NameNotFoundException e) {
-        Log.e(TAG, "Exception in setDirectories: ", e);
+        Log.e(TAG, "Package not found: " + packageName, e);
       }
     }
     return status;
@@ -176,13 +205,15 @@ public class SemsFileOperation {
     }
     Path p = getPath(mOutDirectory, scriptOut);
     // Update finish time stamp at end
-    mRespOutlog = mRespOutlog + getCurrentTimeStamp();
+    appendCurrentTimeStamp();
+    // Convert to bytes once
+    byte[] outputBytes = mRespOutlogBuilder.toString().getBytes(StandardCharsets.UTF_8);
     try {
-      Files.write(p, mRespOutlog.getBytes());
+      Files.write(p, outputBytes);
     } catch (IOException e) {
-      Log.e(TAG, "IOException during writeScriptOutfile: ");
+      Log.e(TAG, "IOException during writeScriptOutfile", e);
     }
-    return mRespOutlog.getBytes();
+    return outputBytes;
   }
 
   /**
@@ -198,13 +229,16 @@ public class SemsFileOperation {
       Log.e(TAG, "writeScriptInputFile: scriptBuffer or filename is null");
       return null;
     }
+
     Path p = getPath(mOutDirectory, filename);
+    byte[] bufferBytes = scriptBuffer.getBytes(StandardCharsets.UTF_8);
+
     try {
-      Files.write(p, scriptBuffer.getBytes());
+      Files.write(p, bufferBytes);
     } catch (IOException e) {
-      Log.e(TAG, "IOException during writeScriptInputFile: ");
+      Log.e(TAG, "IOException during writeScriptInputFile", e);
     }
-    return scriptBuffer.getBytes();
+    return bufferBytes;
   }
 
   /**
@@ -215,25 +249,22 @@ public class SemsFileOperation {
    *
    * @return String plain script with metadata removed.
    */
-
   public String readScriptFile(String scriptIn) throws Exception {
     Path p = getPath(mEncryptedScriptDirectory, scriptIn);
-    String script = "";
-    Iterator<String> i;
-    try {
-      List<String> lines = Files.readAllLines(p, Charset.defaultCharset());
-      i = lines.iterator();
-      while (i.hasNext()) {
-        String s = i.next();
-        if (!s.startsWith("%%%")) {
-          script += s;
+    StringBuilder script = new StringBuilder(4096);
+
+    try (BufferedReader reader = Files.newBufferedReader(p, StandardCharsets.UTF_8)) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        if (!line.startsWith(METADATA_PREFIX)) {
+          script.append(line);
         }
       }
     } catch (IOException e) {
-      Log.e(TAG, "IOException during reading script: ");
-      throw new Exception();
+      Log.e(TAG, "IOException during reading script", e);
+      throw new Exception("Failed to read script file", e);
     }
-    return script;
+    return script.toString();
   }
 
   /**
@@ -244,6 +275,6 @@ public class SemsFileOperation {
    * @return String response log buffer.
    */
   public String getRespOutLog() {
-    return mRespOutlog;
+    return mRespOutlogBuilder.toString();
   }
 }
