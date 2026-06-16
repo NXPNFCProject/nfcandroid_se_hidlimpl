@@ -87,7 +87,7 @@ static void printSeHalVersion() {
   validation |= (NXP_EN_SN330U << 18);
   validation |= (NXP_EN_PN557 << 11);
 
-  NXP_LOG_ESE_D("SE HAL Version: NFC_AR_%02X_%05X_%02d.%02x.%02x_TC3",
+  NXP_LOG_ESE_D("SE HAL Version: NFC_AR_%02X_%05X_%02d.%02x.%02x_TC4",
                 NFC_NXP_MW_CUSTOMER_ID, validation, NFC_NXP_MW_ANDROID_VER,
                 NFC_NXP_MW_VERSION_MAJ, NFC_NXP_MW_VERSION_MIN);
 }
