@@ -367,8 +367,10 @@ ESESTATUS phNxpEse_open(phNxpEse_initParams initParams) {
   wConfigStatus = phPalEse_open_and_configure(&tPalConfig, (void*)&nxpese_ctxt);
   if (wConfigStatus != ESESTATUS_SUCCESS) {
     NXP_LOG_ESE_E("phPalEse_Init Failed");
-    if (ESESTATUS_DRIVER_BUSY == wConfigStatus)
+    if (ESESTATUS_DRIVER_BUSY == wConfigStatus) {
       NXP_LOG_ESE_E("Ese Driver is Busy!!!");
+      return ESESTATUS_DRIVER_BUSY;
+    }
     goto clean_and_return;
   }
   /* Copying device handle to ESE Lib context*/
