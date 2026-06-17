@@ -30,7 +30,7 @@
  ** See the License for the specific language governing permissions and
  ** limitations under the License.
  **
- ** Copyright 2022-2023, 2025 NXP
+ ** Copyright 2022-2023, 2025-2026 NXP
  **
  *********************************************************************************/
 #pragma once
